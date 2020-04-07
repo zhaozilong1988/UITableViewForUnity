@@ -94,14 +94,14 @@ namespace UITableViewForUnity
 			return FindIndexOfRowAtPosition(position, 0, _cellHolders.Count);
 		}
 
-		private int FindIndexOfRowAtPosition(float position, int startIndex, int endIndex)
+		private int FindIndexOfRowAtPosition(float position, int startIndex, int length)
 		{
-			while (startIndex < endIndex)
+			while (startIndex < length)
 			{
-				int midIndex = (startIndex + endIndex) / 2;
+				int midIndex = (startIndex + length) / 2;
 				if (_cellHolders[midIndex].deltaPosition > position)
 				{
-					endIndex = midIndex;
+					length = midIndex;
 					continue;
 				}
 
