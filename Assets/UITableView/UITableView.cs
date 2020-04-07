@@ -283,6 +283,7 @@ namespace UITableViewForUnity
 				else if (cellsQueue.Count > 0)
 				{
 					cell = cellsQueue.Dequeue() as T;
+					cell.isReused = true;
 					return cell;
 				}
 			}
@@ -290,6 +291,7 @@ namespace UITableViewForUnity
 			cell = Instantiate(cellPrefab);
 			cell.reuseIdentifier = reuseIdentifier;
 			cell.isAutoResize = isAutoResize;
+			cell.isReused = false;
 
 			return cell;
 		}
