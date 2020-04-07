@@ -150,6 +150,7 @@ namespace UITableViewForUnity
 
 #if UNITY_EDITOR
 				_cellsPoolTransform.name = $"ReusableCells({_cellsPoolTransform.childCount})";
+				cell.gameObject.name = cell.reuseIdentifier;
 #endif
 			}
 			else
@@ -216,10 +217,15 @@ namespace UITableViewForUnity
 				ReuseOrCreateCell(i);
 			}
 
+#if UNITY_EDITOR
+			if (_visibleStartIndex != startIndex || _visibleEndIndex != endIndex)
+			{
+				_scrollRect.content.name = $"Content({startIndex}~{endIndex})";
+			}
+#endif
+
 			_visibleStartIndex = startIndex;
 			_visibleEndIndex = endIndex;
-
-			Debug.Log($"index: {startIndex} ~ {endIndex}");
 		}
 
 		private void ReuseOrCreateCell(int index)
@@ -256,6 +262,7 @@ namespace UITableViewForUnity
 			this.lifecycle?.CellAtIndexInTableViewDidAppear(this, index, cell.isReused);
 #if UNITY_EDITOR
 			_cellsPoolTransform.name = $"ReusableCells({_cellsPoolTransform.childCount})";
+			cell.gameObject.name = $"{index}_{cell.reuseIdentifier}";
 #endif
 		}
 
