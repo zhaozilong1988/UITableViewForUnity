@@ -63,28 +63,26 @@ namespace UITableViewForUnity
 			_cellsPoolTransform.SetParent(_scrollRect.transform);
 		}
 
-		private void OnScrollPositionChanged(Vector2 scrollPosition)
+		private void OnScrollPositionChanged(Vector2 normalizedPosition)
 		{
-			float normalizedPosition, contentLength, viewportLength;
+			var contentSize = _scrollRect.content.sizeDelta; 
+			var viewportSize = _scrollRectTransform.sizeDelta;
+			var startPosition = (Vector2.one - normalizedPosition) * (contentSize - viewportSize);
+			var endPosition = startPosition + viewportSize;
+			int startIndex, endIndex;
 			switch (_direction)
 			{
 				case Direction.Vertical:
-					normalizedPosition = scrollPosition.y;
-					contentLength = _scrollRect.content.sizeDelta.y;
-					viewportLength = _scrollRectTransform.sizeDelta.y;
+					startIndex = FindIndexOfRowAtPosition(startPosition.y);
+					endIndex = FindIndexOfRowAtPosition(endPosition.y);
 					break;
 				case Direction.Horizontal:
-					normalizedPosition = scrollPosition.x;
-					contentLength = _scrollRect.content.sizeDelta.x;
-					viewportLength = _scrollRectTransform.sizeDelta.x;
+					startIndex = FindIndexOfRowAtPosition(startPosition.x);
+					endIndex = FindIndexOfRowAtPosition(endPosition.x);
 					break;
 				default:
 					throw new ArgumentOutOfRangeException();
 			}
-			var startPosition = (1f - normalizedPosition) * (contentLength - viewportLength);
-			var endPosition = startPosition + viewportLength;
-			var startIndex = FindIndexOfRowAtPosition(startPosition);
-			var endIndex = FindIndexOfRowAtPosition(endPosition);
 
 			ReloadVisibleCells(startIndex, endIndex);
 		}
@@ -159,7 +157,7 @@ namespace UITableViewForUnity
 			}
 		}
 
-		private void ResetCellHolders()
+		private void Reset()
 		{
 			int curCount = _cellHolders.Count;
 			int newCount = this.dataSource.NumberOfCellsInTableView(this);
@@ -270,7 +268,7 @@ namespace UITableViewForUnity
 			if (this.dataSource == null)
 				throw new Exception("DataSource can not be null!");
 
-			ResetCellHolders();
+			Reset();
 			OnScrollPositionChanged(_scrollRect.normalizedPosition);
 		}
 
