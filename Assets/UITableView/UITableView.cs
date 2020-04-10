@@ -139,9 +139,7 @@ namespace UITableViewForUnity
 				// enqueue
 				bool isExist = _reusableCellsPool.TryGetValue(cell.reuseIdentifier, out var cellsQueue);
 				if (!isExist) 
-				{ 
 					throw new Exception("Queue is not existing."); 
-				}
 
 				this.lifecycle?.CellAtIndexInTableViewWillDisappear(this, index, true);
 				cellsQueue.Enqueue(cell);
@@ -219,9 +217,7 @@ namespace UITableViewForUnity
 
 #if UNITY_EDITOR
 			if (_visibleStartIndex != startIndex || _visibleEndIndex != endIndex)
-			{
 				_scrollRect.content.name = $"Content({startIndex}~{endIndex})";
-			}
 #endif
 
 			_visibleStartIndex = startIndex;
@@ -232,9 +228,8 @@ namespace UITableViewForUnity
 		{
 			var holder = _cellHolders[index];
 			if (holder.cell != null)
-			{
 				return;
-			}
+
 			var cell = this.dataSource.CellAtIndexInTableView(this, index);
 			cell.transform.SetParent(_scrollRect.content);
 			Vector2 position, sieDelta = cell.rectTransform.sizeDelta;
@@ -266,6 +261,10 @@ namespace UITableViewForUnity
 #endif
 		}
 
+		/// <summary>
+		/// Recycle or destroy all appearing cells then reposition them.
+		/// </summary>
+		/// <exception cref="Exception">When data source is null.</exception>
 		public void ReloadData()
 		{
 			if (this.dataSource == null)
@@ -275,6 +274,14 @@ namespace UITableViewForUnity
 			OnScrollPositionChanged(_scrollRect.normalizedPosition);
 		}
 
+		/// <summary>
+		/// Dequeue a caching cell with reuse identifier, or instantiate a new one.
+		/// </summary>
+		/// <param name="cellPrefab">Cell's prefab that inherit from UITableView</param>
+		/// <param name="reuseIdentifier">The cell will be put into reuse queue if reuse identifier is not null, or will be destroyed when cell is disappeared.</param>
+		/// <param name="isAutoResize">The cell will be expanded when appearing if isAutoResize is true, or not if false.</param>
+		/// <typeparam name="T">Type of cell</typeparam>
+		/// <returns></returns>
 		public T DequeueOrCreateCell<T>(T cellPrefab, string reuseIdentifier, bool isAutoResize) where T : UITableViewCell
 		{
 			T cell;
@@ -303,14 +310,18 @@ namespace UITableViewForUnity
 			return cell;
 		}
 
+		/// <summary>
+		/// Return cell at index if it's type is T, or return null.
+		/// </summary>
+		/// <param name="index">Index of cell</param>
+		/// <typeparam name="T">Type of UITableViewCell</typeparam>
+		/// <returns>The appearing cell or null</returns>
+		/// <exception cref="IndexOutOfRangeException">Index is out of length of cells</exception>
+		/// <exception cref="ArgumentException">Cell at index is not type of T</exception>
 		public T GetAppearingCell<T>(int index) where T : UITableViewCell
 		{
 			if (index < 0 || _cellHolders.Count - 1 < index)
 				throw new IndexOutOfRangeException("Index is less than 0 or more than count of cells.");
-
-			var cell = _cellHolders[index].cell;
-			if (cell == null)
-				throw new ArgumentOutOfRangeException($"Cell at index:{index} is not appearing.");
 
 			var tCell = _cellHolders[index].cell as T;
 			if (tCell == null)
@@ -319,6 +330,10 @@ namespace UITableViewForUnity
 			return tCell;
 		}
 
+		/// <summary>
+		/// Return all appearing cells.
+		/// </summary>
+		/// <returns>All appearing cells</returns>
 		public IEnumerable<UITableViewCell> GetAllAppearingCells()
 		{
 			foreach (var holder in _cellHolders)
