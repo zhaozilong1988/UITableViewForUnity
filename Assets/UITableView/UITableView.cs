@@ -273,6 +273,34 @@ namespace UITableViewForUnity
 		}
 
 		/// <summary>
+		/// Append cells to table view.
+		/// </summary>
+		public void AppendData()
+		{
+			var oldAnchoredPosition = _scrollRect.content.anchoredPosition;
+
+			Reset();
+			_scrollRect.content.anchoredPosition = oldAnchoredPosition;
+			OnScrollPositionChanged(_scrollRect.normalizedPosition);
+		}
+
+		/// <summary>
+		/// Prepend cells to table view
+		/// </summary>
+		public void PrependData()
+		{
+			var content = _scrollRect.content;
+			var oldContentSize = content.sizeDelta;
+			var oldAnchoredPosition = content.anchoredPosition;
+
+			Reset();
+			var newContentSize = content.sizeDelta;
+			var deltaSize = newContentSize - oldContentSize;
+			_scrollRect.content.anchoredPosition = oldAnchoredPosition + deltaSize;
+			OnScrollPositionChanged(_scrollRect.normalizedPosition);
+		}
+
+		/// <summary>
 		/// Dequeue a caching cell with reuse identifier, or instantiate a new one.
 		/// </summary>
 		/// <param name="cellPrefab">Cell's prefab that inherit from UITableView</param>
@@ -306,6 +334,29 @@ namespace UITableViewForUnity
 			cell.isReused = false;
 
 			return cell;
+		}
+
+		/// <summary>
+		/// Move to cell at index.
+		/// </summary>
+		/// <param name="index">Index of cell at</param>
+		public void MoveToCellAtIndex(int index)
+		{
+			var contentSize = _scrollRect.content.sizeDelta; 
+			var viewportSize = _scrollRectTransform.sizeDelta;
+			Vector2 startPosition;
+			switch (_direction)
+			{
+				case Direction.Vertical:
+					startPosition = new Vector2(0f, _cellHolders[index].deltaPosition);
+					break;
+				case Direction.Horizontal:
+					startPosition = new Vector2(_cellHolders[index].deltaPosition, 0f);
+					break;
+				default:
+					throw new ArgumentOutOfRangeException();
+			}
+			_scrollRect.normalizedPosition = Vector2.one - (startPosition / (contentSize - viewportSize));
 		}
 
 		/// <summary>
