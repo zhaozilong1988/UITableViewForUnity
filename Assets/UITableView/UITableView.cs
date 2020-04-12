@@ -229,16 +229,17 @@ namespace UITableViewForUnity
 				return;
 
 			var cell = this.dataSource.CellAtIndexInTableView(this, index);
-			cell.transform.SetParent(_scrollRect.content);
-			Vector2 position, sieDelta = cell.rectTransform.sizeDelta;
+			var cellRectTransform = cell.rectTransform;
+			cellRectTransform.SetParent(_scrollRect.content);
+			Vector2 position, sieDelta = cellRectTransform.sizeDelta;
 			switch (_direction)
 			{
 				case Direction.Vertical:
-					position = new Vector2(0f, _scrollRect.content.sizeDelta.y * cell.rectTransform.anchorMax.y - holder.deltaPosition - (1f - cell.rectTransform.pivot.y) * holder.length);
+					position = new Vector2(0f, _scrollRect.content.sizeDelta.y * cellRectTransform.anchorMax.y - holder.deltaPosition - (1f - cellRectTransform.pivot.y) * holder.length);
 					sieDelta.y = holder.length;
 					break;
 				case Direction.Horizontal:
-					position = new Vector2(_scrollRect.content.sizeDelta.x * cell.rectTransform.anchorMax.x - holder.deltaPosition - (1f - cell.rectTransform.pivot.x) * holder.length, 0f);
+					position = new Vector2(_scrollRect.content.sizeDelta.x * cellRectTransform.anchorMax.x - holder.deltaPosition - (1f - cellRectTransform.pivot.x) * holder.length, 0f);
 					sieDelta.x = holder.length;
 					break;
 				default:
@@ -342,21 +343,22 @@ namespace UITableViewForUnity
 		/// <param name="index">Index of cell at</param>
 		public void MoveToCellAtIndex(int index)
 		{
-			var contentSize = _scrollRect.content.sizeDelta; 
-			var viewportSize = _scrollRectTransform.sizeDelta;
-			Vector2 startPosition;
+			if (index > _cellHolders.Count - 1 || index < 0)
+				throw new IndexOutOfRangeException("Index must be less than cells' count and more than zero.");
+
+			var normalizedPosition = _scrollRect.normalizedPosition;
 			switch (_direction)
 			{
 				case Direction.Vertical:
-					startPosition = new Vector2(0f, _cellHolders[index].deltaPosition);
+					normalizedPosition.y = 1f - (_cellHolders[index].deltaPosition / _scrollRect.content.sizeDelta.y - _scrollRectTransform.sizeDelta.y);
 					break;
 				case Direction.Horizontal:
-					startPosition = new Vector2(_cellHolders[index].deltaPosition, 0f);
+					normalizedPosition.x = 1f - (_cellHolders[index].deltaPosition / _scrollRect.content.sizeDelta.x - _scrollRectTransform.sizeDelta.x);
 					break;
 				default:
 					throw new ArgumentOutOfRangeException();
 			}
-			_scrollRect.normalizedPosition = Vector2.one - (startPosition / (contentSize - viewportSize));
+			_scrollRect.normalizedPosition = normalizedPosition;
 		}
 
 		/// <summary>
