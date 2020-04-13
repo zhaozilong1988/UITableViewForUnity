@@ -36,6 +36,8 @@ namespace UITableViewForUnity
 
 		[SerializeField]
 		private Direction _direction = Direction.Vertical;
+		[SerializeField]
+		public int tag = 0;
 
 		protected virtual void Awake()
 		{
