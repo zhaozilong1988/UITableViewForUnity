@@ -177,7 +177,7 @@ namespace UITableViewForUnity
 				cumulativeLength += holder.length;
 			}
 
-			for (int i = curCount; i >= newCount; i--)
+			for (int i = curCount; i > newCount; i--)
 			{
 				var holder = _cellHolders[i];
 				RecycleOrDestroyCell(holder.cell, i);
