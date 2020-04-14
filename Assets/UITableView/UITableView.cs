@@ -226,6 +226,9 @@ namespace UITableViewForUnity
 
 		private void ReuseOrCreateCell(int index)
 		{
+			if (index > _cellHolders.Count - 1 || index < 0)
+				throw new IndexOutOfRangeException("Index must be less than cells' count and more than zero.");
+
 			var holder = _cellHolders[index];
 			if (holder.cell != null)
 				return;
