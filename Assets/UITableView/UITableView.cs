@@ -355,10 +355,10 @@ namespace UITableViewForUnity
 			switch (_direction)
 			{
 				case Direction.Vertical:
-					normalizedPosition.y = 1f - (_cellHolders[index].deltaPosition / _scrollRect.content.sizeDelta.y - _scrollRectTransform.sizeDelta.y);
+					normalizedPosition.y = 1f - _cellHolders[index].deltaPosition / (_scrollRect.content.sizeDelta.y - _scrollRectTransform.sizeDelta.y);
 					break;
 				case Direction.Horizontal:
-					normalizedPosition.x = 1f - (_cellHolders[index].deltaPosition / _scrollRect.content.sizeDelta.x - _scrollRectTransform.sizeDelta.x);
+					normalizedPosition.x = 1f - _cellHolders[index].deltaPosition / (_scrollRect.content.sizeDelta.x - _scrollRectTransform.sizeDelta.x);
 					break;
 				default:
 					throw new ArgumentOutOfRangeException();
