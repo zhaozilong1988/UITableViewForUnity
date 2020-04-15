@@ -1,4 +1,5 @@
-﻿using UITableViewForUnity;
+﻿using System;
+using UITableViewForUnity;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -18,23 +19,77 @@ public class SampleImageCell : UITableViewCell
 	private Color _deepOrange;
 	[SerializeField]
 	private Color _paleOrange;
+	[SerializeField]
+	private Color _deepRed;
+	[SerializeField]
+	private Color _paleRed;
+	[SerializeField]
+	private Image _frameImage;
+	[SerializeField]
+	private Sprite[] _monsterSprites;
+	[SerializeField]
+	private Image[] _rarityImages;
 
-	public void UpdateData(int cellIndex, int selectedTabIndex)
+	private Action<bool> _onAddToFavoriteClicked;
+	private SampleData _sampleData;
+	private int _selectedTabIndex;
+
+	public void UpdateData(int cellIndex, int selectedTabIndex, SampleData sampleData)
 	{
+		_selectedTabIndex = selectedTabIndex;
+		_sampleData = sampleData;
 		_indexText.text = cellIndex.ToString();
-		foreach (var img in _deepColorImages)
+
+		UpdateBackgroundColor();
+
+		_frameImage.sprite = _monsterSprites[cellIndex % 9];
+		_frameImage.SetNativeSize();
+		var frameRect = _frameImage.rectTransform;
+		var scale = 100f / frameRect.sizeDelta.x;
+		frameRect.localScale = new Vector3(scale, scale);
+
+		foreach (var rarityImage in _rarityImages)
 		{
-			img.color = selectedTabIndex == 0 ? _deepGreen : _deepOrange;
+			rarityImage.enabled = false;
 		}
-		
-		foreach (var img in _paleColorImages)
+		for (int i = 0; i < sampleData.rarity; i++)
 		{
-			img.color = selectedTabIndex == 0 ? _paleGreen : _paleOrange;
+			_rarityImages[i].enabled = true;
 		}
 	}
 
-	public void OnClickButton()
+	private void UpdateBackgroundColor()
 	{
-		
+		Color deepColor, paleColor;
+		if (_sampleData.isFavorite)
+		{
+			deepColor = _deepRed;
+			paleColor = _paleRed;
+		}
+		else if (_selectedTabIndex == 0)
+		{
+			deepColor = _deepGreen;
+			paleColor = _paleGreen;
+		}
+		else
+		{
+			deepColor = _deepOrange;
+			paleColor = _paleOrange;
+		}
+
+		foreach (var img in _deepColorImages)
+		{
+			img.color = deepColor;
+		}
+		foreach (var img in _paleColorImages)
+		{
+			img.color = paleColor;
+		}
+	}
+
+	public void OnClickAddToFavoriteButton()
+	{
+		_sampleData.isFavorite = !_sampleData.isFavorite;
+		UpdateBackgroundColor();
 	}
 }
