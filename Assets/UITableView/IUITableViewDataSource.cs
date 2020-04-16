@@ -4,6 +4,6 @@
 	{
 		UITableViewCell CellAtIndexInTableView(UITableView tableView, int index);
 		int NumberOfCellsInTableView(UITableView tableView);
-		float LengthForCellInTableView(UITableView tableView, int index);
+		float ScalarForCellInTableView(UITableView tableView, int index);
 	}
 }
