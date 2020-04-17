@@ -254,7 +254,7 @@ namespace UITableViewForUnity
 			}
 
 			var cell = holder.loadedCell;
-			if (isReusedOrCreatedCell || alwaysRearrangeCell)
+			if (isReusedOrCreatedCell || alwaysRearrangeCell || cell.usageType == UITableViewCellUsageType.NeverUnload)
 			{
 				var cellRectTransform = cell.rectTransform;
 				Vector2 dstAnchoredPosition, dstSizeDelta = cellRectTransform.sizeDelta;
