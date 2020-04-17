@@ -2,6 +2,13 @@
 
 namespace UITableViewForUnity
 {
+	public enum UITableViewCellUsageType
+	{
+		Reuse,
+		NeverUnload,
+		DestroyWhenDisappeared,
+	}
+
 	public class UITableViewCell : MonoBehaviour
 	{
 		public RectTransform rectTransform { get; private set; }
@@ -9,9 +16,7 @@ namespace UITableViewForUnity
 		public string reuseIdentifier { get; set; }
 		public bool isAutoResize { get; set; }
 
-		public bool isReusable => !string.IsNullOrEmpty(reuseIdentifier);
-
-		public bool isReused { get; set; }
+		public UITableViewCellUsageType usageType { get; set; }
 
 		protected virtual void Awake()
 		{

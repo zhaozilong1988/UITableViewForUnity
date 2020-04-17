@@ -25,6 +25,8 @@ namespace UITableViewForUnity
 			public UITableViewCell loadedCell { get; set; }
 			public float scalar { get; set; }
 			public float position { get; set; }
+			public UITableViewCellUsageType usageType { get; set; }
+			public bool isAutoResize { get; set; }
 		}
 		private enum Direction
 		{
@@ -152,36 +154,48 @@ namespace UITableViewForUnity
 			if (cell == null)
 				return;
 
-			if (cell.isReusable)
+			switch (cell.usageType)
 			{
-				// enqueue
-				var isExist = _reusableCellQueues.TryGetValue(cell.reuseIdentifier, out var cellsQueue);
-				if (!isExist) 
-					throw new Exception("Queue is not existing."); 
+				case UITableViewCellUsageType.Reuse:
+				{
+					// enqueue
+					var isExist = _reusableCellQueues.TryGetValue(cell.reuseIdentifier, out var cellsQueue);
+					if (!isExist) 
+						throw new Exception("Queue is not existing."); 
 
-				this.@delegate?.CellAtIndexInTableViewWillDisappear(this, index, true);
-				cellsQueue.Enqueue(cell);
-				cell.transform.SetParent(_cellsPoolTransform);
-				cell.gameObject.SetActive(false);
+					this.@delegate?.CellAtIndexInTableViewWillDisappear(this, index);
+					cellsQueue.Enqueue(cell);
+					cell.transform.SetParent(_cellsPoolTransform);
+					cell.gameObject.SetActive(false);
 
 #if UNITY_EDITOR
-				_cellsPoolTransform.name = $"ReusableCells({_cellsPoolTransform.childCount})";
-				cell.gameObject.name = cell.reuseIdentifier;
+					_cellsPoolTransform.name = $"ReusableCells({_cellsPoolTransform.childCount})";
+					cell.gameObject.name = cell.reuseIdentifier;
 #endif
-			}
-			else
-			{
-				this.@delegate?.CellAtIndexInTableViewWillDisappear(this, index, false);
-				// destroy cell if non-reusable
-				Destroy(cell.gameObject);
+				}
+					break;
+				case UITableViewCellUsageType.NeverUnload:
+					break;
+				case UITableViewCellUsageType.DestroyWhenDisappeared:
+				{
+					this.@delegate?.CellAtIndexInTableViewWillDisappear(this, index);
+					// destroy cell if non-reusable
+					Destroy(cell.gameObject);
+				}
+					break;
+				default:
+					throw new ArgumentOutOfRangeException();
 			}
 		}
 
-		private void RecycleOrDestroyCells(Range outOfRange)
+		private void RecycleOrDestroyCells(Range outOfRange, bool unloadNeverUnloadCell)
 		{
 			foreach (var kvp in _loadedHolders)
 			{
 				if (kvp.Key >= outOfRange.from && kvp.Key <= outOfRange.to)
+					continue;
+
+				if (!unloadNeverUnloadCell && kvp.Value.loadedCell.usageType == UITableViewCellUsageType.NeverUnload)
 					continue;
 
 				RecycleOrDestroyCell(kvp.Value.loadedCell, kvp.Key);
@@ -208,20 +222,15 @@ namespace UITableViewForUnity
 
 		private void ReloadVisibleCells(Vector2 normalizedPosition, bool alwaysRearrangeCell)
 		{
-			var visibleRange = RecalculateVisibleRange(normalizedPosition);
-			ReloadVisibleCells(visibleRange, alwaysRearrangeCell);
-		}
-
-		private void ReloadVisibleCells(Range range, bool alwaysRearrangeCell)
-		{
+			var range = RecalculateVisibleRange(normalizedPosition);
+			
 			// recycle invisible cells
-			RecycleOrDestroyCells(range);
+			RecycleOrDestroyCells(range, false);
 
 			// reuse or create visible cells
 			for (var i = range.from; i <= range.to; i++)
 			{
 				ReuseOrCreateCell(i, alwaysRearrangeCell);
-				_loadedHolders[i] = _holders[i];
 			}
 
 #if UNITY_EDITOR
@@ -240,6 +249,7 @@ namespace UITableViewForUnity
 			{
 				holder.loadedCell = this.dataSource.CellAtIndexInTableView(this, index);
 				holder.loadedCell.rectTransform.SetParent(_scrollRect.content);
+				_loadedHolders[index] = _holders[index];
 				isReusedOrCreatedCell = true;
 			}
 
@@ -272,7 +282,7 @@ namespace UITableViewForUnity
 			if (isReusedOrCreatedCell)
 			{
 				cell.gameObject.SetActive(true);
-				this.@delegate?.CellAtIndexInTableViewDidAppear(this, index, cell.isReused);
+				this.@delegate?.CellAtIndexInTableViewDidAppear(this, index);
 #if UNITY_EDITOR
 				_cellsPoolTransform.name = $"ReusableCells({_cellsPoolTransform.childCount})";
 				cell.gameObject.name = $"{index}_{cell.reuseIdentifier}";
@@ -306,7 +316,7 @@ namespace UITableViewForUnity
 			if (this.dataSource == null)
 				throw new Exception("DataSource can not be null!");
 
-			RecycleOrDestroyCells(new Range(int.MinValue, int.MinValue));
+			RecycleOrDestroyCells(new Range(int.MinValue, int.MinValue), true);
 
 			var oldCount = _holders.Count;
 			var newCount = this.dataSource.NumberOfCellsInTableView(this);
@@ -373,15 +383,15 @@ namespace UITableViewForUnity
 		/// Dequeue a caching cell with reuse identifier, or instantiate a new one.
 		/// </summary>
 		/// <param name="cellPrefab">Cell's prefab that inherit from UITableView</param>
-		/// <param name="reuseIdentifier">The cell will be put into reuse queue if reuse identifier is not null, or will be destroyed when cell is disappeared.</param>
+		/// <param name="cellUsageType">Usage of cell</param>
 		/// <param name="isAutoResize">The cell will be expanded when appearing if isAutoResize is true, or not if false.</param>
 		/// <typeparam name="T">Type of cell</typeparam>
 		/// <returns></returns>
-		public T DequeueOrCreateCell<T>(T cellPrefab, string reuseIdentifier, bool isAutoResize) where T : UITableViewCell
+		public T DequeueOrCreateCell<T>(T cellPrefab, UITableViewCellUsageType cellUsageType = UITableViewCellUsageType.Reuse, bool isAutoResize = true) where T : UITableViewCell
 		{
 			T cell;
-			var isReusable = !string.IsNullOrEmpty(reuseIdentifier);
-			if (isReusable)
+			var reuseIdentifier = cellPrefab.GetType().ToString();
+			if (cellUsageType == UITableViewCellUsageType.Reuse)
 			{
 				var isExist = _reusableCellQueues.TryGetValue(reuseIdentifier, out var cellsQueue);
 				if (!isExist)
@@ -393,7 +403,6 @@ namespace UITableViewForUnity
 				{
 					cell = cellsQueue.Dequeue() as T;
 					Debug.Assert(cell != null, nameof(cell) + " != null");
-					cell.isReused = true;
 					return cell;
 				}
 			}
@@ -401,7 +410,7 @@ namespace UITableViewForUnity
 			cell = Instantiate(cellPrefab);
 			cell.reuseIdentifier = reuseIdentifier;
 			cell.isAutoResize = isAutoResize;
-			cell.isReused = false;
+			cell.usageType = cellUsageType;
 
 			return cell;
 		}
