@@ -25,8 +25,6 @@ namespace UITableViewForUnity
 			public UITableViewCell loadedCell { get; set; }
 			public float scalar { get; set; }
 			public float position { get; set; }
-			public UITableViewCellUsageType usageType { get; set; }
-			public bool isAutoResize { get; set; }
 		}
 		private enum Direction
 		{
@@ -88,12 +86,12 @@ namespace UITableViewForUnity
 			switch (_direction)
 			{
 				case Direction.Vertical:
-					startIndex = FindIndexOfRowAtPosition(startPosition.y);
-					endIndex = FindIndexOfRowAtPosition(endPosition.y);
+					startIndex = FindIndexOfCellAtPosition(startPosition.y);
+					endIndex = FindIndexOfCellAtPosition(endPosition.y);
 					break;
 				case Direction.Horizontal:
-					startIndex = FindIndexOfRowAtPosition(startPosition.x);
-					endIndex = FindIndexOfRowAtPosition(endPosition.x);
+					startIndex = FindIndexOfCellAtPosition(startPosition.x);
+					endIndex = FindIndexOfCellAtPosition(endPosition.x);
 					break;
 				default:
 					throw new ArgumentOutOfRangeException();
@@ -101,12 +99,12 @@ namespace UITableViewForUnity
 			return new Range(startIndex, endIndex);
 		}
 
-		private int FindIndexOfRowAtPosition(float position)
+		private int FindIndexOfCellAtPosition(float position)
 		{
-			return FindIndexOfRowAtPosition(position, 0, _holders.Count);
+			return FindIndexOfCellAtPosition(position, 0, _holders.Count);
 		}
 
-		private int FindIndexOfRowAtPosition(float position, int startIndex, int length)
+		private int FindIndexOfCellAtPosition(float position, int startIndex, int length)
 		{
 			while (startIndex < length)
 			{
@@ -116,10 +114,8 @@ namespace UITableViewForUnity
 					length = midIndex;
 					continue;
 				}
-
 				startIndex = midIndex + 1;
 			}
-
 			return Math.Max(0, startIndex - 1);
 		}
 
@@ -149,14 +145,17 @@ namespace UITableViewForUnity
 			_scrollRect.content.sizeDelta = size;
 		}
 
-		private void RecycleOrDestroyCell(UITableViewCell cell, int index)
+		private void UnloadCell(int index)
 		{
+			var holder = _holders[index];
+			var cell = holder.loadedCell;
 			if (cell == null)
 				return;
 
 			switch (cell.usageType)
 			{
 				case UITableViewCellUsageType.Reuse:
+				case UITableViewCellUsageType.NeverUnload:
 				{
 					// enqueue
 					var isExist = _reusableCellQueues.TryGetValue(cell.reuseIdentifier, out var cellsQueue);
@@ -167,20 +166,19 @@ namespace UITableViewForUnity
 					cellsQueue.Enqueue(cell);
 					cell.transform.SetParent(_cellsPoolTransform);
 					cell.gameObject.SetActive(false);
-
+					holder.loadedCell = null;
 #if UNITY_EDITOR
 					_cellsPoolTransform.name = $"ReusableCells({_cellsPoolTransform.childCount})";
 					cell.gameObject.name = cell.reuseIdentifier;
 #endif
 				}
 					break;
-				case UITableViewCellUsageType.NeverUnload:
-					break;
 				case UITableViewCellUsageType.DestroyWhenDisappeared:
 				{
 					this.@delegate?.CellAtIndexInTableViewWillDisappear(this, index);
 					// destroy cell if non-reusable
 					Destroy(cell.gameObject);
+					holder.loadedCell = null;
 				}
 					break;
 				default:
@@ -188,19 +186,19 @@ namespace UITableViewForUnity
 			}
 		}
 
-		private void RecycleOrDestroyCells(Range outOfRange, bool unloadNeverUnloadCell)
+		private void UnloadCells(Range outOfRange, bool includeNeverUnload)
 		{
 			foreach (var kvp in _loadedHolders)
 			{
 				if (kvp.Key >= outOfRange.from && kvp.Key <= outOfRange.to)
 					continue;
 
-				if (!unloadNeverUnloadCell && kvp.Value.loadedCell.usageType == UITableViewCellUsageType.NeverUnload)
+				if (!includeNeverUnload && kvp.Value.loadedCell.usageType == UITableViewCellUsageType.NeverUnload)
 					continue;
 
-				RecycleOrDestroyCell(kvp.Value.loadedCell, kvp.Key);
-				kvp.Value.loadedCell = null;
-				_swapper.Add(kvp.Key);
+				UnloadCell(kvp.Key);
+				if (kvp.Value.loadedCell == null)
+					_swapper.Add(kvp.Key);
 			}
 
 			foreach (var key in _swapper)
@@ -215,78 +213,62 @@ namespace UITableViewForUnity
 			ReloadVisibleCells(normalizedPosition, false);
 		}
 
-		private void ReloadVisibleCells(bool alwaysRearrangeCell)
-		{
-			ReloadVisibleCells(_scrollRect.normalizedPosition, alwaysRearrangeCell);
-		}
-
 		private void ReloadVisibleCells(Vector2 normalizedPosition, bool alwaysRearrangeCell)
 		{
 			var range = RecalculateVisibleRange(normalizedPosition);
-			
-			// recycle invisible cells
-			RecycleOrDestroyCells(range, false);
-
-			// reuse or create visible cells
-			for (var i = range.from; i <= range.to; i++)
-			{
-				ReuseOrCreateCell(i, alwaysRearrangeCell);
-			}
-
+			UnloadCells(range, false); // recycle invisible cells
+			LoadCells(range, alwaysRearrangeCell); // reuse or create visible cells
 #if UNITY_EDITOR
 			_scrollRect.content.name = $"Content({range.from}~{range.to})";
 #endif
 		}
 
-		private void ReuseOrCreateCell(int index, bool alwaysRearrangeCell)
+		private void LoadCells(Range range, bool alwaysRearrangeCell)
 		{
-			if (index > _holders.Count - 1 || index < 0)
-				throw new IndexOutOfRangeException("Index must be less than cells' count and more than zero.");
-
-			var holder = _holders[index];
-			var isReusedOrCreatedCell = false;
-			if (holder.loadedCell == null)
+			for (var i = range.from; i <= range.to; i++)
 			{
-				holder.loadedCell = this.dataSource.CellAtIndexInTableView(this, index);
-				holder.loadedCell.rectTransform.SetParent(_scrollRect.content);
-				_loadedHolders[index] = _holders[index];
-				isReusedOrCreatedCell = true;
-			}
-
-			var cell = holder.loadedCell;
-			if (isReusedOrCreatedCell || alwaysRearrangeCell || cell.usageType == UITableViewCellUsageType.NeverUnload)
-			{
-				var cellRectTransform = cell.rectTransform;
-				Vector2 dstAnchoredPosition, dstSizeDelta = cellRectTransform.sizeDelta;
-				switch (_direction)
+				var holder = _holders[i];
+				var isReusedOrCreatedCell = false;
+				if (holder.loadedCell == null)
 				{
-					case Direction.Vertical:
-						dstAnchoredPosition = new Vector2(0f, _scrollRect.content.sizeDelta.y * cellRectTransform.anchorMax.y - holder.position - (1f - cellRectTransform.pivot.y) * holder.scalar);
-						dstSizeDelta.y = holder.scalar;
-						break;
-					case Direction.Horizontal:
-						dstAnchoredPosition = new Vector2(_scrollRect.content.sizeDelta.x * cellRectTransform.anchorMax.x - holder.position - (1f - cellRectTransform.pivot.x) * holder.scalar, 0f);
-						dstSizeDelta.x = holder.scalar;
-						break;
-					default:
-						throw new ArgumentOutOfRangeException();
+					holder.loadedCell = this.dataSource.CellAtIndexInTableView(this, i);
+					holder.loadedCell.rectTransform.SetParent(_scrollRect.content);
+					holder.loadedCell.gameObject.SetActive(true);
+					_loadedHolders[i] = holder;
+					isReusedOrCreatedCell = true;
 				}
 
-				if (cell.isAutoResize)
+				var cell = holder.loadedCell;
+				if (isReusedOrCreatedCell || alwaysRearrangeCell || cell.usageType == UITableViewCellUsageType.NeverUnload)
 				{
-					cell.rectTransform.sizeDelta = dstSizeDelta;
+					var cellRectTransform = cell.rectTransform;
+					Vector2 dstAnchoredPosition, dstSizeDelta = cellRectTransform.sizeDelta;
+					switch (_direction)
+					{
+						case Direction.Vertical:
+							dstAnchoredPosition = new Vector2(0f, _scrollRect.content.sizeDelta.y * cellRectTransform.anchorMax.y - holder.position - (1f - cellRectTransform.pivot.y) * holder.scalar);
+							dstSizeDelta.y = holder.scalar;
+							break;
+						case Direction.Horizontal:
+							dstAnchoredPosition = new Vector2(_scrollRect.content.sizeDelta.x * cellRectTransform.anchorMax.x - holder.position - (1f - cellRectTransform.pivot.x) * holder.scalar, 0f);
+							dstSizeDelta.x = holder.scalar;
+							break;
+						default:
+							throw new ArgumentOutOfRangeException();
+					}
+					cell.rectTransform.anchoredPosition = dstAnchoredPosition;
+					if (cell.isAutoResize)
+						cell.rectTransform.sizeDelta = dstSizeDelta;
 				}
-				cell.rectTransform.anchoredPosition = dstAnchoredPosition;
-			}
 
-			if (isReusedOrCreatedCell)
-			{
-				cell.gameObject.SetActive(true);
-				this.@delegate?.CellAtIndexInTableViewDidAppear(this, index);
+				if (isReusedOrCreatedCell)
+				{
+					this.@delegate?.CellAtIndexInTableViewDidAppear(this, i);
 #if UNITY_EDITOR
-				_cellsPoolTransform.name = $"ReusableCells({_cellsPoolTransform.childCount})";
-				cell.gameObject.name = $"{index}_{cell.reuseIdentifier}";
+					_cellsPoolTransform.name = $"ReusableCells({_cellsPoolTransform.childCount})";
+					cell.gameObject.name = $"{i}_{cell.reuseIdentifier}";
 #endif
+				}
 			}
 		}
 
@@ -304,7 +286,7 @@ namespace UITableViewForUnity
 				throw new Exception("Rearrange can not be called if count is changed");
 
 			ResizeContent(newCount);
-			ReloadVisibleCells(true);
+			ReloadVisibleCells(_scrollRect.normalizedPosition, true);
 		}
 
 		/// <summary>
@@ -316,12 +298,12 @@ namespace UITableViewForUnity
 			if (this.dataSource == null)
 				throw new Exception("DataSource can not be null!");
 
-			RecycleOrDestroyCells(new Range(int.MinValue, int.MinValue), true);
+			UnloadCells(new Range(int.MinValue, int.MinValue), true);
 
 			var oldCount = _holders.Count;
 			var newCount = this.dataSource.NumberOfCellsInTableView(this);
 			var deltaCount = Mathf.Abs(oldCount - newCount);
-			for (int i = 0; i < deltaCount; i++)
+			for (var i = 0; i < deltaCount; i++)
 			{
 				if (oldCount > newCount)
 					_holders.RemoveAt(0);
@@ -330,7 +312,7 @@ namespace UITableViewForUnity
 			}
 
 			ResizeContent(newCount);
-			ReloadVisibleCells(false);
+			ReloadVisibleCells(_scrollRect.normalizedPosition, false);
 		}
 
 		/// <summary>
@@ -352,7 +334,7 @@ namespace UITableViewForUnity
 			var oldAnchoredPosition = _scrollRect.content.anchoredPosition;
 			ResizeContent(newCount);
 			_scrollRect.content.anchoredPosition = oldAnchoredPosition;
-			ReloadVisibleCells(true);
+			ReloadVisibleCells(_scrollRect.normalizedPosition, true);
 		}
 
 		/// <summary>
@@ -365,18 +347,31 @@ namespace UITableViewForUnity
 
 			var oldCount = _holders.Count;
 			var newCount = this.dataSource.NumberOfCellsInTableView(this);
-			if (oldCount > newCount)
+			var deltaCount = newCount - oldCount;
+			if (deltaCount < 0)
 				throw new Exception("Increase can not be called if count is decreased");
 
-			for (var i = 0; i < newCount - oldCount; i++)
+			
+			for (var i = 0; i < deltaCount; i++)
+			{
 				_holders.Insert(0, new UITableViewCellHolder());
+			}
+			
+			_swapper.AddRange(_loadedHolders.Keys);
+			_swapper.Sort();
+			for (var i = _swapper.Count - 1; i >= 0; i--)
+			{
+				_loadedHolders[i + deltaCount] = _loadedHolders[i];
+				_loadedHolders.Remove(i);
+			}
+			_swapper.Clear();
 
 			var content = _scrollRect.content;
 			var oldContentSize = content.sizeDelta;
 			var oldAnchoredPosition = content.anchoredPosition;
 			ResizeContent(newCount);
 			_scrollRect.content.anchoredPosition = oldAnchoredPosition + content.sizeDelta - oldContentSize;
-			ReloadVisibleCells(true);
+			ReloadVisibleCells(_scrollRect.normalizedPosition, true);
 		}
 
 		/// <summary>
@@ -387,11 +382,11 @@ namespace UITableViewForUnity
 		/// <param name="isAutoResize">The cell will be expanded when appearing if isAutoResize is true, or not if false.</param>
 		/// <typeparam name="T">Type of cell</typeparam>
 		/// <returns></returns>
-		public T DequeueOrCreateCell<T>(T cellPrefab, UITableViewCellUsageType cellUsageType = UITableViewCellUsageType.Reuse, bool isAutoResize = true) where T : UITableViewCell
+		public T ObtainCell<T>(T cellPrefab, UITableViewCellUsageType cellUsageType = UITableViewCellUsageType.Reuse, bool isAutoResize = true) where T : UITableViewCell
 		{
 			T cell;
 			var reuseIdentifier = cellPrefab.GetType().ToString();
-			if (cellUsageType == UITableViewCellUsageType.Reuse)
+			if (cellUsageType != UITableViewCellUsageType.DestroyWhenDisappeared)
 			{
 				var isExist = _reusableCellQueues.TryGetValue(reuseIdentifier, out var cellsQueue);
 				if (!isExist)
@@ -489,7 +484,6 @@ namespace UITableViewForUnity
 				var y = Mathf.Lerp(from.y, to.y, progress);
 				_scrollRect.normalizedPosition = new Vector2(x, y);
 			}
-
 			_autoScroll = null;
 		}
 
