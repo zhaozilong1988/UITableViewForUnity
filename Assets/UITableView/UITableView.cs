@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Assertions;
 using UnityEngine.UI;
 
 namespace UITableViewForUnity
@@ -342,15 +341,20 @@ namespace UITableViewForUnity
 		/// <summary>
 		/// Recycle or destroy all loaded cells then reload them again.
 		/// </summary>
-		public void ReloadData()
+		public void ReloadData(int startIndex)
 		{
 			if (dataSource == null)
 				throw new Exception("DataSource can not be null!");
+			if (startIndex < 0)
+				throw new IndexOutOfRangeException("Start index must be more than zero.");
 
 			UnloadAllCells();
 
 			var oldCount = _holders.Count;
 			var newCount = dataSource.NumberOfCellsInTableView(this);
+			if (startIndex > newCount - 1)
+				throw new IndexOutOfRangeException("Start index must be less than quantity of cell.");
+
 			var deltaCount = Mathf.Abs(oldCount - newCount);
 			for (var i = 0; i < deltaCount; i++)
 			{
@@ -361,7 +365,7 @@ namespace UITableViewForUnity
 			}
 
 			ResizeContent(newCount);
-			ReloadCells(_scrollRect.normalizedPosition, false);
+			ScrollToCellAtIndex(startIndex);
 		}
 
 		/// <summary>
@@ -381,9 +385,11 @@ namespace UITableViewForUnity
 			for (var i = 0; i < newCount - oldCount; i++)
 				_holders.Add(new UITableViewCellHolder());
 
-			var oldAnchoredPosition = _scrollRect.content.anchoredPosition;
+			var content = _scrollRect.content;
+			var oldContentSize = content.sizeDelta;
+			var oldAnchoredPosition = content.anchoredPosition;
 			ResizeContent(newCount);
-			_scrollRect.content.anchoredPosition = oldAnchoredPosition;
+			content.anchoredPosition = oldAnchoredPosition - (content.sizeDelta - oldContentSize) * (Vector2.one - content.pivot);
 			ReloadCells(_scrollRect.normalizedPosition, true);
 		}
 
@@ -419,7 +425,7 @@ namespace UITableViewForUnity
 			var oldContentSize = content.sizeDelta;
 			var oldAnchoredPosition = content.anchoredPosition;
 			ResizeContent(newCount);
-			_scrollRect.content.anchoredPosition = oldAnchoredPosition + content.sizeDelta - oldContentSize;
+			content.anchoredPosition = oldAnchoredPosition + (content.sizeDelta - oldContentSize) * content.pivot;
 			ReloadCells(_scrollRect.normalizedPosition, true);
 		}
 
@@ -462,6 +468,7 @@ namespace UITableViewForUnity
 		/// </summary>
 		/// <param name="index">Index of cell at</param>
 		/// <param name="time">Animation time</param>
+		/// <param name="onScrollingFinished">Will be called when animation is finished or interrupted.</param>
 		/// <exception cref="ArgumentException">Time is negative</exception>
 		public void ScrollToCellAtIndex(int index, float time, Action onScrollingFinished)
 		{
@@ -487,6 +494,7 @@ namespace UITableViewForUnity
 				throw new IndexOutOfRangeException("Index must be less than cells' number and more than zero.");
 
 			_scrollRect.normalizedPosition = GetNormalizedPositionOfCellAtIndex(index);
+			OnScrollPositionChanged(_scrollRect.normalizedPosition);
 		}
 
 		/// <summary>
