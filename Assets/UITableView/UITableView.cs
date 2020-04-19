@@ -27,8 +27,8 @@ namespace UITableViewForUnity
 		}
 		private enum Direction
 		{
-			Vertical = 0,
-			Horizontal = 1,
+			TopToBottom = 0,
+			RightToLeft = 1,
 		}
 
 		public IUITableViewDataSource dataSource { get; set; }
@@ -44,7 +44,7 @@ namespace UITableViewForUnity
 		private Transform _cellsPoolTransform;
 
 		[SerializeField]
-		private Direction _direction = Direction.Vertical;
+		private Direction _direction = Direction.TopToBottom;
 		/// <summary>
 		/// Tag for distinguishing table view.
 		/// </summary>
@@ -86,11 +86,11 @@ namespace UITableViewForUnity
 			int startIndex, endIndex;
 			switch (_direction)
 			{
-				case Direction.Vertical:
+				case Direction.TopToBottom:
 					startIndex = FindIndexOfCellAtPosition(startPosition.y);
 					endIndex = FindIndexOfCellAtPosition(endPosition.y);
 					break;
-				case Direction.Horizontal:
+				case Direction.RightToLeft:
 					startIndex = FindIndexOfCellAtPosition(startPosition.x);
 					endIndex = FindIndexOfCellAtPosition(endPosition.x);
 					break;
@@ -134,10 +134,10 @@ namespace UITableViewForUnity
 			var size = _scrollRect.content.sizeDelta;
 			switch (_direction)
 			{
-				case Direction.Vertical:
+				case Direction.TopToBottom:
 					size.y = cumulativeScalar;
 					break;
-				case Direction.Horizontal:
+				case Direction.RightToLeft:
 					size.x = cumulativeScalar;
 					break;
 				default:
@@ -206,11 +206,11 @@ namespace UITableViewForUnity
 			Vector2 anchoredPosition, sizeDelta = cellRectTransform.sizeDelta;
 			switch (_direction)
 			{
-				case Direction.Vertical:
+				case Direction.TopToBottom:
 					anchoredPosition = new Vector2(0f, _scrollRect.content.sizeDelta.y * cellRectTransform.anchorMax.y - holder.position - (1f - cellRectTransform.pivot.y) * holder.scalar);
 					sizeDelta.y = holder.scalar;
 					break;
-				case Direction.Horizontal:
+				case Direction.RightToLeft:
 					anchoredPosition = new Vector2(_scrollRect.content.sizeDelta.x * cellRectTransform.anchorMax.x - holder.position - (1f - cellRectTransform.pivot.x) * holder.scalar, 0f);
 					sizeDelta.x = holder.scalar;
 					break;
@@ -507,10 +507,10 @@ namespace UITableViewForUnity
 			var normalizedPosition = _scrollRect.normalizedPosition;
 			switch (_direction)
 			{
-				case Direction.Vertical:
+				case Direction.TopToBottom:
 					normalizedPosition.y = 1f - _holders[index].position / (_scrollRect.content.sizeDelta.y - _scrollRectTransform.sizeDelta.y);
 					break;
-				case Direction.Horizontal:
+				case Direction.RightToLeft:
 					normalizedPosition.x = 1f - _holders[index].position / (_scrollRect.content.sizeDelta.x - _scrollRectTransform.sizeDelta.x);
 					break;
 				default:
