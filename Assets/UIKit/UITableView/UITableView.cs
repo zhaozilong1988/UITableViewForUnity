@@ -22,12 +22,16 @@ namespace UIKit
 		private class UITableViewCellHolder
 		{
 			public UITableViewCell loadedCell { get; set; }
+			/// <summary> Height or width of the cell. </summary>
 			public float scalar { get; set; }
+			/// <summary> The position relative to scroll view's content without considering anchor. </summary>
 			public float position { get; set; }
 		}
 		private enum Direction
 		{
+			/// <summary> Index of cell at the top is zero. </summary>
 			TopToBottom = 0,
+			/// <summary> Index of cell at the rightmost is zero. </summary>
 			RightToLeft = 1,
 		}
 
@@ -45,9 +49,7 @@ namespace UIKit
 
 		[SerializeField]
 		private Direction _direction = Direction.TopToBottom;
-		/// <summary>
-		/// Tag for distinguishing table view.
-		/// </summary>
+		/// <summary> Tag for distinguishing table view. </summary>
 		[SerializeField]
 		public int tag; 
 
@@ -321,9 +323,7 @@ namespace UIKit
 			onScrollingFinished?.Invoke();
 		}
 
-		/// <summary>
-		/// Resize and reposition cells without recycle or destroy them.
-		/// </summary>
+		/// <summary> Resize and reposition cells without recycle or destroy them. </summary>
 		public void RearrangeData()
 		{
 			if (dataSource == null)
@@ -338,9 +338,7 @@ namespace UIKit
 			ReloadCells(_scrollRect.normalizedPosition, true);
 		}
 
-		/// <summary>
-		/// Recycle or destroy all loaded cells then reload them again.
-		/// </summary>
+		/// <summary> Recycle or destroy all loaded cells then reload them again. </summary>
 		/// <param name="startIndex">Table view will be scrolled to start index after data reloaded.</param>
 		public void ReloadData(int startIndex)
 		{
@@ -369,9 +367,7 @@ namespace UIKit
 			ScrollToCellAtIndex(startIndex);
 		}
 
-		/// <summary>
-		/// Append cells to table view without reload them.
-		/// </summary>
+		/// <summary> Append cells to table view without reload them. </summary>
 		/// <exception cref="Exception">AppendData() can not be called if number of cells is decreased.</exception>
 		public void AppendData()
 		{
@@ -394,9 +390,7 @@ namespace UIKit
 			ReloadCells(_scrollRect.normalizedPosition, true);
 		}
 
-		/// <summary>
-		/// Prepend cells to table view without reload them.
-		/// </summary>
+		/// <summary> Prepend cells to table view without reload them. </summary>
 		/// <exception cref="Exception">PrependData() can not be called if number of cells is decreased.</exception>
 		public void PrependData()
 		{
@@ -430,14 +424,12 @@ namespace UIKit
 			ReloadCells(_scrollRect.normalizedPosition, true);
 		}
 
-		/// <summary>
-		/// Get a cell from reuse pool or instantiate a new one.
-		/// </summary>
+		/// <summary> Get a cell from reuse pool or instantiate a new one. </summary>
 		/// <param name="prefab">A prefab which one inherited from UITableView.</param>
 		/// <param name="lifeCycle">How the cell will be when it disappeared from scroll view's viewport or data is reloaded.</param>
 		/// <param name="isAutoResize">The cell will be resized when it appearing into scroll view's viewport if isAutoResize is true, or not if false.</param>
 		/// <typeparam name="T">Type of cell</typeparam>
-		/// <returns></returns>
+		/// <returns>Subclass of UITableViewCell</returns>
 		public T ReuseOrCreateCell<T>(T prefab, UITableViewCellLifeCycle lifeCycle = UITableViewCellLifeCycle.RecycleWhenDisappeared, bool isAutoResize = true) where T : UITableViewCell
 		{
 			T cell;
@@ -464,9 +456,7 @@ namespace UIKit
 			return cell;
 		}
 
-		/// <summary>
-		/// Scroll to cell at index with animation.
-		/// </summary>
+		/// <summary> Scroll to cell at index with animation. </summary>
 		/// <param name="index">Index of cell at</param>
 		/// <param name="time">Animation time</param>
 		/// <param name="onScrollingFinished">Will be called when animation is finished or interrupted.</param>
@@ -485,9 +475,7 @@ namespace UIKit
 				StartAutoScroll(index, time, onScrollingFinished);
 		}
 
-		/// <summary>
-		/// Scroll to cell at index.
-		/// </summary>
+		/// <summary> Scroll to cell at index. </summary>
 		/// <param name="index">Index of cell at</param>
 		public void ScrollToCellAtIndex(int index)
 		{
@@ -498,9 +486,7 @@ namespace UIKit
 			OnScrollPositionChanged(_scrollRect.normalizedPosition);
 		}
 
-		/// <summary>
-		/// Return scroll view's normalized position of cell at index.
-		/// </summary>
+		/// <summary> Return scroll view's normalized position of cell at index. </summary>
 		/// <param name="index">Index of cell at</param>
 		/// <returns>Normalized position of scroll view</returns>
 		public Vector2 GetNormalizedPositionOfCellAtIndex(int index)
@@ -522,9 +508,7 @@ namespace UIKit
 			return new Vector2(x, y);
 		}
 
-		/// <summary>
-		/// Return it if the cell at index is appearing or UITableViewCellLifeCycle is set to RecycleWhenReloaded. Null will be returned if not.
-		/// </summary>
+		/// <summary> Return it if the cell at index is appearing or UITableViewCellLifeCycle is set to RecycleWhenReloaded. Null will be returned if not. </summary>
 		/// <param name="index">Index of cell at</param>
 		/// <typeparam name="T">Type of UITableViewCell</typeparam>
 		/// <returns>The loaded cell or null</returns>
@@ -545,9 +529,7 @@ namespace UIKit
 			return cell;
 		}
 
-		/// <summary>
-		/// Return all appearing cells and those whose UITableViewCellLifeCycle is set to RecycleWhenReloaded.
-		/// </summary>
+		/// <summary> Return all appearing cells and those whose UITableViewCellLifeCycle is set to RecycleWhenReloaded. </summary>
 		/// <returns>All loaded cells</returns>
 		public IEnumerable<UITableViewCell> GetAllLoadedCells()
 		{
