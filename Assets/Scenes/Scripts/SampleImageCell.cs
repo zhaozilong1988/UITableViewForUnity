@@ -33,16 +33,18 @@ public class SampleImageCell : UITableViewCell
 	private Action<bool> _onAddToFavoriteClicked;
 	private SampleData _sampleData;
 	private int _selectedTabIndex;
+	private int _cellIndex;
 
 	public void UpdateData(int cellIndex, int selectedTabIndex, SampleData sampleData)
 	{
 		_selectedTabIndex = selectedTabIndex;
 		_sampleData = sampleData;
 		_indexText.text = cellIndex.ToString();
+		_cellIndex = cellIndex;
 
 		UpdateBackgroundColor();
 
-		_frameImage.sprite = _monsterSprites[cellIndex % 9];
+		_frameImage.sprite = _monsterSprites[sampleData.spriteIndex];
 		_frameImage.SetNativeSize();
 		var frameRect = _frameImage.rectTransform;
 		var scale = 100f / frameRect.sizeDelta.x;
@@ -91,5 +93,11 @@ public class SampleImageCell : UITableViewCell
 	{
 		_sampleData.isFavorite = !_sampleData.isFavorite;
 		UpdateBackgroundColor();
+	}
+
+	public void OnClickExpendButton()
+	{
+		_sampleData.isExpended = !_sampleData.isExpended;
+		_sampleData.onExpend?.Invoke(_cellIndex);
 	}
 }
