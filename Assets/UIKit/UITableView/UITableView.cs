@@ -212,7 +212,7 @@ namespace UIKit
 			holder.loadedCell.rectTransform.SetParent(_scrollRect.content);
 			holder.loadedCell.gameObject.SetActive(true);
 			RearrangeCell(index);
-			@delegate?.CellAtIndexInTableViewDidAppear(this, index);
+			@delegate?.CellAtIndexInTableViewWillAppear(this, index);
 #if UNITY_EDITOR
 			_cellsPoolTransform.name = $"ReusableCells({_cellsPoolTransform.childCount})";
 			holder.loadedCell.gameObject.name = $"{index}_{holder.loadedCell.reuseIdentifier}";
@@ -259,7 +259,7 @@ namespace UIKit
 			var cell = holder.loadedCell;
 			Debug.Assert(cell != null, nameof(cell) + " != null");
 			holder.loadedCell = null;
-			@delegate?.CellAtIndexInTableViewWillDisappear(this, index);
+			@delegate?.CellAtIndexInTableViewDidDisappear(this, index);
 			switch (cell.lifeCycle)
 			{
 				case UITableViewCellLifeCycle.RecycleWhenDisappeared:
