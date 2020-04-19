@@ -341,6 +341,7 @@ namespace UITableViewForUnity
 		/// <summary>
 		/// Recycle or destroy all loaded cells then reload them again.
 		/// </summary>
+		/// <param name="startIndex">Table view will be scrolled to start index after data reloaded.</param>
 		public void ReloadData(int startIndex)
 		{
 			if (dataSource == null)
