@@ -3,11 +3,13 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
 namespace UIKit
 {
+	[DisallowMultipleComponent]
 	[RequireComponent(typeof(ScrollRect))]
-	public class UITableView : MonoBehaviour
+	public class UITableView : UIBehaviour
 	{
 		private struct Range
 		{
@@ -38,14 +40,18 @@ namespace UIKit
 		public IUITableViewDataSource dataSource { get; set; }
 		public IUITableViewDelegate @delegate { get; set; }
 
-		private readonly List<UITableViewCellHolder> _holders = new List<UITableViewCellHolder>();
+		private readonly List<UITableViewCellHolder> _holders = new List<UITableViewCellHolder>(); // all holders
+		/// <summary> Appearing cells and those whose UITableViewLifeCycle is set to RecycleWhenReloaded.</summary>
 		private readonly Dictionary<int, UITableViewCellHolder> _loadedHolders = new Dictionary<int, UITableViewCellHolder>();
-		private readonly List<int> _swapper = new List<int>(); // swapper for _loadedHolder
+		/// <summary> Helper for modifying dictionary of _loadedHolders.</summary>
+		private readonly List<int> _swapper = new List<int>();
 		private ScrollRect _scrollRect;
 		private RectTransform _scrollRectTransform;
 		private Coroutine _autoScroll;
 		private readonly Dictionary<string, Queue<UITableViewCell>> _reusableCellQueues = new Dictionary<string, Queue<UITableViewCell>>();
 		private Transform _cellsPoolTransform;
+		private bool _isReloaded;
+		private Vector2 _normalizedPositionWhenReloaded;
 
 		[SerializeField]
 		private Direction _direction = Direction.TopToBottom;
@@ -53,10 +59,22 @@ namespace UIKit
 		[SerializeField]
 		public int tag; 
 
-		protected virtual void Awake()
+		protected override void Awake()
 		{
 			InitializeScrollRect();
 			InitializeCellsPool();
+		}
+
+		protected void Update()
+		{
+			// Read the WORKAROUND which is written in summary of Reload().
+			if (_isReloaded)
+			{
+				if (_scrollRect.normalizedPosition == _normalizedPositionWhenReloaded)
+					return;
+				_isReloaded = false;
+				OnScrollPositionChanged(_scrollRect.normalizedPosition);
+			}
 		}
 
 		private void InitializeScrollRect()
@@ -201,29 +219,6 @@ namespace UIKit
 #endif
 		}
 
-		private void RearrangeCell(int index)
-		{
-			var holder = _holders[index];
-			var cellRectTransform = holder.loadedCell.rectTransform;
-			Vector2 anchoredPosition, sizeDelta = cellRectTransform.sizeDelta;
-			switch (_direction)
-			{
-				case Direction.TopToBottom:
-					anchoredPosition = new Vector2(0f, _scrollRect.content.sizeDelta.y * cellRectTransform.anchorMax.y - holder.position - (1f - cellRectTransform.pivot.y) * holder.scalar);
-					sizeDelta.y = holder.scalar;
-					break;
-				case Direction.RightToLeft:
-					anchoredPosition = new Vector2(_scrollRect.content.sizeDelta.x * cellRectTransform.anchorMax.x - holder.position - (1f - cellRectTransform.pivot.x) * holder.scalar, 0f);
-					sizeDelta.x = holder.scalar;
-					break;
-				default:
-					throw new ArgumentOutOfRangeException();
-			}
-			holder.loadedCell.rectTransform.anchoredPosition = anchoredPosition;
-			if (holder.loadedCell.isAutoResize)
-				holder.loadedCell.rectTransform.sizeDelta = sizeDelta;
-		}
-
 		private void UnloadUnusedCells(Range visibleRange)
 		{
 			foreach (var kvp in _loadedHolders)
@@ -289,6 +284,66 @@ namespace UIKit
 			}
 		}
 
+		private void RearrangeCell(int index)
+		{
+			var holder = _holders[index];
+			var cellRectTransform = holder.loadedCell.rectTransform;
+			Vector2 anchoredPosition, sizeDelta = cellRectTransform.sizeDelta;
+			switch (_direction)
+			{
+				case Direction.TopToBottom:
+					anchoredPosition = new Vector2(0f, _scrollRect.content.sizeDelta.y * cellRectTransform.anchorMax.y - holder.position - (1f - cellRectTransform.pivot.y) * holder.scalar);
+					sizeDelta.y = holder.scalar;
+					break;
+				case Direction.RightToLeft:
+					anchoredPosition = new Vector2(_scrollRect.content.sizeDelta.x * cellRectTransform.anchorMax.x - holder.position - (1f - cellRectTransform.pivot.x) * holder.scalar, 0f);
+					sizeDelta.x = holder.scalar;
+					break;
+				default:
+					throw new ArgumentOutOfRangeException();
+			}
+			holder.loadedCell.rectTransform.anchoredPosition = anchoredPosition;
+			if (holder.loadedCell.isAutoResize)
+				holder.loadedCell.rectTransform.sizeDelta = sizeDelta;
+		}
+
+		private void ReloadDataInternal(int? startIndex)
+		{
+			if (dataSource == null)
+				throw new Exception("DataSource can not be null!");
+			if (startIndex < 0)
+				throw new IndexOutOfRangeException("Start index must be more than zero.");
+
+			UnloadAllCells();
+
+			var oldCount = _holders.Count;
+			var newCount = dataSource.NumberOfCellsInTableView(this);
+			if (startIndex > newCount - 1)
+				throw new IndexOutOfRangeException("Start index must be less than quantity of cell.");
+
+			var deltaCount = Mathf.Abs(oldCount - newCount);
+			for (var i = 0; i < deltaCount; i++)
+			{
+				if (oldCount > newCount)
+					_holders.RemoveAt(0);
+				else if (oldCount < newCount)
+					_holders.Add(new UITableViewCellHolder());
+			}
+
+			ResizeContent(newCount);
+
+			if (startIndex.HasValue)
+			{
+				ScrollToCellAtIndex(startIndex.Value);
+			}
+			else
+			{
+				_isReloaded = true;
+				_normalizedPositionWhenReloaded = _scrollRect.normalizedPosition;
+				OnScrollPositionChanged(_normalizedPositionWhenReloaded);
+			}
+		}
+
 		private void StopAutoScroll(Action onScrollingFinished)
 		{
 			if (_autoScroll == null)
@@ -342,29 +397,21 @@ namespace UIKit
 		/// <param name="startIndex">Table view will be scrolled to start index after data reloaded.</param>
 		public void ReloadData(int startIndex)
 		{
-			if (dataSource == null)
-				throw new Exception("DataSource can not be null!");
-			if (startIndex < 0)
-				throw new IndexOutOfRangeException("Start index must be more than zero.");
+			ReloadDataInternal(startIndex);
+		}
 
-			UnloadAllCells();
-
-			var oldCount = _holders.Count;
-			var newCount = dataSource.NumberOfCellsInTableView(this);
-			if (startIndex > newCount - 1)
-				throw new IndexOutOfRangeException("Start index must be less than quantity of cell.");
-
-			var deltaCount = Mathf.Abs(oldCount - newCount);
-			for (var i = 0; i < deltaCount; i++)
-			{
-				if (oldCount > newCount)
-					_holders.RemoveAt(0);
-				else if (oldCount < newCount)
-					_holders.Add(new UITableViewCellHolder());
-			}
-
-			ResizeContent(newCount);
-			ScrollToCellAtIndex(startIndex);
+		/// <summary>
+		/// Recycle or destroy all loaded cells then reload them again with current normalized position.
+		/// WORKAROUND:
+		/// The normalized position may be set incorrectly at first frame after resizing scroll view's content.
+		/// So, once Reload() is called, the cells may be not loaded correctly at same frame.
+		/// Even though the cells will be correctly reloaded after second frame.
+		/// It's recommended to call Reload(int startIndex) instead of Reload().
+		/// Tested in Unity 2018.4.8f1.
+		/// </summary>
+		public void ReloadData()
+		{
+			ReloadDataInternal(null);
 		}
 
 		/// <summary> Append cells to table view without reload them. </summary>
