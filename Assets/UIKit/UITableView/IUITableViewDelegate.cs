@@ -1,4 +1,4 @@
-﻿namespace UITableViewForUnity
+﻿namespace UIKit
 {
 	public interface IUITableViewDelegate
 	{

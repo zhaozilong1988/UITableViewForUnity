@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UITableViewForUnity;
+using UIKit;
 using UnityEngine.UI;
 
 public class SampleTableView : MonoBehaviour, IUITableViewDataSource, IUITableViewDelegate

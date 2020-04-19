@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace UITableViewForUnity
+namespace UIKit
 {
 	[RequireComponent(typeof(ScrollRect))]
 	public class UITableView : MonoBehaviour

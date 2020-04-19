@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace UITableViewForUnity
+namespace UIKit
 {
 	/// <summary>
 	/// How the cell will be when it disappeared from scroll view's viewport or data is reloaded. 
