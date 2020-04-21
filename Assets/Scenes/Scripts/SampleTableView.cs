@@ -29,7 +29,8 @@ public class SampleTableView : MonoBehaviour, IUITableViewDataSource, IUITableVi
 
 		_tableView.dataSource = this;
 		_tableView.@delegate = this;
-		_tableView.ReloadData(0);
+		// _tableView.ReloadData(0);
+		_tableView.ReloadData();
 	}
 
 	private void AppendSampleData(int delta, List<SampleData> sampleDataList)
@@ -96,7 +97,7 @@ public class SampleTableView : MonoBehaviour, IUITableViewDataSource, IUITableVi
 		if (_selectedTabIndex != tabIndex)
 		{
 			_selectedTabIndex = tabIndex;
-			_tableView.ReloadData(0);
+			_tableView.ReloadData();
 			// _tableView.ScrollToCellAtIndex(0);
 		}
 	}
@@ -180,7 +181,7 @@ public class SampleTableView : MonoBehaviour, IUITableViewDataSource, IUITableVi
 	#endregion
 
 	#region IUITableViewDelegate
-	public void CellAtIndexInTableViewDidAppear(UITableView tableView, int index)
+	public void CellAtIndexInTableViewWillAppear(UITableView tableView, int index)
 	{
 		UITableViewCellLifeCycle lifeCycle;
 		var data = _selectedTabIndex == 0 ? _tab1DataList[index] : _tab2DataList[index];
@@ -208,7 +209,7 @@ public class SampleTableView : MonoBehaviour, IUITableViewDataSource, IUITableVi
 		Debug.Log($"Cell at index:{index} is appeared. UITableViewLifeCycle is <color=green>{lifeCycle}</color>");
 	}
 
-	public void CellAtIndexInTableViewWillDisappear(UITableView tableView, int index)
+	public void CellAtIndexInTableViewDidDisappear(UITableView tableView, int index)
 	{
 		// Debug.Log($"cell at index:{index} will disappear. <color=red>recycle: {willBeRecycled}</color>");
 	}
