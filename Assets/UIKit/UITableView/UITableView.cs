@@ -39,6 +39,18 @@ namespace UIKit
 
 		public IUITableViewDataSource dataSource { get; set; }
 		public IUITableViewDelegate @delegate { get; set; }
+		/// <summary> If TRUE, the UITableViewCellLifeCycle will be ignored and all cells will be loaded at once, or not when FALSE. </summary>
+		public bool ignoreCellLifeCycle
+		{
+			get => _ignoreCellLifeCycle;
+			set
+			{
+				if (_ignoreCellLifeCycle == value)
+					return;
+				_ignoreCellLifeCycle = value;
+				ReloadData();
+			}
+		}
 
 		private readonly List<UITableViewCellHolder> _holders = new List<UITableViewCellHolder>(); // all holders
 		/// <summary> Appearing cells and those whose UITableViewLifeCycle is set to RecycleWhenReloaded.</summary>
@@ -47,6 +59,7 @@ namespace UIKit
 		private readonly List<int> _swapper = new List<int>();
 		private ScrollRect _scrollRect;
 		private RectTransform _scrollRectTransform;
+		private RectTransform _contentRectTransform;
 		private Coroutine _autoScroll;
 		private readonly Dictionary<string, Queue<UITableViewCell>> _reusableCellQueues = new Dictionary<string, Queue<UITableViewCell>>();
 		private Transform _cellsPoolTransform;
@@ -55,9 +68,11 @@ namespace UIKit
 
 		[SerializeField]
 		private Direction _direction = Direction.TopToBottom;
+		[SerializeField]
+		private bool _ignoreCellLifeCycle;
 		/// <summary> Tag for distinguishing table view. </summary>
 		[SerializeField]
-		public int tag; 
+		public int tag;
 
 		protected override void Awake()
 		{
@@ -85,6 +100,7 @@ namespace UIKit
 			_scrollRect = GetComponent<ScrollRect>();
 			_scrollRect.onValueChanged.AddListener(OnScrollPositionChanged);
 			_scrollRectTransform = (RectTransform)_scrollRect.transform;
+			_contentRectTransform = _scrollRect.content;
 		}
 
 		private void InitializeCellsPool()
@@ -94,13 +110,18 @@ namespace UIKit
 
 			var poolObject = new GameObject("ReusableCells");
 			_cellsPoolTransform = poolObject.transform;
-			_cellsPoolTransform.SetParent(_scrollRect.transform);
+			_cellsPoolTransform.SetParent(_scrollRectTransform);
+		}
+
+		private Vector2 GetViewPortSize()
+		{
+			return _ignoreCellLifeCycle ? _contentRectTransform.sizeDelta : _scrollRectTransform.sizeDelta;
 		}
 
 		private Range RecalculateVisibleRange(Vector2 normalizedPosition)
 		{
-			var contentSize = _scrollRect.content.sizeDelta; 
-			var viewportSize = _scrollRectTransform.sizeDelta;
+			var contentSize =_contentRectTransform.sizeDelta; 
+			var viewportSize = GetViewPortSize();
 			var startPosition = (Vector2.one - normalizedPosition) * (contentSize - viewportSize);
 			var endPosition = startPosition + viewportSize;
 			int startIndex, endIndex;
@@ -151,7 +172,7 @@ namespace UIKit
 				cumulativeScalar += holder.scalar;
 			}
 
-			var size = _scrollRect.content.sizeDelta;
+			var size = _contentRectTransform.sizeDelta;
 			switch (_direction)
 			{
 				case Direction.TopToBottom:
@@ -163,7 +184,7 @@ namespace UIKit
 				default:
 					throw new ArgumentOutOfRangeException();
 			}
-			_scrollRect.content.sizeDelta = size;
+			_contentRectTransform.sizeDelta = size;
 		}
 
 		private void OnScrollPositionChanged(Vector2 normalizedPosition)
@@ -177,7 +198,7 @@ namespace UIKit
 			UnloadUnusedCells(range); // recycle invisible cells except life cycle is RecycleWhenReload
 			LoadCells(range, alwaysRearrangeCell); // reuse or create visible cells
 #if UNITY_EDITOR
-			_scrollRect.content.name = $"Content({range.from}~{range.to})";
+			_contentRectTransform.name = $"Content({range.from}~{range.to})";
 #endif
 		}
 
@@ -209,7 +230,7 @@ namespace UIKit
 				return;
 			}
 			holder.loadedCell = dataSource.CellAtIndexInTableView(this, index);
-			holder.loadedCell.rectTransform.SetParent(_scrollRect.content);
+			holder.loadedCell.rectTransform.SetParent(_contentRectTransform);
 			holder.loadedCell.gameObject.SetActive(true);
 			RearrangeCell(index);
 			@delegate?.CellAtIndexInTableViewWillAppear(this, index);
@@ -292,11 +313,11 @@ namespace UIKit
 			switch (_direction)
 			{
 				case Direction.TopToBottom:
-					anchoredPosition = new Vector2(0f, _scrollRect.content.sizeDelta.y * cellRectTransform.anchorMax.y - holder.position - (1f - cellRectTransform.pivot.y) * holder.scalar);
+					anchoredPosition = new Vector2(0f, _contentRectTransform.sizeDelta.y * cellRectTransform.anchorMax.y - holder.position - (1f - cellRectTransform.pivot.y) * holder.scalar);
 					sizeDelta.y = holder.scalar;
 					break;
 				case Direction.RightToLeft:
-					anchoredPosition = new Vector2(_scrollRect.content.sizeDelta.x * cellRectTransform.anchorMax.x - holder.position - (1f - cellRectTransform.pivot.x) * holder.scalar, 0f);
+					anchoredPosition = new Vector2(_contentRectTransform.sizeDelta.x * cellRectTransform.anchorMax.x - holder.position - (1f - cellRectTransform.pivot.x) * holder.scalar, 0f);
 					sizeDelta.x = holder.scalar;
 					break;
 				default:
@@ -429,11 +450,10 @@ namespace UIKit
 			for (var i = 0; i < newCount - oldCount; i++)
 				_holders.Add(new UITableViewCellHolder());
 
-			var content = _scrollRect.content;
-			var oldContentSize = content.sizeDelta;
-			var oldAnchoredPosition = content.anchoredPosition;
+			var oldContentSize = _contentRectTransform.sizeDelta;
+			var oldAnchoredPosition = _contentRectTransform.anchoredPosition;
 			ResizeContent(newCount);
-			content.anchoredPosition = oldAnchoredPosition - (content.sizeDelta - oldContentSize) * (Vector2.one - content.pivot);
+			_contentRectTransform.anchoredPosition = oldAnchoredPosition - (_contentRectTransform.sizeDelta - oldContentSize) * (Vector2.one - _contentRectTransform.pivot);
 			ReloadCells(_scrollRect.normalizedPosition, true);
 		}
 
@@ -463,11 +483,10 @@ namespace UIKit
 			}
 			_swapper.Clear();
 
-			var content = _scrollRect.content;
-			var oldContentSize = content.sizeDelta;
-			var oldAnchoredPosition = content.anchoredPosition;
+			var oldContentSize = _contentRectTransform.sizeDelta;
+			var oldAnchoredPosition = _contentRectTransform.anchoredPosition;
 			ResizeContent(newCount);
-			content.anchoredPosition = oldAnchoredPosition + (content.sizeDelta - oldContentSize) * content.pivot;
+			_contentRectTransform.anchoredPosition = oldAnchoredPosition + (_contentRectTransform.sizeDelta - oldContentSize) * _contentRectTransform.pivot;
 			ReloadCells(_scrollRect.normalizedPosition, true);
 		}
 
@@ -542,10 +561,10 @@ namespace UIKit
 			switch (_direction)
 			{
 				case Direction.TopToBottom:
-					normalizedPosition.y = 1f - _holders[index].position / (_scrollRect.content.sizeDelta.y - _scrollRectTransform.sizeDelta.y);
+					normalizedPosition.y = 1f - _holders[index].position / (_contentRectTransform.sizeDelta.y - _scrollRectTransform.sizeDelta.y);
 					break;
 				case Direction.RightToLeft:
-					normalizedPosition.x = 1f - _holders[index].position / (_scrollRect.content.sizeDelta.x - _scrollRectTransform.sizeDelta.x);
+					normalizedPosition.x = 1f - _holders[index].position / (_contentRectTransform.sizeDelta.x - _scrollRectTransform.sizeDelta.x);
 					break;
 				default:
 					throw new ArgumentOutOfRangeException();
