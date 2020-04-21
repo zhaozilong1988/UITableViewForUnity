@@ -58,7 +58,7 @@ namespace UIKit
 		/// <summary> Helper for modifying dictionary of _loadedHolders.</summary>
 		private readonly List<int> _swapper = new List<int>();
 		private ScrollRect _scrollRect;
-		private RectTransform _scrollRectTransform;
+		private RectTransform _viewportRectTransform;
 		private RectTransform _contentRectTransform;
 		private Coroutine _autoScroll;
 		private readonly Dictionary<string, Queue<UITableViewCell>> _reusableCellQueues = new Dictionary<string, Queue<UITableViewCell>>();
@@ -99,7 +99,7 @@ namespace UIKit
 
 			_scrollRect = GetComponent<ScrollRect>();
 			_scrollRect.onValueChanged.AddListener(OnScrollPositionChanged);
-			_scrollRectTransform = (RectTransform)_scrollRect.transform;
+			_viewportRectTransform = (RectTransform)_scrollRect.transform;
 			_contentRectTransform = _scrollRect.content;
 		}
 
@@ -110,12 +110,12 @@ namespace UIKit
 
 			var poolObject = new GameObject("ReusableCells");
 			_cellsPoolTransform = poolObject.transform;
-			_cellsPoolTransform.SetParent(_scrollRectTransform);
+			_cellsPoolTransform.SetParent(_scrollRect.transform);
 		}
 
 		private Vector2 GetViewPortSize()
 		{
-			return _ignoreCellLifeCycle ? _contentRectTransform.sizeDelta : _scrollRectTransform.sizeDelta;
+			return _ignoreCellLifeCycle ? _contentRectTransform.sizeDelta : _viewportRectTransform.rect.size;
 		}
 
 		private Range RecalculateVisibleRange(Vector2 normalizedPosition)
@@ -281,7 +281,6 @@ namespace UIKit
 			var holder = _holders[index];
 			var cell = holder.loadedCell;
 			Debug.Assert(cell != null, nameof(cell) + " != null");
-			holder.loadedCell = null;
 			@delegate?.CellAtIndexInTableViewDidDisappear(this, index);
 			switch (cell.lifeCycle)
 			{
@@ -305,6 +304,7 @@ namespace UIKit
 				default:
 					throw new ArgumentOutOfRangeException();
 			}
+			holder.loadedCell = null;
 		}
 
 		private void RearrangeCell(int index)
@@ -563,10 +563,10 @@ namespace UIKit
 			switch (_direction)
 			{
 				case Direction.TopToBottom:
-					normalizedPosition.y = 1f - _holders[index].position / (_contentRectTransform.sizeDelta.y - _scrollRectTransform.sizeDelta.y);
+					normalizedPosition.y = 1f - _holders[index].position / (_contentRectTransform.sizeDelta.y - _viewportRectTransform.rect.size.y);
 					break;
 				case Direction.RightToLeft:
-					normalizedPosition.x = 1f - _holders[index].position / (_contentRectTransform.sizeDelta.x - _scrollRectTransform.sizeDelta.x);
+					normalizedPosition.x = 1f - _holders[index].position / (_contentRectTransform.sizeDelta.x - _viewportRectTransform.rect.size.x);
 					break;
 				default:
 					throw new ArgumentOutOfRangeException();
