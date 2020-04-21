@@ -7,17 +7,20 @@ public class SampleData
 	{
 		Text,
 		Image,
-		Tab
+		Tab,
+		Chat,
 	}
 
 	public SampleType sampleType;
 	public string text;
 	public int rarity;
 	public bool isFavorite;
-	public float scalarBeforeExpend;
-	public float scalarAfterExpend;
 	public float scalar;
 	public int spriteIndex;
+
+	// expend
+	public float scalarBeforeExpend;
+	public float scalarAfterExpend;
 	public bool isExpended = false;
 	public Action<int> onExpend;
 }

@@ -5,7 +5,7 @@ using UnityEngine;
 using UIKit;
 using UnityEngine.UI;
 
-public class SampleTableView : MonoBehaviour, IUITableViewDataSource, IUITableViewDelegate
+public class SampleDataSourceAndDelegate : MonoBehaviour, IUITableViewDataSource, IUITableViewDelegate
 {
 	[SerializeField]
 	private UITableView _tableView;
@@ -16,21 +16,41 @@ public class SampleTableView : MonoBehaviour, IUITableViewDataSource, IUITableVi
 	[SerializeField]
 	private SampleTabCell _tabCellPrefab;
 	[SerializeField]
+	private SampleChatCell _chatCellPrefab;
+	[Space]
+	[SerializeField]
 	private InputField _cellIndexInput;
+	[SerializeField]
+	private InputField _chatInput;
+	[SerializeField]
+	private Text _textSizeCalculator;
+	
 
 	private readonly List<SampleData> _tab1DataList = new List<SampleData>();
 	private readonly List<SampleData> _tab2DataList = new List<SampleData>();
 	private int _selectedTabIndex;
+	public const float CHAT_MESSAGE_TEXT_WIDTH = 300f;
+	public const int CHAT_MESSAGE_FONT_SIZE = 30;
 
 	void Start()
 	{
-		AppendSampleData(20, _tab1DataList);
+		AppendSampleData(5, _tab1DataList);
 		AppendSampleData(30, _tab2DataList);
 
 		_tableView.dataSource = this;
 		_tableView.@delegate = this;
 		// _tableView.ReloadData(0);
 		_tableView.ReloadData();
+	}
+
+	private float CalculateTextHeight(string text, float textWidth, int fontSize)
+	{
+		_textSizeCalculator.fontSize = fontSize;
+		var size = _textSizeCalculator.rectTransform.sizeDelta;
+		size.x = textWidth;
+		_textSizeCalculator.rectTransform.sizeDelta = size;
+		_textSizeCalculator.text = text;
+		return _textSizeCalculator.preferredHeight;
 	}
 
 	private void AppendSampleData(int delta, List<SampleData> sampleDataList)
@@ -124,6 +144,22 @@ public class SampleTableView : MonoBehaviour, IUITableViewDataSource, IUITableVi
 		_tableView.AppendData();
 	}
 
+	public void OnClickSend()
+	{
+		if (string.IsNullOrEmpty(_chatInput.text))
+			return;
+		var height = CalculateTextHeight(_chatInput.text, CHAT_MESSAGE_TEXT_WIDTH, CHAT_MESSAGE_FONT_SIZE);
+		var data = new SampleData
+		{
+			sampleType = SampleData.SampleType.Chat,
+			scalar = height,
+			text = _chatInput.text
+		};
+		_tab1DataList.Add(data);
+		_tableView.AppendData();
+		_tableView.ScrollToCellAtIndex(_tab1DataList.Count-1, 0.1f, null);
+	}
+
 	private void Expend(int index)
 	{
 		StartCoroutine(CoExpendOrClose(index));
@@ -160,6 +196,8 @@ public class SampleTableView : MonoBehaviour, IUITableViewDataSource, IUITableVi
 				return tableView.ReuseOrCreateCell(_imageCellPrefab);
 			case SampleData.SampleType.Tab:
 				return tableView.ReuseOrCreateCell(_tabCellPrefab, UITableViewCellLifeCycle.RecycleWhenReloaded);
+			case SampleData.SampleType.Chat:
+				return tableView.ReuseOrCreateCell(_chatCellPrefab);
 			default:
 				throw new ArgumentOutOfRangeException();
 		}
@@ -201,6 +239,11 @@ public class SampleTableView : MonoBehaviour, IUITableViewDataSource, IUITableVi
 				var tabCell = tableView.GetLoadedCell<SampleTabCell>(index);
 				tabCell.UpdateData(_selectedTabIndex, OnTabClicked);
 				lifeCycle = tabCell.lifeCycle;
+				break;
+			case SampleData.SampleType.Chat:
+				var chatCell = tableView.GetLoadedCell<SampleChatCell>(index);
+				chatCell.UpdateData(index, data.text);
+				lifeCycle = chatCell.lifeCycle;
 				break;
 			default:
 				throw new ArgumentOutOfRangeException();
