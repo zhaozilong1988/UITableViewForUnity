@@ -254,7 +254,23 @@ public class SampleDataSourceAndDelegate : MonoBehaviour, IUITableViewDataSource
 
 	public void CellAtIndexInTableViewDidDisappear(UITableView tableView, int index)
 	{
-		// Debug.Log($"cell at index:{index} will disappear. <color=red>recycle: {willBeRecycled}</color>");
+		var data = _selectedTabIndex == 0 ? _tab1DataList[index] : _tab2DataList[index];
+		switch (data.sampleType)
+		{
+			case SampleData.SampleType.Text:
+				break;
+			case SampleData.SampleType.Image:
+				var imageCell = tableView.GetLoadedCell<SampleImageCell>(index);
+				imageCell.ClearUp();
+				break;
+			case SampleData.SampleType.Tab:
+				break;
+			case SampleData.SampleType.Chat:
+				break;
+			default:
+				throw new ArgumentOutOfRangeException();
+		}
+		Debug.Log($"cell at index:{index} will disappear.");
 	}
 	#endregion
 }

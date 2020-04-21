@@ -43,13 +43,12 @@ public class SampleImageCell : UITableViewCell
 		_cellIndex = cellIndex;
 
 		UpdateBackgroundColor();
-
+		
 		_frameImage.sprite = _monsterSprites[sampleData.spriteIndex];
 		_frameImage.SetNativeSize();
 		var frameRect = _frameImage.rectTransform;
 		var scale = 100f / frameRect.sizeDelta.x;
 		frameRect.localScale = new Vector3(scale, scale);
-
 		foreach (var rarityImage in _rarityImages)
 		{
 			rarityImage.enabled = false;
@@ -58,6 +57,12 @@ public class SampleImageCell : UITableViewCell
 		{
 			_rarityImages[i].enabled = true;
 		}
+	}
+
+	public void ClearUp()
+	{
+		_frameImage.sprite = null;
+		_frameImage.rectTransform.localScale = Vector2.one;
 	}
 
 	private void UpdateBackgroundColor()
