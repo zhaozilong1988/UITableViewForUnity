@@ -88,7 +88,7 @@ namespace UIKit
 				if (_scrollRect.normalizedPosition == _normalizedPositionWhenReloaded)
 					return;
 				_isReloaded = false;
-				OnScrollPositionChanged(_scrollRect.normalizedPosition);
+				ReloadCells(_scrollRect.normalizedPosition, false);
 			}
 		}
 
@@ -169,6 +169,7 @@ namespace UIKit
 				var holder = _holders[i];
 				holder.position = cumulativeScalar;
 				holder.scalar = dataSource.ScalarForCellInTableView(this, i);
+				Debug.Assert(holder.scalar > 0f, $"Scalar of cell can not be less than zero, index:{i}.");
 				cumulativeScalar += holder.scalar;
 			}
 
@@ -231,8 +232,9 @@ namespace UIKit
 			}
 			holder.loadedCell = dataSource.CellAtIndexInTableView(this, index);
 			holder.loadedCell.rectTransform.SetParent(_contentRectTransform);
-			holder.loadedCell.gameObject.SetActive(true);
+			holder.loadedCell.rectTransform.localScale = Vector3.one;
 			RearrangeCell(index);
+			holder.loadedCell.gameObject.SetActive(true);
 			@delegate?.CellAtIndexInTableViewWillAppear(this, index);
 #if UNITY_EDITOR
 			_cellsPoolTransform.name = $"ReusableCells({_cellsPoolTransform.childCount})";
@@ -290,8 +292,8 @@ namespace UIKit
 						throw new Exception("Queue is not existing."); 
 
 					cellsQueue.Enqueue(cell); // enqueue if recyclable
-					cell.transform.SetParent(_cellsPoolTransform);
 					cell.gameObject.SetActive(false);
+					cell.transform.SetParent(_cellsPoolTransform);
 #if UNITY_EDITOR
 					_cellsPoolTransform.name = $"ReusableCells({_cellsPoolTransform.childCount})";
 					cell.gameObject.name = cell.reuseIdentifier;
@@ -361,7 +363,7 @@ namespace UIKit
 			{
 				_isReloaded = true;
 				_normalizedPositionWhenReloaded = _scrollRect.normalizedPosition;
-				OnScrollPositionChanged(_normalizedPositionWhenReloaded);
+				ReloadCells(_normalizedPositionWhenReloaded, false);
 			}
 		}
 
@@ -549,7 +551,7 @@ namespace UIKit
 				throw new IndexOutOfRangeException("Index must be less than cells' number and more than zero.");
 
 			_scrollRect.normalizedPosition = GetNormalizedPositionOfCellAtIndex(index);
-			OnScrollPositionChanged(_scrollRect.normalizedPosition);
+			ReloadCells(_scrollRect.normalizedPosition, false);
 		}
 
 		/// <summary> Return scroll view's normalized position of cell at index. </summary>
