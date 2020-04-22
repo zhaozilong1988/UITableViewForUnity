@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UIKit;
 using UnityEngine.UI;
+using Random = UnityEngine.Random;
 
 public class SampleDataSourceAndDelegate : MonoBehaviour, IUITableViewDataSource, IUITableViewDelegate
 {
@@ -24,23 +25,100 @@ public class SampleDataSourceAndDelegate : MonoBehaviour, IUITableViewDataSource
 	private InputField _chatInput;
 	[SerializeField]
 	private Text _textSizeCalculator;
-	
 
 	private readonly List<SampleData> _tab1DataList = new List<SampleData>();
 	private readonly List<SampleData> _tab2DataList = new List<SampleData>();
 	private int _selectedTabIndex;
-	public const float CHAT_MESSAGE_TEXT_WIDTH = 300f;
-	public const int CHAT_MESSAGE_FONT_SIZE = 30;
+	private const float CHAT_MESSAGE_TEXT_WIDTH = 300f;
+	private const int CHAT_MESSAGE_FONT_SIZE = 30;
 
 	void Start()
 	{
-		AppendSampleData(5, _tab1DataList);
-		AppendSampleData(30, _tab2DataList);
+		// Prepare for data source
+		_tab1DataList.Add(CreateSampleForTab());
+		_tab1DataList.AddRange(CreateSamples(10));
+		_tab2DataList.Add(CreateSampleForTab());
+		_tab2DataList.AddRange(CreateSamples(30));
 
+		// Setup table view
 		_tableView.dataSource = this;
 		_tableView.@delegate = this;
-		// _tableView.ReloadData(0);
-		_tableView.ReloadData();
+		// Reload from 0th
+		_tableView.ReloadData(0);
+	}
+
+	private static SampleData CreateSampleForTab()
+	{
+		var data = new SampleData
+		{
+			sampleType = SampleData.SampleType.Tab,
+			scalar = 120f
+		};
+		return data;
+	}
+
+	private IEnumerable<SampleData> CreateSamples(int count)
+	{
+		for (var i = 0; i < count; i++)
+		{
+			var data = new SampleData();
+			if (i % 2 == 0)
+			{
+				data.sampleType = SampleData.SampleType.Text;
+				data.scalar = 75f + Random.Range(0f, 100f);
+				data.text = "https://www.freepik.com/free-photos-vectors/character";
+			}
+			else
+			{
+				data.sampleType = SampleData.SampleType.Image;
+				data.scalar = 200f;
+				data.rarity = Random.Range(1, 5);
+				data.spriteIndex = Random.Range(0, 8);
+				data.scalarBeforeExpend = data.scalar;
+				data.scalarAfterExpend = data.scalar + 300;
+				data.onExpend = Expend;
+			}
+
+			yield return data;
+		}
+	}
+
+	private void OnTabClicked(int tabIndex)
+	{
+		if (_selectedTabIndex == tabIndex) 
+			return;
+		_tableView.UnloadData();
+		_selectedTabIndex = tabIndex;
+		_tableView.ReloadData(0);
+	}
+
+	public void OnClickScrollTo()
+	{
+		var index = int.Parse(_cellIndexInput.text);
+		_tableView.ScrollToCellAtIndex(index);
+	}
+
+	public void OnClickScrollTo(float time)
+	{
+		var index = int.Parse(_cellIndexInput.text);
+		Debug.Log("Go to cell at index of " + index);
+		_tableView.ScrollToCellAtIndex(index, time, () => {
+			Debug.Log("Scrolling has finished");
+		});
+	}
+
+	public void OnClickPrepend()
+	{
+		var dataList = _selectedTabIndex == 0 ? _tab1DataList : _tab2DataList;
+		dataList.InsertRange(0, CreateSamples(5));
+		_tableView.PrependData();
+	}
+
+	public void OnClickAppend()
+	{
+		var dataList = _selectedTabIndex == 0 ? _tab1DataList : _tab2DataList;
+		dataList.AddRange(CreateSamples(5));
+		_tableView.AppendData();
 	}
 
 	private float CalculateTextHeight(string text, float textWidth, int fontSize)
@@ -51,97 +129,6 @@ public class SampleDataSourceAndDelegate : MonoBehaviour, IUITableViewDataSource
 		_textSizeCalculator.rectTransform.sizeDelta = size;
 		_textSizeCalculator.text = text;
 		return _textSizeCalculator.preferredHeight;
-	}
-
-	private void AppendSampleData(int delta, List<SampleData> sampleDataList)
-	{
-		var startIndex = sampleDataList.Count;
-		var count = sampleDataList.Count + delta;
-		for (int i = startIndex; i < count; i++)
-		{
-			var data = new SampleData();
-			if (i == 0)
-			{
-				data.sampleType = SampleData.SampleType.Tab;
-				data.scalar = 120f;
-			}
-			else if (i % 2 == 0)
-			{
-				data.sampleType = SampleData.SampleType.Text;
-				data.scalar = 75f;
-			}
-			else
-			{
-				data.sampleType = SampleData.SampleType.Image;
-				data.scalar = 200f;
-				data.scalarBeforeExpend = 200f;
-				data.scalarAfterExpend = 1000f;
-			}
-
-			data.onExpend = Expend;
-			data.spriteIndex = i % 9;
-			data.text = "https://www.freepik.com/free-photos-vectors/character";
-			data.rarity = i % 5 + 1;
-			sampleDataList.Add(data);
-		}
-	}
-
-	private void PrependSampleData(int delta, List<SampleData> sampleDataList)
-	{
-		for (int i = 0; i < delta; i++)
-		{
-			var data = new SampleData();
-			if (i % 2 == 0)
-			{
-				data.sampleType = SampleData.SampleType.Text;
-				data.scalar = 75f;
-			}
-			else
-			{
-				data.sampleType = SampleData.SampleType.Image;
-				data.scalar = 200f;
-				data.scalarBeforeExpend = 200f;
-				data.scalarAfterExpend = 500f;
-			}
-
-			data.onExpend = Expend;
-			data.spriteIndex = i % 9;
-			data.text = "https://www.freepik.com/free-photos-vectors/character";
-			data.rarity = i % 5 + 1;
-			sampleDataList.Insert(i, data);
-		}
-	}
-
-	private void OnTabClicked(int tabIndex)
-	{
-		if (_selectedTabIndex != tabIndex)
-		{
-			_selectedTabIndex = tabIndex;
-			_tableView.ReloadData();
-			// _tableView.ScrollToCellAtIndex(0);
-		}
-	}
-
-	public void OnGoToCellAtIndexButtonClick()
-	{
-		var index = int.Parse(_cellIndexInput.text);
-		Debug.Log("Go to cell at index of " + index);
-		_tableView.ScrollToCellAtIndex(index, 0.5f, () =>
-		{
-			Debug.Log("Scrolling has finished");
-		});
-	}
-
-	public void OnClickPrepend()
-	{
-		PrependSampleData(10, _tab1DataList);
-		_tableView.PrependData();
-	}
-
-	public void OnClickAppend()
-	{
-		AppendSampleData(10, _tab1DataList);
-		_tableView.AppendData();
 	}
 
 	public void OnClickSend()
@@ -155,9 +142,11 @@ public class SampleDataSourceAndDelegate : MonoBehaviour, IUITableViewDataSource
 			scalar = height,
 			text = _chatInput.text
 		};
-		_tab1DataList.Add(data);
+		var dataList = _selectedTabIndex == 0 ? _tab1DataList : _tab2DataList;
+		dataList.Add(data);
 		_tableView.AppendData();
-		_tableView.ScrollToCellAtIndex(_tab1DataList.Count-1, 0.1f, null);
+		_tableView.ScrollToCellAtIndex(dataList.Count-1, 0.1f, null);
+		_chatInput.text = "";
 	}
 
 	private void Expend(int index)
@@ -210,11 +199,7 @@ public class SampleDataSourceAndDelegate : MonoBehaviour, IUITableViewDataSource
 
 	public float ScalarForCellInTableView(UITableView tableView, int index)
 	{
-		if (_selectedTabIndex == 0)
-		{
-			return _tab1DataList[index].scalar;
-		}
-		return _tab2DataList[index].scalar;
+		return _selectedTabIndex == 0 ? _tab1DataList[index].scalar : _tab2DataList[index].scalar;
 	}
 	#endregion
 
@@ -255,20 +240,10 @@ public class SampleDataSourceAndDelegate : MonoBehaviour, IUITableViewDataSource
 	public void CellAtIndexInTableViewDidDisappear(UITableView tableView, int index)
 	{
 		var data = _selectedTabIndex == 0 ? _tab1DataList[index] : _tab2DataList[index];
-		switch (data.sampleType)
+		if (data.sampleType == SampleData.SampleType.Image)
 		{
-			case SampleData.SampleType.Text:
-				break;
-			case SampleData.SampleType.Image:
-				var imageCell = tableView.GetLoadedCell<SampleImageCell>(index);
-				imageCell.ClearUp();
-				break;
-			case SampleData.SampleType.Tab:
-				break;
-			case SampleData.SampleType.Chat:
-				break;
-			default:
-				throw new ArgumentOutOfRangeException();
+			var imageCell = tableView.GetLoadedCell<SampleImageCell>(index);
+			imageCell.ClearUp();
 		}
 		Debug.Log($"cell at index:{index} will disappear.");
 	}
