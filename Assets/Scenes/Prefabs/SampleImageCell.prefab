@@ -463,7 +463,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Expend
+  m_Text: Expand
 --- !u!1 &4689532921715918347
 GameObject:
   m_ObjectHideFlags: 0
@@ -551,7 +551,7 @@ GameObject:
   - component: {fileID: 7063961648382164166}
   - component: {fileID: 3860552537316666082}
   m_Layer: 5
-  m_Name: ExpendButton
+  m_Name: ExpandButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -655,7 +655,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 6296921478661641863}
-        m_MethodName: OnClickExpendButton
+        m_MethodName: OnClickExpandButton
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

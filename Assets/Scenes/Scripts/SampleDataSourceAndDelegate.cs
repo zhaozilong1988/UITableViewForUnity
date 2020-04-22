@@ -74,9 +74,9 @@ public class SampleDataSourceAndDelegate : MonoBehaviour, IUITableViewDataSource
 				data.scalar = 200f;
 				data.rarity = Random.Range(1, 5);
 				data.spriteIndex = Random.Range(0, 8);
-				data.scalarBeforeExpend = data.scalar;
-				data.scalarAfterExpend = data.scalar + 300;
-				data.onExpend = Expend;
+				data.scalarBeforeExpand = data.scalar;
+				data.scalarAfterExpand = data.scalar + 300;
+				data.onExpand = Expand;
 			}
 
 			yield return data;
@@ -149,12 +149,12 @@ public class SampleDataSourceAndDelegate : MonoBehaviour, IUITableViewDataSource
 		_chatInput.text = "";
 	}
 
-	private void Expend(int index)
+	private void Expand(int index)
 	{
-		StartCoroutine(CoExpendOrClose(index));
+		StartCoroutine(CoExpandOrClose(index));
 	}
 
-	private IEnumerator CoExpendOrClose(int index)
+	private IEnumerator CoExpandOrClose(int index)
 	{
 		var dataList = _selectedTabIndex == 0 ? _tab1DataList : _tab2DataList;
 		var sampleData = dataList[index];
@@ -165,9 +165,9 @@ public class SampleDataSourceAndDelegate : MonoBehaviour, IUITableViewDataSource
 		{
 			yield return null;
 			progress = Mathf.Min((Time.time - start) / 0.1f, 1f);
-			dataList[index].scalar = sampleData.isExpended 
-				? Mathf.Lerp(sampleData.scalarBeforeExpend, sampleData.scalarAfterExpend, progress)
-				: Mathf.Lerp(sampleData.scalarAfterExpend, sampleData.scalarBeforeExpend, progress);
+			dataList[index].scalar = sampleData.isExpanded 
+				? Mathf.Lerp(sampleData.scalarBeforeExpand, sampleData.scalarAfterExpand, progress)
+				: Mathf.Lerp(sampleData.scalarAfterExpand, sampleData.scalarBeforeExpand, progress);
 			_tableView.RearrangeData();
 			_tableView.ScrollToCellAtIndex(index);
 		}

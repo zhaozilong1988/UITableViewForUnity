@@ -19,8 +19,8 @@ public class SampleData
 	public int spriteIndex;
 
 	// expend
-	public float scalarBeforeExpend;
-	public float scalarAfterExpend;
-	public bool isExpended = false;
-	public Action<int> onExpend;
+	public float scalarBeforeExpand;
+	public float scalarAfterExpand;
+	public bool isExpanded = false;
+	public Action<int> onExpand;
 }

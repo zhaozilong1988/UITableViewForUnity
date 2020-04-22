@@ -100,9 +100,9 @@ public class SampleImageCell : UITableViewCell
 		UpdateBackgroundColor();
 	}
 
-	public void OnClickExpendButton()
+	public void OnClickExpandButton()
 	{
-		_sampleData.isExpended = !_sampleData.isExpended;
-		_sampleData.onExpend?.Invoke(_cellIndex);
+		_sampleData.isExpanded = !_sampleData.isExpanded;
+		_sampleData.onExpand?.Invoke(_cellIndex);
 	}
 }
