@@ -99,7 +99,7 @@ namespace UIKit
 
 			_scrollRect = GetComponent<ScrollRect>();
 			_scrollRect.onValueChanged.AddListener(OnScrollPositionChanged);
-			_viewportRectTransform = (RectTransform)_scrollRect.transform;
+			_viewportRectTransform = _scrollRect.viewport;
 			_contentRectTransform = _scrollRect.content;
 		}
 
@@ -113,15 +113,10 @@ namespace UIKit
 			_cellsPoolTransform.SetParent(_scrollRect.transform);
 		}
 
-		private Vector2 GetViewPortSize()
-		{
-			return _ignoreCellLifeCycle ? _contentRectTransform.sizeDelta : _viewportRectTransform.rect.size;
-		}
-
 		private Range RecalculateVisibleRange(Vector2 normalizedPosition)
 		{
-			var contentSize =_contentRectTransform.sizeDelta; 
-			var viewportSize = GetViewPortSize();
+			var contentSize = _contentRectTransform.rect.size;
+			var viewportSize = _ignoreCellLifeCycle ? contentSize : _viewportRectTransform.rect.size;
 			var startPosition = (Vector2.one - normalizedPosition) * (contentSize - viewportSize);
 			var endPosition = startPosition + viewportSize;
 			int startIndex, endIndex;
@@ -311,23 +306,25 @@ namespace UIKit
 		{
 			var holder = _holders[index];
 			var cellRectTransform = holder.loadedCell.rectTransform;
-			Vector2 anchoredPosition, sizeDelta = cellRectTransform.sizeDelta;
+			Vector2 anchoredPosition, cellSize, contentSize = _contentRectTransform.rect.size;
 			switch (_direction)
 			{
 				case Direction.TopToBottom:
-					anchoredPosition = new Vector2(0f, _contentRectTransform.sizeDelta.y * cellRectTransform.anchorMax.y - holder.position - (1f - cellRectTransform.pivot.y) * holder.scalar);
-					sizeDelta.y = holder.scalar;
+					anchoredPosition = new Vector2(0f, contentSize.y * cellRectTransform.anchorMax.y - holder.position - (1f - cellRectTransform.pivot.y) * holder.scalar);
+					cellSize.x = contentSize.x;
+					cellSize.y = holder.scalar;
 					break;
 				case Direction.RightToLeft:
-					anchoredPosition = new Vector2(_contentRectTransform.sizeDelta.x * cellRectTransform.anchorMax.x - holder.position - (1f - cellRectTransform.pivot.x) * holder.scalar, 0f);
-					sizeDelta.x = holder.scalar;
+					anchoredPosition = new Vector2(contentSize.x * cellRectTransform.anchorMax.x - holder.position - (1f - cellRectTransform.pivot.x) * holder.scalar, 0f);
+					cellSize.x = holder.scalar;
+					cellSize.y = contentSize.y;
 					break;
 				default:
 					throw new ArgumentOutOfRangeException();
 			}
 			holder.loadedCell.rectTransform.anchoredPosition = anchoredPosition;
 			if (holder.loadedCell.isAutoResize)
-				holder.loadedCell.rectTransform.sizeDelta = sizeDelta;
+				holder.loadedCell.rectTransform.sizeDelta = cellSize;
 		}
 
 		private void ReloadDataInternal(int? startIndex)
@@ -463,10 +460,10 @@ namespace UIKit
 			for (var i = 0; i < newCount - oldCount; i++)
 				_holders.Add(new UITableViewCellHolder());
 
-			var oldContentSize = _contentRectTransform.sizeDelta;
+			var oldContentSize = _contentRectTransform.rect.size;
 			var oldAnchoredPosition = _contentRectTransform.anchoredPosition;
 			ResizeContent(newCount);
-			_contentRectTransform.anchoredPosition = oldAnchoredPosition - (_contentRectTransform.sizeDelta - oldContentSize) * (Vector2.one - _contentRectTransform.pivot);
+			_contentRectTransform.anchoredPosition = oldAnchoredPosition - (_contentRectTransform.rect.size - oldContentSize) * (Vector2.one - _contentRectTransform.pivot);
 			ReloadCells(_scrollRect.normalizedPosition, true);
 		}
 
@@ -496,10 +493,10 @@ namespace UIKit
 			}
 			_swapper.Clear();
 
-			var oldContentSize = _contentRectTransform.sizeDelta;
+			var oldContentSize = _contentRectTransform.rect.size;
 			var oldAnchoredPosition = _contentRectTransform.anchoredPosition;
 			ResizeContent(newCount);
-			_contentRectTransform.anchoredPosition = oldAnchoredPosition + (_contentRectTransform.sizeDelta - oldContentSize) * _contentRectTransform.pivot;
+			_contentRectTransform.anchoredPosition = oldAnchoredPosition + (_contentRectTransform.rect.size - oldContentSize) * _contentRectTransform.pivot;
 			ReloadCells(_scrollRect.normalizedPosition, true);
 		}
 
@@ -571,13 +568,14 @@ namespace UIKit
 		public Vector2 GetNormalizedPositionOfCellAtIndex(int index)
 		{
 			var normalizedPosition = _scrollRect.normalizedPosition;
+			var deltaSize = _contentRectTransform.rect.size - _viewportRectTransform.rect.size;
 			switch (_direction)
 			{
 				case Direction.TopToBottom:
-					normalizedPosition.y = 1f - _holders[index].position / (_contentRectTransform.sizeDelta.y - _viewportRectTransform.rect.size.y);
+					normalizedPosition.y = 1f - _holders[index].position / deltaSize.y;
 					break;
 				case Direction.RightToLeft:
-					normalizedPosition.x = 1f - _holders[index].position / (_contentRectTransform.sizeDelta.x - _viewportRectTransform.rect.size.x);
+					normalizedPosition.x = 1f - _holders[index].position / deltaSize.x;
 					break;
 				default:
 					throw new ArgumentOutOfRangeException();
