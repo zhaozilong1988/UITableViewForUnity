@@ -416,6 +416,17 @@ namespace UIKit
 			ReloadCells(_scrollRect.normalizedPosition, true);
 		}
 
+		/// <summary> Recycle or destroy all loaded cells.</summary>
+		/// <exception cref="Exception">DataSource can not be null</exception>
+		public void UnloadData()
+		{
+			if (dataSource == null)
+				throw new Exception("DataSource can not be null!");
+			UnloadAllCells();
+			_holders.Clear();
+			ResizeContent(0);
+		}
+
 		/// <summary> Recycle or destroy all loaded cells then reload them again. </summary>
 		/// <param name="startIndex">Table view will be scrolled to start index after data reloaded.</param>
 		public void ReloadData(int startIndex)
