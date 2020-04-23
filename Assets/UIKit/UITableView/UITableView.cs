@@ -103,7 +103,7 @@ namespace UIKit
 			_cellsPoolTransform.SetParent(_scrollRect.transform);
 		}
 
-		/// <summary> Validate if the settings are not compatible UITableView. </summary>
+		/// <summary> Validate if the settings are compatible with UITableView. </summary>
 		private void Validate()
 		{
 			if (_scrollRect == null)
