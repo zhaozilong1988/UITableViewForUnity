@@ -62,7 +62,7 @@ public class SampleDataSourceAndDelegate : MonoBehaviour, IUITableViewDataSource
 		for (var i = 0; i < count; i++)
 		{
 			var data = new SampleData();
-			if (i % 2 == 0)
+			if (Random.Range(i, count) % 2 == 0)
 			{
 				data.sampleType = SampleData.SampleType.Text;
 				data.scalar = 75f + Random.Range(0f, 100f);
