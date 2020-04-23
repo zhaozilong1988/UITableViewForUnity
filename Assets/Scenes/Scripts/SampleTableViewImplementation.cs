@@ -32,7 +32,7 @@ public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSour
 	private const float CHAT_MESSAGE_TEXT_WIDTH = 300f;
 	private const int CHAT_MESSAGE_FONT_SIZE = 30;
 
-	void Start()
+	private void Start()
 	{
 		// Prepare for data source
 		_tab1DataList.Add(CreateSampleForTab());
