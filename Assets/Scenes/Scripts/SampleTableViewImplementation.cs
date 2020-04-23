@@ -6,7 +6,7 @@ using UIKit;
 using UnityEngine.UI;
 using Random = UnityEngine.Random;
 
-public class SampleDataSourceAndDelegate : MonoBehaviour, IUITableViewDataSource, IUITableViewDelegate
+public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSource, IUITableViewDelegate
 {
 	[SerializeField]
 	private UITableView _tableView;

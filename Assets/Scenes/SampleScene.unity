@@ -1379,7 +1379,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: -0.000017285876}
-  m_SizeDelta: {x: -1, y: 1050.5}
+  m_SizeDelta: {x: -703, y: 1050.5}
   m_Pivot: {x: 0, y: 1}
 --- !u!1 &735990434
 GameObject:
@@ -2105,7 +2105,7 @@ GameObject:
   - component: {fileID: 1038947629}
   - component: {fileID: 1038947630}
   m_Layer: 5
-  m_Name: DataSource/Delegate
+  m_Name: SampleTableViewImplementation
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
