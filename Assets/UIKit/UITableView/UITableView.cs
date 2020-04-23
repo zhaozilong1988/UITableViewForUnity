@@ -113,21 +113,8 @@ namespace UIKit
 			}
 			var sizeFitter = _scrollRect.content.GetComponent<ContentSizeFitter>();
 			if (sizeFitter != null) // ContentSizeFitter which attaching to content can not be set to NON-Unconstrained.
-			{
-				switch (_direction)
-				{
-					case UITableViewDirection.RightToLeft:
-						if (sizeFitter.horizontalFit != ContentSizeFitter.FitMode.Unconstrained)
-							throw new Exception("HorizontalFit of ContentSizeFitter which attaching to content can not be set to NON-Unconstrained.");
-						break;
-					case UITableViewDirection.TopToBottom:
-						if (sizeFitter.verticalFit != ContentSizeFitter.FitMode.Unconstrained)
-							throw new Exception("VerticalFit of ContentSizeFitter which attaching to content can not be set to NON-Unconstrained.");
-						break;
-					default:
-						throw new ArgumentOutOfRangeException();
-				}
-			}
+				if (sizeFitter.horizontalFit != ContentSizeFitter.FitMode.Unconstrained || sizeFitter.verticalFit != ContentSizeFitter.FitMode.Unconstrained)
+					throw new Exception("ContentSizeFitter which attaching to content can not be set to NON-Unconstrained.");
 		}
 
 		private Range RecalculateVisibleRange(Vector2 normalizedPosition)
