@@ -11,32 +11,6 @@ namespace UIKit
 	[RequireComponent(typeof(ScrollRect))]
 	public class UITableView : UIBehaviour
 	{
-		private struct Range
-		{
-			public int from { get; }
-			public int to { get; }
-			public Range(int from, int to)
-			{
-				this.from = from;
-				this.to = to;
-			}
-		}
-		private class UITableViewCellHolder
-		{
-			public UITableViewCell loadedCell { get; set; }
-			/// <summary> Height or width of the cell. </summary>
-			public float scalar { get; set; }
-			/// <summary> The position relative to scroll view's content without considering anchor. </summary>
-			public float position { get; set; }
-		}
-		private enum Direction
-		{
-			/// <summary> Index of cell at the top is zero. </summary>
-			TopToBottom = 0,
-			/// <summary> Index of cell at the rightmost is zero. </summary>
-			RightToLeft = 1,
-		}
-
 		public IUITableViewDataSource dataSource { get; set; }
 		public IUITableViewDelegate @delegate { get; set; }
 		/// <summary> If TRUE, the UITableViewCellLifeCycle will be ignored and all cells will be loaded at once, or not when FALSE. </summary>
@@ -51,23 +25,33 @@ namespace UIKit
 				ReloadData();
 			}
 		}
+		public UITableViewDirection direction
+		{
+			get => _direction;
+			set
+			{
+				if (_direction == value)
+					return;
+				_direction = value;
+				Validate();
+				ReloadData();
+			}
+		}
 
 		private readonly List<UITableViewCellHolder> _holders = new List<UITableViewCellHolder>(); // all holders
-		/// <summary> Appearing cells and those whose UITableViewLifeCycle is set to RecycleWhenReloaded.</summary>
-		private readonly Dictionary<int, UITableViewCellHolder> _loadedHolders = new Dictionary<int, UITableViewCellHolder>();
-		/// <summary> Helper for modifying dictionary of _loadedHolders.</summary>
-		private readonly List<int> _swapper = new List<int>();
+		private readonly Dictionary<string, Queue<UITableViewCell>> _reusableCellQueues = new Dictionary<string, Queue<UITableViewCell>>(); // for caching the cells which waiting for be reused.
+		private readonly Dictionary<int, UITableViewCellHolder> _loadedHolders = new Dictionary<int, UITableViewCellHolder>(); // appearing cells and those whose UITableViewLifeCycle is set to RecycleWhenReloaded.
+		private readonly List<int> _swapper = new List<int>(); // helper for modifying dictionary of _loadedHolders.
 		private ScrollRect _scrollRect;
 		private RectTransform _viewportRectTransform;
 		private RectTransform _contentRectTransform;
-		private Coroutine _autoScroll;
-		private readonly Dictionary<string, Queue<UITableViewCell>> _reusableCellQueues = new Dictionary<string, Queue<UITableViewCell>>();
 		private Transform _cellsPoolTransform;
+		private Coroutine _autoScroll;
 		private bool _isReloaded;
 		private Vector2 _normalizedPositionWhenReloaded;
 
 		[SerializeField]
-		private Direction _direction = Direction.TopToBottom;
+		private UITableViewDirection _direction = UITableViewDirection.TopToBottom;
 		[SerializeField]
 		private bool _ignoreCellLifeCycle;
 		/// <summary> Tag for distinguishing table view. </summary>
@@ -78,6 +62,14 @@ namespace UIKit
 		{
 			InitializeScrollRect();
 			InitializeCellsPool();
+			Validate();
+		}
+
+		protected override void OnDestroy()
+		{
+			if (_scrollRect != null)
+				return;
+			_scrollRect.onValueChanged.RemoveListener(OnScrollPositionChanged);
 		}
 
 		protected void Update()
@@ -96,7 +88,6 @@ namespace UIKit
 		{
 			if (_scrollRect != null)
 				return;
-
 			_scrollRect = GetComponent<ScrollRect>();
 			_scrollRect.onValueChanged.AddListener(OnScrollPositionChanged);
 			_viewportRectTransform = _scrollRect.viewport;
@@ -107,10 +98,36 @@ namespace UIKit
 		{
 			if (_cellsPoolTransform != null) 
 				return;
-
 			var poolObject = new GameObject("ReusableCells");
 			_cellsPoolTransform = poolObject.transform;
 			_cellsPoolTransform.SetParent(_scrollRect.transform);
+		}
+
+		/// <summary> Validate if the settings are not compatible UITableView. </summary>
+		private void Validate()
+		{
+			if (_scrollRect == null)
+			{
+				Debug.LogWarning("Validation failed.");
+				return;
+			}
+			var sizeFitter = _scrollRect.content.GetComponent<ContentSizeFitter>();
+			if (sizeFitter != null) // ContentSizeFitter which attaching to content can not be set to NON-Unconstrained.
+			{
+				switch (_direction)
+				{
+					case UITableViewDirection.RightToLeft:
+						if (sizeFitter.horizontalFit != ContentSizeFitter.FitMode.Unconstrained)
+							throw new Exception("HorizontalFit of ContentSizeFitter which attaching to content can not be set to NON-Unconstrained.");
+						break;
+					case UITableViewDirection.TopToBottom:
+						if (sizeFitter.verticalFit != ContentSizeFitter.FitMode.Unconstrained)
+							throw new Exception("VerticalFit of ContentSizeFitter which attaching to content can not be set to NON-Unconstrained.");
+						break;
+					default:
+						throw new ArgumentOutOfRangeException();
+				}
+			}
 		}
 
 		private Range RecalculateVisibleRange(Vector2 normalizedPosition)
@@ -122,11 +139,11 @@ namespace UIKit
 			int startIndex, endIndex;
 			switch (_direction)
 			{
-				case Direction.TopToBottom:
+				case UITableViewDirection.TopToBottom:
 					startIndex = FindIndexOfCellAtPosition(startPosition.y);
 					endIndex = FindIndexOfCellAtPosition(endPosition.y);
 					break;
-				case Direction.RightToLeft:
+				case UITableViewDirection.RightToLeft:
 					startIndex = FindIndexOfCellAtPosition(startPosition.x);
 					endIndex = FindIndexOfCellAtPosition(endPosition.x);
 					break;
@@ -171,10 +188,10 @@ namespace UIKit
 			var size = _contentRectTransform.sizeDelta;
 			switch (_direction)
 			{
-				case Direction.TopToBottom:
+				case UITableViewDirection.TopToBottom:
 					size.y = cumulativeScalar;
 					break;
-				case Direction.RightToLeft:
+				case UITableViewDirection.RightToLeft:
 					size.x = cumulativeScalar;
 					break;
 				default:
@@ -309,12 +326,12 @@ namespace UIKit
 			Vector2 anchoredPosition, cellSize, contentSize = _contentRectTransform.rect.size;
 			switch (_direction)
 			{
-				case Direction.TopToBottom:
+				case UITableViewDirection.TopToBottom:
 					anchoredPosition = new Vector2(0f, contentSize.y * cellRectTransform.anchorMax.y - holder.position - (1f - cellRectTransform.pivot.y) * holder.scalar);
 					cellSize.x = contentSize.x;
 					cellSize.y = holder.scalar;
 					break;
-				case Direction.RightToLeft:
+				case UITableViewDirection.RightToLeft:
 					anchoredPosition = new Vector2(contentSize.x * cellRectTransform.anchorMax.x - holder.position - (1f - cellRectTransform.pivot.x) * holder.scalar, 0f);
 					cellSize.x = holder.scalar;
 					cellSize.y = contentSize.y;
@@ -571,10 +588,10 @@ namespace UIKit
 			var deltaSize = _contentRectTransform.rect.size - _viewportRectTransform.rect.size;
 			switch (_direction)
 			{
-				case Direction.TopToBottom:
+				case UITableViewDirection.TopToBottom:
 					normalizedPosition.y = 1f - _holders[index].position / deltaSize.y;
 					break;
-				case Direction.RightToLeft:
+				case UITableViewDirection.RightToLeft:
 					normalizedPosition.x = 1f - _holders[index].position / deltaSize.x;
 					break;
 				default:
@@ -607,7 +624,6 @@ namespace UIKit
 		}
 
 		/// <summary> Return all appearing cells and those whose UITableViewCellLifeCycle is set to RecycleWhenReloaded. </summary>
-		/// <returns>All loaded cells</returns>
 		public IEnumerable<UITableViewCell> GetAllLoadedCells()
 		{
 			foreach (var kvp in _loadedHolders)
@@ -617,5 +633,45 @@ namespace UIKit
 			}
 		}
 
+		/// <summary> Destroy the cells those which waiting for reuse. </summary>
+		public void DestroyCachedReusableCells()
+		{
+			foreach (var queue in _reusableCellQueues.Values)
+			{
+				var count = queue.Count;
+				for (var i = 0; i < count; i++)
+				{
+					var cell = queue.Dequeue();
+					Destroy(cell);
+				}
+			}
+		}
+
+		private struct Range
+		{
+			public int from { get; }
+			public int to { get; }
+			public Range(int from, int to)
+			{
+				this.from = from;
+				this.to = to;
+			}
+		}
+		private class UITableViewCellHolder
+		{
+			public UITableViewCell loadedCell { get; set; }
+			/// <summary> Height or width of the cell. </summary>
+			public float scalar { get; set; }
+			/// <summary> The position relative to scroll view's content without considering anchor. </summary>
+			public float position { get; set; }
+		}
+	}
+
+	public enum UITableViewDirection
+	{
+		/// <summary> Index of cell at the top is zero. </summary>
+		TopToBottom = 0,
+		/// <summary> Index of cell at the rightmost is zero. </summary>
+		RightToLeft = 1,
 	}
 }
