@@ -40,7 +40,7 @@ Cellのライフサイクルは下記３つのタイプと設計しています�
 
 ② 違うタイプのCellを一つのTableViewに共存できる<br>
 
-例えば、チャットTableViewの場合、メッセージ(MessageCell)、スタンプ(StampCell)、位置共有(LocaltionCell)などレイアウト配置の違うタイプのCellでも一つのTableViewに入れられます。すると、一つGameObjectでいらない物をSetActiveオンしたりオフしたりする実装も避けられます。
+例えば、チャットTableViewの場合、メッセージ(MessageCell)、スタンプ(StampCell)、位置共有(LocationCell)などレイアウト配置の違うタイプのCellでも一つのTableViewに入れられます。すると、一つGameObjectでいらない物をSetActiveオンしたりオフしたりする実装も避けられます。
 
 ③ 演出の実装もできる<br>
 
@@ -63,4 +63,4 @@ UITableViewForUnityは、基本iOSのUIKitフレームワークのUITableViewの
 --- | --- | ---
 Headerという概念 | あり | ない
 Cellのライフサイクル | 回収再利用式のみ | ①見えなくなったら回収<br>②リロード時に回収<br>③見えなくなったら廃棄<br>の3種類がある
-ScrollViewとのか関係 | UIScrollViewを継承 | ScrollRectとは別で独立
+ScrollViewとの関係 | UIScrollViewを継承 | ScrollRectとは別で独立
