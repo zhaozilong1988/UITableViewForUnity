@@ -29,10 +29,9 @@ public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSour
 	private readonly List<SampleData> _tab1DataList = new List<SampleData>();
 	private readonly List<SampleData> _tab2DataList = new List<SampleData>();
 	private int _selectedTabIndex;
-	private const float CHAT_MESSAGE_TEXT_WIDTH = 300f;
-	private const int CHAT_MESSAGE_FONT_SIZE = 30;
+	private ScreenOrientation _lastOrientation;
 
-	private void Start()
+	private void Awake()
 	{
 		// Prepare for data source
 		_tab1DataList.Add(CreateSampleForTab());
@@ -43,8 +42,22 @@ public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSour
 		// Setup table view
 		_tableView.dataSource = this;
 		_tableView.@delegate = this;
+	}
+
+	private void Start()
+	{
+		_lastOrientation = Screen.orientation;
 		// Reload from 0th
 		_tableView.ReloadData(0);
+	}
+
+	private void Update()
+	{
+		if (_lastOrientation != Screen.orientation)
+		{
+			_lastOrientation = Screen.orientation;
+			_tableView.ReloadData();
+		}
 	}
 
 	private static SampleData CreateSampleForTab()
@@ -135,7 +148,7 @@ public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSour
 	{
 		if (string.IsNullOrEmpty(_chatInput.text))
 			return;
-		var height = CalculateTextHeight(_chatInput.text, CHAT_MESSAGE_TEXT_WIDTH, CHAT_MESSAGE_FONT_SIZE);
+		var height = CalculateTextHeight(_chatInput.text, SampleChatCell.MESSAGE_TEXT_WIDTH, SampleChatCell.MESSAGE_FONT_SIZE);
 		var data = new SampleData
 		{
 			sampleType = SampleData.SampleType.Chat,
