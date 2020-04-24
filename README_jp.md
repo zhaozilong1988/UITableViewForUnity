@@ -57,7 +57,7 @@ Cellの高さを自由(0不可)に調整できるので、ジャバラ式みた�
 
 # 設計について
 
-UITableViewForUnityは、基本iOSのUIKitフレームワークのUITableViewの設計を参考して実装していますが、いくつか違うところもあります。
+UITableViewForUnityは、基本iOSの[UIKit](https://developer.apple.com/documentation/uikit)フレームワークの[UITableView](https://developer.apple.com/documentation/uikit/uitableview)の設計を参考して実装していますが、いくつか違うところもあります。
 
 ・ | UITableView | UITableViewForUnity
 --- | --- | ---

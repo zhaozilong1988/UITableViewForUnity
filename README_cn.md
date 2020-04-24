@@ -55,7 +55,7 @@ Cell的高度可以被任意调整（除了0），所以像上边提到的可展
 
 # 关于设计
 
-UITableViewForUnity基本上是参考了iOS的UIKit框架中的UITableView的设计而实现的。但也有以下几种不同的部分。<br>
+UITableViewForUnity基本上是参考了iOS的[UIKit](https://developer.apple.com/documentation/uikit)框架中的[UITableView](https://developer.apple.com/documentation/uikit/uitableview)的设计而实现的。但也有以下几种不同的部分。<br>
 
 ・ | UITableView | UITableViewForUnity
 --- | --- | ---
