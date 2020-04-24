@@ -83,10 +83,12 @@ namespace UIKit
 			}
 		}
 
+#if UNITY_EDITOR
 		protected override void OnValidate()
 		{
 			InitializeScrollRect();
 		}
+#endif
 
 		private void InitializeScrollRect()
 		{
