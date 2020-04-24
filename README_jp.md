@@ -53,4 +53,14 @@ Cellの高さを自由(0不可)に調整できるので、ジャバラ式みた�
 
 # どう使う?
 
+[SampleScene.unity](https://github.com/zhaozilong1988/UITableViewForUnity/blob/master/Assets/Scenes/SampleScene.unity)と[SampleTableViewImplementation.cs](https://github.com/zhaozilong1988/UITableViewForUnity/blob/master/Assets/Scenes/Scripts/SampleTableViewImplementation.cs)の実装をご参考ください。
+
 # 設計について
+
+UITableViewForUnityは、基本iOSのUIKitフレームワークのUITableViewの設計を参考して実装していますが、いくつか違うところもあります。
+
+・ | UITableView | UITableViewForUnity
+--- | --- | ---
+Headerという概念 | あり | ない
+Cellのライフサイクル | 回収再利用式のみ | ①見えなくなったら回収<br>②リロード時に回収<br>③見えなくなったら廃棄<br>の3種類がある
+ScrollViewとのか関係 | UIScrollViewを継承 | ScrollRectとは別で独立
