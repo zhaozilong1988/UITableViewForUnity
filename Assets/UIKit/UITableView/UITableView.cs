@@ -190,7 +190,8 @@ namespace UIKit
 
 		private void OnScrollPositionChanged(Vector2 normalizedPosition)
 		{
-			ReloadCells(normalizedPosition, false);
+			if (_holders.Count > 0)
+				ReloadCells(normalizedPosition, false);
 		}
 
 		private void ReloadCells(Vector2 normalizedPosition, bool alwaysRearrangeCell)
