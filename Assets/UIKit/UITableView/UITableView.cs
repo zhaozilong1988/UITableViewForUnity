@@ -231,6 +231,7 @@ namespace UIKit
 			holder.loadedCell = dataSource.CellAtIndexInTableView(this, index);
 			holder.loadedCell.rectTransform.SetParent(_content);
 			holder.loadedCell.rectTransform.localScale = Vector3.one;
+			holder.loadedCell.rectTransform.localRotation = Quaternion.identity;
 			RearrangeCell(index);
 			holder.loadedCell.gameObject.SetActive(true);
 			@delegate?.CellAtIndexInTableViewWillAppear(this, index);
