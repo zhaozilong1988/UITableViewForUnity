@@ -11,7 +11,7 @@ namespace UIKit
 	[RequireComponent(typeof(ScrollRect))]
 	public class UITableView : UIBehaviour
 	{
-		public ScrollRect scrollRect { get; }
+		public ScrollRect scrollRect { get { return _scrollRect; } }
 		public IUITableViewDataSource dataSource { get; set; }
 		public IUITableViewDelegate @delegate { get; set; }
 		/// <summary> If TRUE, the UITableViewCellLifeCycle will be ignored and all cells will be loaded at once, or not when FALSE. </summary>
