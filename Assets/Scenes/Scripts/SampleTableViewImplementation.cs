@@ -6,7 +6,7 @@ using UIKit;
 using UnityEngine.UI;
 using Random = UnityEngine.Random;
 
-public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSource, IUITableViewDelegate
+public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSource, IUITableViewDelegate, IUITableViewMargin
 {
 	[SerializeField]
 	private UITableView _tableView;
@@ -41,6 +41,7 @@ public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSour
 
 		// Setup table view
 		_tableView.dataSource = this;
+		_tableView.marginDataSource = this;
 		_tableView.@delegate = this;
 	}
 
@@ -49,6 +50,7 @@ public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSour
 		_lastOrientation = Screen.orientation;
 		// Reload from 0th
 		_tableView.ReloadData(0);
+		_tableView.ScrollToCellAtIndex(0, true);
 	}
 
 	private void Update()
@@ -108,14 +110,14 @@ public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSour
 	public void OnClickScrollTo()
 	{
 		var index = int.Parse(_cellIndexInput.text);
-		_tableView.ScrollToCellAtIndex(index);
+		_tableView.ScrollToCellAtIndex(index, false);
 	}
 
 	public void OnClickScrollTo(float time)
 	{
 		var index = int.Parse(_cellIndexInput.text);
 		Debug.Log("Go to cell at index of " + index);
-		_tableView.ScrollToCellAtIndex(index, time, () => {
+		_tableView.ScrollToCellAtIndex(index, time, true, () => {
 			Debug.Log("Scrolling has finished");
 		});
 	}
@@ -158,7 +160,7 @@ public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSour
 		var dataList = _selectedTabIndex == 0 ? _tab1DataList : _tab2DataList;
 		dataList.Add(data);
 		_tableView.AppendData();
-		_tableView.ScrollToCellAtIndex(dataList.Count-1, 0.1f, null);
+		_tableView.ScrollToCellAtIndex(dataList.Count-1, 0.1f, true, null);
 		_chatInput.text = "";
 	}
 
@@ -182,7 +184,7 @@ public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSour
 				? Mathf.Lerp(sampleData.scalarBeforeExpand, sampleData.scalarAfterExpand, progress)
 				: Mathf.Lerp(sampleData.scalarAfterExpand, sampleData.scalarBeforeExpand, progress);
 			_tableView.RearrangeData();
-			_tableView.ScrollToCellAtIndex(index);
+			_tableView.ScrollToCellAtIndex(index, false);
 		}
 	}
 
@@ -261,4 +263,15 @@ public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSour
 		Debug.Log($"cell at index:{index} will disappear.");
 	}
 	#endregion
+
+	public float ScalarForUpperMarginInTableView(UITableView tableView, int index)
+	{
+		return index == 0 ? 100f : 0f;
+	}
+
+	public float ScalarForLowerMarginInTableView(UITableView tableView, int index)
+	{
+		var dataList = _selectedTabIndex == 0 ? _tab1DataList : _tab2DataList;
+		return index == dataList.Count - 1 ? 100f : 0f;
+	}
 }

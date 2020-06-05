@@ -13,6 +13,7 @@ namespace UIKit
 	{
 		public ScrollRect scrollRect { get { return _scrollRect; } }
 		public IUITableViewDataSource dataSource { get; set; }
+		public IUITableViewMargin marginDataSource { get; set; }
 		public IUITableViewDelegate @delegate { get; set; }
 		/// <summary> If TRUE, the UITableViewCellLifeCycle will be ignored and all cells will be loaded at once, or not when FALSE. </summary>
 		public bool ignoreCellLifeCycle
@@ -163,15 +164,21 @@ namespace UIKit
 
 		private void ResizeContent(int numberOfCells)
 		{
+			var lastLowerMargin = 0f;
 			var cumulativeScalar = 0f;
 			for (var i = 0; i < numberOfCells; i++)
 			{
 				var holder = _holders[i];
+				holder.upperMargin = marginDataSource?.ScalarForUpperMarginInTableView(this, i) ?? 0f;
+				cumulativeScalar += (lastLowerMargin + holder.upperMargin);
 				holder.position = cumulativeScalar;
 				holder.scalar = dataSource.ScalarForCellInTableView(this, i);
 				Debug.Assert(holder.scalar > 0f, $"Scalar of cell can not be less than zero, index:{i}.");
 				cumulativeScalar += holder.scalar;
+				holder.lowerMargin = marginDataSource?.ScalarForLowerMarginInTableView(this, i) ?? 0f;
+				lastLowerMargin = holder.lowerMargin;
 			}
+			cumulativeScalar += lastLowerMargin; // the last cell's margin
 
 			var size = _content.sizeDelta;
 			switch (_direction)
@@ -347,7 +354,7 @@ namespace UIKit
 			ResizeContent(newCount);
 
 			if (startIndex.HasValue)
-				ScrollToCellAtIndex(startIndex.Value);
+				ScrollToCellAtIndex(startIndex.Value, false);
 			else
 			{
 				_isReloaded = true;
@@ -365,16 +372,16 @@ namespace UIKit
 			onScrollingFinished?.Invoke();
 		}
 
-		private void StartAutoScroll(int index, float time, Action onScrollingFinished)
+		private void StartAutoScroll(int index, float time, bool withUpperMargin, Action onScrollingFinished)
 		{
 			StopAutoScroll(onScrollingFinished);
-			_autoScroll = StartCoroutine(AutoScroll(index, time, onScrollingFinished));
+			_autoScroll = StartCoroutine(AutoScroll(index, time, withUpperMargin, onScrollingFinished));
 		}
 
-		private IEnumerator AutoScroll(int index, float time, Action onScrollingFinished)
+		private IEnumerator AutoScroll(int index, float time, bool withUpperMargin, Action onScrollingFinished)
 		{
 			var from = _scrollRect.normalizedPosition;
-			var to = GetNormalizedPositionOfCellAtIndex(index);
+			var to = GetNormalizedPositionOfCellAtIndex(index, withUpperMargin);
 			var progress = 0f; 
 			var startAt = Time.time;
 			while (!Mathf.Approximately(progress, 1f))
@@ -519,47 +526,51 @@ namespace UIKit
 			return cell;
 		}
 
-		/// <summary> Scroll to cell at index with animation. </summary>
+		/// <summary> Scroll to cell at index with animation, without margin. </summary>
 		/// <param name="index">Index of cell at</param>
 		/// <param name="time">Animation time</param>
+		/// <param name="withUpperMargin">With calculating upper margin</param>
 		/// <param name="onScrollingFinished">Will be called when animation is finished or interrupted.</param>
 		/// <exception cref="ArgumentException">Time is negative</exception>
-		public void ScrollToCellAtIndex(int index, float time, Action onScrollingFinished)
+		public void ScrollToCellAtIndex(int index, float time, bool withUpperMargin, Action onScrollingFinished)
 		{
 			if (index > _holders.Count - 1 || index < 0)
 				throw new IndexOutOfRangeException("Index must be less than cells' number and more than zero.");
 			if (time < 0f)
 				throw new ArgumentException("Time must be equal to or more than zero.");
 			if (Mathf.Approximately(time, 0f))
-				ScrollToCellAtIndex(index);
+				ScrollToCellAtIndex(index, withUpperMargin);
 			else
-				StartAutoScroll(index, time, onScrollingFinished);
+				StartAutoScroll(index, time, withUpperMargin, onScrollingFinished);
 		}
 
-		/// <summary> Scroll to cell at index. </summary>
+		/// <summary> Scroll to cell at index without margin. </summary>
 		/// <param name="index">Index of cell at</param>
-		public void ScrollToCellAtIndex(int index)
+		/// <param name="withUpperMargin">With calculating upper margin</param>
+		public void ScrollToCellAtIndex(int index, bool withUpperMargin)
 		{
 			if (index > _holders.Count - 1 || index < 0)
 				throw new IndexOutOfRangeException("Index must be less than cells' number and more than zero.");
-			_scrollRect.normalizedPosition = GetNormalizedPositionOfCellAtIndex(index);
+			_scrollRect.normalizedPosition = GetNormalizedPositionOfCellAtIndex(index, withUpperMargin);
 			ReloadCells(_scrollRect.normalizedPosition, false);
 		}
 
-		/// <summary> Return scroll view's normalized position of cell at index. </summary>
+		/// <summary> Return scroll view's normalized position of cell at index without margin. </summary>
 		/// <param name="index">Index of cell at</param>
+		/// <param name="withUpperMargin">With calculating upper margin</param>
 		/// <returns>Normalized position of scroll view</returns>
-		public Vector2 GetNormalizedPositionOfCellAtIndex(int index)
+		public Vector2 GetNormalizedPositionOfCellAtIndex(int index, bool withUpperMargin)
 		{
 			var normalizedPosition = _scrollRect.normalizedPosition;
 			var deltaSize = _content.rect.size - _viewport.rect.size;
+			var position = _holders[index].position - (withUpperMargin ? _holders[index].upperMargin : 0f);
 			switch (_direction)
 			{
 				case UITableViewDirection.TopToBottom:
-					normalizedPosition.y = 1f - _holders[index].position / deltaSize.y;
+					normalizedPosition.y = 1f - position / deltaSize.y;
 					break;
 				case UITableViewDirection.RightToLeft:
-					normalizedPosition.x = 1f - _holders[index].position / deltaSize.x;
+					normalizedPosition.x = 1f - position / deltaSize.x;
 					break;
 				default:
 					throw new ArgumentOutOfRangeException();
@@ -627,6 +638,10 @@ namespace UIKit
 			public UITableViewCell loadedCell { get; set; }
 			/// <summary> Height or width of the cell. </summary>
 			public float scalar { get; set; }
+			/// <summary> Upper margin (top or right) for cell. </summary>
+			public float upperMargin { get; set; }
+			/// <summary> Lower margin (bottom or left) for cell. </summary>
+			public float lowerMargin { get; set; }
 			/// <summary> The position relative to scroll view's content without considering anchor. </summary>
 			public float position { get; set; }
 		}
