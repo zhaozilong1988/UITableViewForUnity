@@ -354,7 +354,7 @@ namespace UIKit
 			ResizeContent(newCount);
 
 			if (startIndex.HasValue)
-				ScrollToCellAtIndex(startIndex.Value, false);
+				ScrollToCellAtIndex(startIndex.Value);
 			else
 			{
 				_isReloaded = true;
@@ -527,6 +527,12 @@ namespace UIKit
 		}
 
 		/// <summary> Scroll to cell at index with animation, without margin. </summary>
+		public void ScrollToCellAtIndex(int index, float time, Action onScrollingFinished)
+		{
+			ScrollToCellAtIndex(index, time, false, onScrollingFinished);
+		}
+
+		/// <summary> Scroll to cell at index with animation. </summary>
 		/// <param name="index">Index of cell at</param>
 		/// <param name="time">Animation time</param>
 		/// <param name="withUpperMargin">With calculating upper margin</param>
@@ -544,7 +550,13 @@ namespace UIKit
 				StartAutoScroll(index, time, withUpperMargin, onScrollingFinished);
 		}
 
-		/// <summary> Scroll to cell at index without margin. </summary>
+		/// <summary> Scroll to cell at index without upper margin. </summary>
+		public void ScrollToCellAtIndex(int index)
+		{
+			ScrollToCellAtIndex(index, false);
+		}
+
+		/// <summary> Scroll to cell at index. </summary>
 		/// <param name="index">Index of cell at</param>
 		/// <param name="withUpperMargin">With calculating upper margin</param>
 		public void ScrollToCellAtIndex(int index, bool withUpperMargin)
