@@ -40,6 +40,7 @@ namespace UIKit
 			}
 		}
 
+		private int _numberOfCellsAtRowOrColumn = 1;
 		private readonly List<UITableViewCellHolder> _holders = new List<UITableViewCellHolder>(); // all holders
 		private readonly Dictionary<string, Queue<UITableViewCell>> _reusableCellQueues = new Dictionary<string, Queue<UITableViewCell>>(); // for caching the cells which waiting for be reused.
 		private readonly Dictionary<int, UITableViewCellHolder> _loadedHolders = new Dictionary<int, UITableViewCellHolder>(); // appearing cells and those whose UITableViewLifeCycle is set to RecycleWhenReloaded.
@@ -139,6 +140,14 @@ namespace UIKit
 				default:
 					throw new ArgumentOutOfRangeException();
 			}
+
+			// find the first and the last index at row or column if it's a grid.
+			if (_numberOfCellsAtRowOrColumn > 1) {
+				startIndex = Mathf.FloorToInt((float)startIndex / _numberOfCellsAtRowOrColumn) * _numberOfCellsAtRowOrColumn;
+				endIndex = Mathf.CeilToInt((float)(endIndex + 1) / _numberOfCellsAtRowOrColumn) * _numberOfCellsAtRowOrColumn - 1;
+				endIndex = Mathf.Min(endIndex, _holders.Count-1);
+			}
+
 			return new Range(startIndex, endIndex);
 		}
 
@@ -164,21 +173,36 @@ namespace UIKit
 
 		private void ResizeContent(int numberOfCells)
 		{
-			var lastLowerMargin = 0f;
+			var lastMaxLowerMargin = 0f;
 			var cumulativeScalar = 0f;
-			for (var i = 0; i < numberOfCells; i++)
+			var numOfRowOrColumn = Mathf.CeilToInt((float)numberOfCells / _numberOfCellsAtRowOrColumn);
+			for (var i = 0; i < numOfRowOrColumn; i++)
 			{
-				var holder = _holders[i];
-				holder.upperMargin = marginDataSource?.ScalarForUpperMarginInTableView(this, i) ?? 0f;
-				cumulativeScalar += (lastLowerMargin + holder.upperMargin);
-				holder.position = cumulativeScalar;
-				holder.scalar = dataSource.ScalarForCellInTableView(this, i);
-				Debug.Assert(holder.scalar > 0f, $"Scalar of cell can not be less than zero, index:{i}.");
-				cumulativeScalar += holder.scalar;
-				holder.lowerMargin = marginDataSource?.ScalarForLowerMarginInTableView(this, i) ?? 0f;
-				lastLowerMargin = holder.lowerMargin;
+				// find max margin, scalar at row or column
+				float maxUpperMargin = 0f, maxLowerMargin = 0f, maxScalar = 0f;
+				for (var j = 0; j < _numberOfCellsAtRowOrColumn; j++) {
+					var upperMargin = marginDataSource?.ScalarForUpperMarginInTableView(this, i) ?? 0f;
+					maxUpperMargin = Mathf.Max(maxUpperMargin, upperMargin);
+					var lowerMargin = marginDataSource?.ScalarForLowerMarginInTableView(this, i) ?? 0f;
+					maxLowerMargin = Mathf.Max(maxLowerMargin, lowerMargin);
+					var scalar = dataSource.ScalarForCellInTableView(this, i);
+					maxScalar = Mathf.Max(maxScalar, scalar);
+				}
+
+				for (var j = 0; j < _numberOfCellsAtRowOrColumn; j++) {
+					var index = Mathf.Min(i * _numberOfCellsAtRowOrColumn + j, numberOfCells - 1);
+					var holder = _holders[index];
+					holder.upperMargin = maxUpperMargin;
+					holder.position = cumulativeScalar + lastMaxLowerMargin + maxUpperMargin;
+					holder.scalar = maxScalar;
+					Debug.Assert(maxScalar > 0f, $"Scalar of cell can not be less than zero, index:{i}.");
+					holder.lowerMargin = maxLowerMargin;
+				}
+
+				cumulativeScalar += (lastMaxLowerMargin + maxUpperMargin + maxScalar);
+				lastMaxLowerMargin = maxLowerMargin;
 			}
-			cumulativeScalar += lastLowerMargin; // the last cell's margin
+			cumulativeScalar += lastMaxLowerMargin; // the last cell's margin
 
 			var size = _content.sizeDelta;
 			switch (_direction)
@@ -311,17 +335,26 @@ namespace UIKit
 			var holder = _holders[index];
 			var cellRectTransform = holder.loadedCell.rectTransform;
 			Vector2 anchoredPosition, cellSize, contentSize = _content.rect.size;
+			var otherIndex = index % _numberOfCellsAtRowOrColumn;
+			float otherScalar;
+			Vector2 anchorMax = cellRectTransform.anchorMax, pivot = cellRectTransform.pivot;
 			switch (_direction)
 			{
 				case UITableViewDirection.TopToBottom:
-					anchoredPosition = new Vector2(0f, contentSize.y * cellRectTransform.anchorMax.y - holder.position - (1f - cellRectTransform.pivot.y) * holder.scalar);
-					cellSize.x = contentSize.x;
+					otherScalar = contentSize.x / _numberOfCellsAtRowOrColumn;
+					anchoredPosition = new Vector2(
+						-contentSize.x * anchorMax.x + otherIndex * otherScalar + (1f - pivot.x) * otherScalar, 
+						contentSize.y * anchorMax.y - holder.position - (1f - pivot.y) * holder.scalar);
+					cellSize.x = otherScalar;
 					cellSize.y = holder.scalar;
 					break;
 				case UITableViewDirection.RightToLeft:
-					anchoredPosition = new Vector2(contentSize.x * cellRectTransform.anchorMax.x - holder.position - (1f - cellRectTransform.pivot.x) * holder.scalar, 0f);
+					otherScalar = contentSize.y / _numberOfCellsAtRowOrColumn;
+					anchoredPosition = new Vector2(
+						contentSize.x * anchorMax.x - holder.position - (1f - pivot.x) * holder.scalar, 
+						contentSize.y * anchorMax.y - otherIndex * otherScalar - (1f - pivot.y) * otherScalar);
 					cellSize.x = holder.scalar;
-					cellSize.y = contentSize.y;
+					cellSize.y = otherScalar;
 					break;
 				default:
 					throw new ArgumentOutOfRangeException();
@@ -337,6 +370,10 @@ namespace UIKit
 				throw new Exception("DataSource can not be null!");
 			if (startIndex < 0)
 				throw new IndexOutOfRangeException("Start index must be more than zero.");
+			if (dataSource is IUIGridDataSource gridDataSource)
+				_numberOfCellsAtRowOrColumn = gridDataSource.NumberOfCellsAtRowOrColumnInGrid(this);
+			if (_numberOfCellsAtRowOrColumn < 1)
+				throw new Exception("Number of cells at row or column can not be less than 1!");
 
 			UnloadAllCells();
 			var oldCount = _holders.Count;
@@ -635,7 +672,7 @@ namespace UIKit
 			}
 		}
 
-		private struct Range
+		private readonly struct Range
 		{
 			public int from { get; }
 			public int to { get; }
