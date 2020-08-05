@@ -10,6 +10,8 @@ public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSour
 {
 	[SerializeField]
 	private UITableView _tableView;
+	[SerializeField]
+	private GameObject _gridView;
 	[SerializeField, Header("cell prefabs")]
 	private SampleImageCell _imageCellPrefab;
 	[SerializeField]
@@ -188,6 +190,11 @@ public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSour
 		}
 	}
 
+	public void OnClickGrid()
+	{
+		_gridView.SetActive(true);
+	}
+
 	#region IUITableViewDataSource
 	public UITableViewCell CellAtIndexInTableView(UITableView tableView, int index)
 	{
@@ -216,6 +223,7 @@ public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSour
 	{
 		return _selectedTabIndex == 0 ? _tab1DataList[index].scalar : _tab2DataList[index].scalar;
 	}
+
 	#endregion
 
 	#region IUITableViewDelegate
