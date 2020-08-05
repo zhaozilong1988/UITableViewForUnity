@@ -5,9 +5,9 @@
 UITableViewForUnity is a componet which can be used for implementing various of list UI views with Unity engine.
 
 For example
-Chat List | Expandable List
---- | ---
-![](sample_chat.gif) | ![](sample_expend.gif)
+Chat List | Expandable List | Grid
+--- | --- | ---
+![](sample_chat.gif) | ![](sample_expend.gif) | <img src="sample_grid.png" width="280" height="500" />
 
 # Why I need this?
 

@@ -3,9 +3,9 @@
 UITableViewForUnity是一个可以方便实现各种列表式UI需求的Unity引擎的组件。<br>
 
 比如
-消息列表 | 可展开式列表
---- | ---
-![](sample_chat.gif) | ![](sample_expend.gif)
+消息列表 | 可展开式列表 | 表格
+--- | --- | ---
+![](sample_chat.gif) | ![](sample_expend.gif) | <img src="sample_grid.png" width="280" height="500" />
 
 # 为什么需要?
 
