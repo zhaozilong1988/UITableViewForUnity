@@ -5,7 +5,7 @@ UITableViewForUnityは、アプリ開発中によくあるリスト系のUI(2D)�
 例
 チャット式 | ジャバラ式 | グリッド式
 --- | --- | ---
-![](sample_chat.gif) | ![](sample_expend.gif) | ![](sample_grid.png)
+![](sample_chat.gif) | ![](sample_expend.gif) | <img src="sample_grid.png" width="280" height="500" />
 
 # なぜ必要?
 
