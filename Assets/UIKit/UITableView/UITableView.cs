@@ -41,6 +41,7 @@ namespace UIKit
 		}
 
 		private int _numberOfCellsAtRowOrColumn = 1;
+		private UIGridViewAlignment _alignment = UIGridViewAlignment.RightOrTop;
 		private readonly List<UITableViewCellHolder> _holders = new List<UITableViewCellHolder>(); // all holders
 		private readonly Dictionary<string, Queue<UITableViewCell>> _reusableCellQueues = new Dictionary<string, Queue<UITableViewCell>>(); // for caching the cells which waiting for be reused.
 		private readonly Dictionary<int, UITableViewCellHolder> _loadedHolders = new Dictionary<int, UITableViewCellHolder>(); // appearing cells and those whose UITableViewLifeCycle is set to RecycleWhenReloaded.
@@ -338,12 +339,31 @@ namespace UIKit
 			var otherIndex = index % _numberOfCellsAtRowOrColumn;
 			float otherScalar;
 			Vector2 anchorMax = cellRectTransform.anchorMax, pivot = cellRectTransform.pivot;
+
+			// Cells' alignment at last row or column for grid view. 
+			var numberOfCellAtLastRowOrColumn = _holders.Count % _numberOfCellsAtRowOrColumn;
+			var emptyNumberAtLastRowOrColumn = 0;
+			var maxRowOrColumn = Mathf.CeilToInt((float)_holders.Count / _numberOfCellsAtRowOrColumn);
+			if (numberOfCellAtLastRowOrColumn != 0 && index >= (maxRowOrColumn - 1) * _numberOfCellsAtRowOrColumn && index < _holders.Count)
+				switch (_alignment)
+				{
+					case UIGridViewAlignment.RightOrTop: 
+						otherIndex = _numberOfCellsAtRowOrColumn - numberOfCellAtLastRowOrColumn + otherIndex;
+						break;
+					case UIGridViewAlignment.LeftOrBottom: // Do nothing.
+						break;
+					case UIGridViewAlignment.Center: 
+						emptyNumberAtLastRowOrColumn = _numberOfCellsAtRowOrColumn - numberOfCellAtLastRowOrColumn;
+						break;
+					default: throw new ArgumentOutOfRangeException();
+				}
+
 			switch (_direction)
 			{
 				case UITableViewDirection.TopToBottom:
 					otherScalar = contentSize.x / _numberOfCellsAtRowOrColumn;
 					anchoredPosition = new Vector2(
-						-contentSize.x * anchorMax.x + otherIndex * otherScalar + (1f - pivot.x) * otherScalar, 
+						-(contentSize.x - emptyNumberAtLastRowOrColumn * otherScalar) * anchorMax.x + otherIndex * otherScalar + (1f - pivot.x) * otherScalar, 
 						contentSize.y * anchorMax.y - holder.position - (1f - pivot.y) * holder.scalar);
 					cellSize.x = otherScalar;
 					cellSize.y = holder.scalar;
@@ -352,7 +372,7 @@ namespace UIKit
 					otherScalar = contentSize.y / _numberOfCellsAtRowOrColumn;
 					anchoredPosition = new Vector2(
 						contentSize.x * anchorMax.x - holder.position - (1f - pivot.x) * holder.scalar, 
-						contentSize.y * anchorMax.y - otherIndex * otherScalar - (1f - pivot.y) * otherScalar);
+						(contentSize.y - emptyNumberAtLastRowOrColumn * otherScalar) * anchorMax.y - otherIndex * otherScalar - (1f - pivot.y) * otherScalar);
 					cellSize.x = holder.scalar;
 					cellSize.y = otherScalar;
 					break;
@@ -370,8 +390,11 @@ namespace UIKit
 				throw new Exception("DataSource can not be null!");
 			if (startIndex < 0)
 				throw new IndexOutOfRangeException("Start index must be more than zero.");
-			if (dataSource is IUIGridDataSource gridDataSource)
+			if (dataSource is IUIGridViewDataSource gridDataSource)
+			{
+				_alignment = gridDataSource.AlignmentOfCellAtRowOrColumnInGrid(this);
 				_numberOfCellsAtRowOrColumn = gridDataSource.NumberOfCellsAtRowOrColumnInGrid(this);
+			}
 			if (_numberOfCellsAtRowOrColumn < 1)
 				throw new Exception("Number of cells at row or column can not be less than 1!");
 
@@ -702,5 +725,12 @@ namespace UIKit
 		TopToBottom = 0,
 		/// <summary> Index of cell at the rightmost is zero. </summary>
 		RightToLeft = 1,
+	}
+
+	public enum UIGridViewAlignment
+	{
+		RightOrTop = 0,
+		LeftOrBottom = 1,
+		Center = 2,
 	}
 }

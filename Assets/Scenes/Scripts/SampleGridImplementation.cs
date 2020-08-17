@@ -2,7 +2,7 @@
 using UnityEngine;
 using UIKit;
 
-public class SampleGridImplementation : MonoBehaviour, IUIGridDataSource, IUITableViewDelegate
+public class SampleGridImplementation : MonoBehaviour, IUIGridViewDataSource, IUITableViewDelegate
 {
 	[SerializeField]
 	private UITableView _tableView;
@@ -54,6 +54,11 @@ public class SampleGridImplementation : MonoBehaviour, IUIGridDataSource, IUITab
 	public int NumberOfCellsAtRowOrColumnInGrid(UITableView tableView)
 	{
 		return 3;
+	}
+
+	public UIGridViewAlignment AlignmentOfCellAtRowOrColumnInGrid(UITableView grid)
+	{
+		return UIGridViewAlignment.Center;
 	}
 
 	public void CellAtIndexInTableViewWillAppear(UITableView tableView, int index)
