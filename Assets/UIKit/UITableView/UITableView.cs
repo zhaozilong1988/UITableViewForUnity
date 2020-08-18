@@ -392,7 +392,7 @@ namespace UIKit
 				throw new IndexOutOfRangeException("Start index must be more than zero.");
 			if (dataSource is IUIGridViewDataSource gridDataSource)
 			{
-				_alignment = gridDataSource.AlignmentOfCellAtRowOrColumnInGrid(this);
+				_alignment = gridDataSource.AlignmentOfCellsAtRowOrColumnInGrid(this);
 				_numberOfCellsAtRowOrColumn = gridDataSource.NumberOfCellsAtRowOrColumnInGrid(this);
 			}
 			if (_numberOfCellsAtRowOrColumn < 1)
@@ -729,8 +729,17 @@ namespace UIKit
 
 	public enum UIGridViewAlignment
 	{
+		/// <summary>
+		/// Right alignment at row on UITableViewDirection.TopToBottom,
+		/// or top alignment at column on UITableViewDirection.RightToLeft.
+		/// </summary>
 		RightOrTop = 0,
+		/// <summary>
+		/// Left alignment at row on UITableViewDirection.TopToBottom,
+		/// or bottom alignment at column on UITableViewDirection.RightToLeft.
+		/// </summary>
 		LeftOrBottom = 1,
+		/// <summary> Centering </summary>
 		Center = 2,
 	}
 }

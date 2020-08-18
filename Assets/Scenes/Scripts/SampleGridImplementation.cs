@@ -56,7 +56,7 @@ public class SampleGridImplementation : MonoBehaviour, IUIGridViewDataSource, IU
 		return 3;
 	}
 
-	public UIGridViewAlignment AlignmentOfCellAtRowOrColumnInGrid(UITableView grid)
+	public UIGridViewAlignment AlignmentOfCellsAtRowOrColumnInGrid(UITableView grid)
 	{
 		return UIGridViewAlignment.Center;
 	}
