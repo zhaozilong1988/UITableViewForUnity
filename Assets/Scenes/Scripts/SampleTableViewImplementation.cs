@@ -6,7 +6,7 @@ using UIKit;
 using UnityEngine.UI;
 using Random = UnityEngine.Random;
 
-public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSource, IUITableViewDelegate, IUITableViewMargin
+public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSource, IUITableViewDelegate, IUITableViewMargin, IUITableViewReachable
 {
 	[SerializeField]
 	private UITableView _tableView;
@@ -45,6 +45,7 @@ public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSour
 		_tableView.dataSource = this;
 		_tableView.marginDataSource = this;
 		_tableView.@delegate = this;
+		_tableView.reachable = this;
 	}
 
 	private void Start()
@@ -274,12 +275,32 @@ public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSour
 
 	public float ScalarForUpperMarginInTableView(UITableView tableView, int index)
 	{
-		return index == 0 ? 100f : 0f;
+		return index == 0 ? 0f : 0f;
 	}
 
 	public float ScalarForLowerMarginInTableView(UITableView tableView, int index)
 	{
 		var dataList = _selectedTabIndex == 0 ? _tab1DataList : _tab2DataList;
-		return index == dataList.Count - 1 ? 100f : 0f;
+		return index == dataList.Count - 1 ? 0f : 0f;
+	}
+
+	public void TableViewReachedTopmostOrRightmost(UITableView tableView)
+	{
+		// Debug.Log("TableViewReachedTopmostOrRightmost");
+	}
+
+	public void TableViewReachedBottommostOrLeftmost(UITableView tableView)
+	{
+		Debug.Log("TableViewReachedBottommostOrLeftmost: " + tableView.scrollRect.normalizedPosition.y);
+	}
+
+	public void TableViewLeftTopmostOrRightmost(UITableView tableView)
+	{
+		// Debug.Log("TableViewLeftTopmostOrRightmost");
+	}
+
+	public void TableViewLeftBottommostOrLeftmost(UITableView tableView)
+	{
+		Debug.Log("TableViewLeftBottommostOrLeftmost: " + tableView.scrollRect.normalizedPosition.y);
 	}
 }

@@ -11,10 +11,12 @@ namespace UIKit
 	[RequireComponent(typeof(ScrollRect))]
 	public class UITableView : UIBehaviour
 	{
-		public ScrollRect scrollRect { get { return _scrollRect; } }
+		public ScrollRect scrollRect => _scrollRect;
 		public IUITableViewDataSource dataSource { get; set; }
 		public IUITableViewMargin marginDataSource { get; set; }
 		public IUITableViewDelegate @delegate { get; set; }
+		public IUITableViewReachable reachable { get; set; }
+
 		/// <summary> If TRUE, the UITableViewCellLifeCycle will be ignored and all cells will be loaded at once, or not when FALSE. </summary>
 		public bool ignoreCellLifeCycle
 		{
@@ -50,6 +52,7 @@ namespace UIKit
 		private Coroutine _autoScroll;
 		private bool _isReloaded;
 		private Vector2 _normalizedPositionWhenReloaded;
+		private Vector2 _lastNormalizedPosition; // the normalized position of last time will be cached if IUITableViewReachable is assigned. 
 		[SerializeField] private ScrollRect _scrollRect;
 		[SerializeField] private RectTransform _viewport;
 		[SerializeField] private RectTransform _content;
@@ -105,7 +108,7 @@ namespace UIKit
 
 		private void InitializeCellsPool()
 		{
-			if (_cellsPool != null) 
+			if (_cellsPool != null)
 				return;
 			var poolObject = new GameObject("ReusableCells");
 			_cellsPool = poolObject.transform;
@@ -222,8 +225,38 @@ namespace UIKit
 
 		private void OnScrollPositionChanged(Vector2 normalizedPosition)
 		{
-			if (_holders.Count > 0)
-				ReloadCells(normalizedPosition, false);
+			if (_holders.Count <= 0)
+				return;
+			ReloadCells(normalizedPosition, false);
+
+			// Check if the table view has reached or left the topmost/rightmost or bottommost/leftmost
+			if (this.reachable == null)
+				return;
+			float lastNormalizedValue, curNormalizedValue;
+			switch (_direction) {
+				case UITableViewDirection.TopToBottom: 
+					lastNormalizedValue = _lastNormalizedPosition.y;
+					curNormalizedValue = normalizedPosition.y;
+					break;
+				case UITableViewDirection.RightToLeft: 
+					lastNormalizedValue = _lastNormalizedPosition.x; 
+					curNormalizedValue = normalizedPosition.x;
+					break;
+				default: throw new ArgumentOutOfRangeException();
+			}
+
+			if (lastNormalizedValue < 1.0 && lastNormalizedValue > 0.0) {
+				// if (curNormalizedValue <= 0.0)
+				// 	this.reachable.TableViewReachedBottommostOrLeftmost(this);
+				// if (curNormalizedValue >= 1.0)
+				// 	this.reachable.TableViewReachedTopmostOrRightmost(this);
+			} else if (lastNormalizedValue >= 1.0 && curNormalizedValue < 1.0) {
+				this.reachable.TableViewLeftTopmostOrRightmost(this);
+			} else if (lastNormalizedValue <= 0.0 && curNormalizedValue > 0.0) {
+				this.reachable.TableViewLeftBottommostOrLeftmost(this);
+			}
+			_lastNormalizedPosition = normalizedPosition;
+			Debug.Log(normalizedPosition.y);
 		}
 
 		private void ReloadCells(Vector2 normalizedPosition, bool alwaysRearrangeCell)
@@ -453,6 +486,16 @@ namespace UIKit
 				_scrollRect.normalizedPosition = new Vector2(x, y);
 			}
 			_autoScroll = null;
+			
+			var contentBound = RectTransformUtility.CalculateRelativeRectTransformBounds(_scrollRect.viewport, _scrollRect.content);
+			var viewportRect = _scrollRect.viewport.rect;
+			if (viewportRect.max.y >= contentBound.max.y - 0.1) {
+				this.reachable.TableViewReachedTopmostOrRightmost(this);
+			}
+
+			if (viewportRect.min.y <= contentBound.min.y + 0.1) {
+				this.reachable.TableViewReachedBottommostOrLeftmost(this);
+			}
 			onScrollingFinished?.Invoke();
 		}
 
@@ -625,6 +668,20 @@ namespace UIKit
 				throw new IndexOutOfRangeException("Index must be less than cells' number and more than zero.");
 			_scrollRect.normalizedPosition = GetNormalizedPositionOfCellAtIndex(index, withUpperMargin);
 			ReloadCells(_scrollRect.normalizedPosition, false);
+			
+			var contentBound = RectTransformUtility.CalculateRelativeRectTransformBounds(_scrollRect.viewport, _scrollRect.content);
+			var viewportRect = _scrollRect.viewport.rect;
+			if (viewportRect.max.y >= contentBound.max.y - 0.1) {
+				this.reachable.TableViewReachedTopmostOrRightmost(this);
+			}
+
+			if (viewportRect.min.y <= contentBound.min.y + 0.1) {
+				this.reachable.TableViewReachedBottommostOrLeftmost(this);
+			}
+			// top.enabled = viewportRect.max.y >= contentBound.max.y; // 上までスクロールされているか？
+			// bottom.enabled = viewportRect.min.y <= contentBound.min.y;
+			// left.enabled = viewportRect.min.x <= contentBound.min.x;
+			// right.enabled = viewportRect.max.x >= contentBound.max.x;
 		}
 
 		/// <summary> Return scroll view's normalized position of cell at index without margin. </summary>
@@ -678,6 +735,17 @@ namespace UIKit
 			{
 				Debug.Assert(kvp.Value.loadedCell != null, nameof(kvp.Value.loadedCell) + " != null");
 				yield return kvp.Value.loadedCell;
+			}
+		}
+
+		/// <summary> The interface CellAtIndexInTableViewWillAppear(tableView, index) of all loaded cells will be called without recycling them.
+		/// WARNING: If you want to resize any cell or change the quantity of them,
+		/// use ReloadData() instead because the IUITableViewDataSource's methods will not be called. </summary>
+		public void RefreshAllLoadedCells()
+		{
+			foreach (var kvp in _loadedHolders) {
+				Debug.Assert(kvp.Value.loadedCell != null, nameof(kvp.Value.loadedCell) + " != null");
+				this.@delegate.CellAtIndexInTableViewWillAppear(this, kvp.Key);
 			}
 		}
 
