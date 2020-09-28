@@ -286,21 +286,26 @@ public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSour
 
 	public void TableViewReachedTopmostOrRightmost(UITableView tableView)
 	{
-		// Debug.Log("TableViewReachedTopmostOrRightmost");
+		Debug.Log("<color=red>TableViewReachedTopmostOrRightmost</color>");
 	}
 
 	public void TableViewReachedBottommostOrLeftmost(UITableView tableView)
 	{
-		Debug.Log("TableViewReachedBottommostOrLeftmost: " + tableView.scrollRect.normalizedPosition.y);
+		Debug.Log("<color=green>TableViewReachedBottommostOrLeftmost</color>");
 	}
 
 	public void TableViewLeftTopmostOrRightmost(UITableView tableView)
 	{
-		// Debug.Log("TableViewLeftTopmostOrRightmost");
+		Debug.Log("<color=white>TableViewLeftTopmostOrRightmost</color>");
 	}
 
 	public void TableViewLeftBottommostOrLeftmost(UITableView tableView)
 	{
-		Debug.Log("TableViewLeftBottommostOrLeftmost: " + tableView.scrollRect.normalizedPosition.y);
+		Debug.Log("<color=yellow>TableViewLeftBottommostOrLeftmost </color>");
+	}
+
+	public float TableViewReachableEdgeTolerance(UITableView tableView)
+	{
+		return UITableView.DEFAULT_REACHABLE_EDGE_TOLERANCE;
 	}
 }

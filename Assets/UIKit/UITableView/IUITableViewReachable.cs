@@ -25,6 +25,10 @@
 		/// Will not be fired when the table view is stretching.
 		/// </summary>
 		void TableViewLeftBottommostOrLeftmost(UITableView tableView);
-		
+		/// <summary>
+		/// The tolerance for detecting table view's topmost/bottommost or rightmost/leftmost boundary.
+		/// Ex. If the tolerance is set to 1.0f, the TableViewReachedTopmostOrRightmost(UITableView) will be fired when the delta distance of content's upper boundary and viewport's upper boundary is less than 1f.
+		/// </summary>
+		float TableViewReachableEdgeTolerance(UITableView tableView);
 	}
 }

@@ -11,6 +11,7 @@ namespace UIKit
 	[RequireComponent(typeof(ScrollRect))]
 	public class UITableView : UIBehaviour
 	{
+		public const float DEFAULT_REACHABLE_EDGE_TOLERANCE = 0.1f;
 		public ScrollRect scrollRect => _scrollRect;
 		public IUITableViewDataSource dataSource { get; set; }
 		public IUITableViewMargin marginDataSource { get; set; }
@@ -52,7 +53,8 @@ namespace UIKit
 		private Coroutine _autoScroll;
 		private bool _isReloaded;
 		private Vector2 _normalizedPositionWhenReloaded;
-		private Vector2 _lastNormalizedPosition; // the normalized position of last time will be cached if IUITableViewReachable is assigned. 
+		private bool _isReachingBottommostOrLeftmost; // for detecting boundary when IUITableViewReachable is assigned.
+		private bool _isReachingTopmostOrRightmost;
 		[SerializeField] private ScrollRect _scrollRect;
 		[SerializeField] private RectTransform _viewport;
 		[SerializeField] private RectTransform _content;
@@ -232,31 +234,44 @@ namespace UIKit
 			// Check if the table view has reached or left the topmost/rightmost or bottommost/leftmost
 			if (this.reachable == null)
 				return;
-			float lastNormalizedValue, curNormalizedValue;
+			CalculateReachableStatus(normalizedPosition, out var curIsReachingTopmostOrRightmost, out var curIsReachingBottommostOrLeftmost);
+			if (!_isReachingTopmostOrRightmost && curIsReachingTopmostOrRightmost) {
+				this.reachable.TableViewReachedTopmostOrRightmost(this);
+				_isReachingTopmostOrRightmost = true;
+			} else if (_isReachingTopmostOrRightmost && !curIsReachingTopmostOrRightmost) {
+				this.reachable.TableViewLeftTopmostOrRightmost(this);
+				_isReachingTopmostOrRightmost = false;
+			}
+			if (!_isReachingBottommostOrLeftmost && curIsReachingBottommostOrLeftmost) {
+				this.reachable.TableViewReachedBottommostOrLeftmost(this);
+				_isReachingBottommostOrLeftmost = true;
+			} else if (_isReachingBottommostOrLeftmost && !curIsReachingBottommostOrLeftmost) {
+				this.reachable.TableViewLeftBottommostOrLeftmost(this);
+				_isReachingBottommostOrLeftmost = false;
+			}
+		}
+
+		private void CalculateReachableStatus(Vector2 normalizedPosition, out bool isReachingTopmostOrRightmost, out bool isReachingBottommostOrLeftmost)
+		{
+			isReachingTopmostOrRightmost = isReachingBottommostOrLeftmost = false;
+			if (this.reachable == null)
+				return;
+			var upperTolerance = this.reachable.TableViewReachableEdgeTolerance(this);
+			float curPosition, lowerTolerance;
+			var deltaSize = _content.rect.size - _viewport.rect.size;
 			switch (_direction) {
-				case UITableViewDirection.TopToBottom: 
-					lastNormalizedValue = _lastNormalizedPosition.y;
-					curNormalizedValue = normalizedPosition.y;
+				case UITableViewDirection.TopToBottom:
+					lowerTolerance = deltaSize.y - upperTolerance;
+					curPosition = (1f - normalizedPosition.y) * deltaSize.y;
 					break;
 				case UITableViewDirection.RightToLeft: 
-					lastNormalizedValue = _lastNormalizedPosition.x; 
-					curNormalizedValue = normalizedPosition.x;
+					lowerTolerance = deltaSize.x - upperTolerance;
+					curPosition = (1f - normalizedPosition.x) * deltaSize.x;
 					break;
 				default: throw new ArgumentOutOfRangeException();
 			}
-
-			if (lastNormalizedValue < 1.0 && lastNormalizedValue > 0.0) {
-				// if (curNormalizedValue <= 0.0)
-				// 	this.reachable.TableViewReachedBottommostOrLeftmost(this);
-				// if (curNormalizedValue >= 1.0)
-				// 	this.reachable.TableViewReachedTopmostOrRightmost(this);
-			} else if (lastNormalizedValue >= 1.0 && curNormalizedValue < 1.0) {
-				this.reachable.TableViewLeftTopmostOrRightmost(this);
-			} else if (lastNormalizedValue <= 0.0 && curNormalizedValue > 0.0) {
-				this.reachable.TableViewLeftBottommostOrLeftmost(this);
-			}
-			_lastNormalizedPosition = normalizedPosition;
-			Debug.Log(normalizedPosition.y);
+			isReachingTopmostOrRightmost = curPosition < upperTolerance;
+			isReachingBottommostOrLeftmost = curPosition > lowerTolerance;
 		}
 
 		private void ReloadCells(Vector2 normalizedPosition, bool alwaysRearrangeCell)
@@ -454,6 +469,12 @@ namespace UIKit
 				_normalizedPositionWhenReloaded = _scrollRect.normalizedPosition;
 				ReloadCells(_normalizedPositionWhenReloaded, false);
 			}
+
+			if (this.reachable != null) {
+				CalculateReachableStatus(_scrollRect.normalizedPosition, out var curIsReachingTopmostOrRightmost, out var curIsReachingBottommostOrLeftmost);
+				_isReachingTopmostOrRightmost = curIsReachingTopmostOrRightmost;
+				_isReachingBottommostOrLeftmost = curIsReachingBottommostOrLeftmost;
+			}
 		}
 
 		private void StopAutoScroll(Action onScrollingFinished)
@@ -486,16 +507,6 @@ namespace UIKit
 				_scrollRect.normalizedPosition = new Vector2(x, y);
 			}
 			_autoScroll = null;
-			
-			var contentBound = RectTransformUtility.CalculateRelativeRectTransformBounds(_scrollRect.viewport, _scrollRect.content);
-			var viewportRect = _scrollRect.viewport.rect;
-			if (viewportRect.max.y >= contentBound.max.y - 0.1) {
-				this.reachable.TableViewReachedTopmostOrRightmost(this);
-			}
-
-			if (viewportRect.min.y <= contentBound.min.y + 0.1) {
-				this.reachable.TableViewReachedBottommostOrLeftmost(this);
-			}
 			onScrollingFinished?.Invoke();
 		}
 
@@ -668,20 +679,6 @@ namespace UIKit
 				throw new IndexOutOfRangeException("Index must be less than cells' number and more than zero.");
 			_scrollRect.normalizedPosition = GetNormalizedPositionOfCellAtIndex(index, withUpperMargin);
 			ReloadCells(_scrollRect.normalizedPosition, false);
-			
-			var contentBound = RectTransformUtility.CalculateRelativeRectTransformBounds(_scrollRect.viewport, _scrollRect.content);
-			var viewportRect = _scrollRect.viewport.rect;
-			if (viewportRect.max.y >= contentBound.max.y - 0.1) {
-				this.reachable.TableViewReachedTopmostOrRightmost(this);
-			}
-
-			if (viewportRect.min.y <= contentBound.min.y + 0.1) {
-				this.reachable.TableViewReachedBottommostOrLeftmost(this);
-			}
-			// top.enabled = viewportRect.max.y >= contentBound.max.y; // 上までスクロールされているか？
-			// bottom.enabled = viewportRect.min.y <= contentBound.min.y;
-			// left.enabled = viewportRect.min.x <= contentBound.min.x;
-			// right.enabled = viewportRect.max.x >= contentBound.max.x;
 		}
 
 		/// <summary> Return scroll view's normalized position of cell at index without margin. </summary>
