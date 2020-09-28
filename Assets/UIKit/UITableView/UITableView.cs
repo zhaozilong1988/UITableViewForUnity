@@ -230,48 +230,7 @@ namespace UIKit
 			if (_holders.Count <= 0)
 				return;
 			ReloadCells(normalizedPosition, false);
-
-			// Check if the table view has reached or left the topmost/rightmost or bottommost/leftmost
-			if (this.reachable == null)
-				return;
-			CalculateReachableStatus(normalizedPosition, out var curIsReachingTopmostOrRightmost, out var curIsReachingBottommostOrLeftmost);
-			if (!_isReachingTopmostOrRightmost && curIsReachingTopmostOrRightmost) {
-				this.reachable.TableViewReachedTopmostOrRightmost(this);
-				_isReachingTopmostOrRightmost = true;
-			} else if (_isReachingTopmostOrRightmost && !curIsReachingTopmostOrRightmost) {
-				this.reachable.TableViewLeftTopmostOrRightmost(this);
-				_isReachingTopmostOrRightmost = false;
-			}
-			if (!_isReachingBottommostOrLeftmost && curIsReachingBottommostOrLeftmost) {
-				this.reachable.TableViewReachedBottommostOrLeftmost(this);
-				_isReachingBottommostOrLeftmost = true;
-			} else if (_isReachingBottommostOrLeftmost && !curIsReachingBottommostOrLeftmost) {
-				this.reachable.TableViewLeftBottommostOrLeftmost(this);
-				_isReachingBottommostOrLeftmost = false;
-			}
-		}
-
-		private void CalculateReachableStatus(Vector2 normalizedPosition, out bool isReachingTopmostOrRightmost, out bool isReachingBottommostOrLeftmost)
-		{
-			isReachingTopmostOrRightmost = isReachingBottommostOrLeftmost = false;
-			if (this.reachable == null)
-				return;
-			var upperTolerance = this.reachable.TableViewReachableEdgeTolerance(this);
-			float curPosition, lowerTolerance;
-			var deltaSize = _content.rect.size - _viewport.rect.size;
-			switch (_direction) {
-				case UITableViewDirection.TopToBottom:
-					lowerTolerance = deltaSize.y - upperTolerance;
-					curPosition = (1f - normalizedPosition.y) * deltaSize.y;
-					break;
-				case UITableViewDirection.RightToLeft: 
-					lowerTolerance = deltaSize.x - upperTolerance;
-					curPosition = (1f - normalizedPosition.x) * deltaSize.x;
-					break;
-				default: throw new ArgumentOutOfRangeException();
-			}
-			isReachingTopmostOrRightmost = curPosition < upperTolerance;
-			isReachingBottommostOrLeftmost = curPosition > lowerTolerance;
+			DetectAndNotifyReachableStatus(normalizedPosition);
 		}
 
 		private void ReloadCells(Vector2 normalizedPosition, bool alwaysRearrangeCell)
@@ -470,11 +429,55 @@ namespace UIKit
 				ReloadCells(_normalizedPositionWhenReloaded, false);
 			}
 
-			if (this.reachable != null) {
-				CalculateReachableStatus(_scrollRect.normalizedPosition, out var curIsReachingTopmostOrRightmost, out var curIsReachingBottommostOrLeftmost);
-				_isReachingTopmostOrRightmost = curIsReachingTopmostOrRightmost;
-				_isReachingBottommostOrLeftmost = curIsReachingBottommostOrLeftmost;
+			// Recalculate if the content is reaching view port's boundary.
+			CalculateReachableStatus(_scrollRect.normalizedPosition, out var curIsReachingTopmostOrRightmost, out var curIsReachingBottommostOrLeftmost);
+			_isReachingTopmostOrRightmost = curIsReachingTopmostOrRightmost;
+			_isReachingBottommostOrLeftmost = curIsReachingBottommostOrLeftmost;
+		}
+
+		///<summary> Detect if the table view has reached or left the topmost/rightmost or bottommost/leftmost</summary>
+		private void DetectAndNotifyReachableStatus(Vector2 normalizedPosition)
+		{
+			if (this.reachable == null)
+				return;
+			CalculateReachableStatus(normalizedPosition, out var curIsReachingTopmostOrRightmost, out var curIsReachingBottommostOrLeftmost);
+			if (!_isReachingTopmostOrRightmost && curIsReachingTopmostOrRightmost) {
+				this.reachable.TableViewReachedTopmostOrRightmost(this);
+				_isReachingTopmostOrRightmost = true;
+			} else if (_isReachingTopmostOrRightmost && !curIsReachingTopmostOrRightmost) {
+				this.reachable.TableViewLeftTopmostOrRightmost(this);
+				_isReachingTopmostOrRightmost = false;
 			}
+			if (!_isReachingBottommostOrLeftmost && curIsReachingBottommostOrLeftmost) {
+				this.reachable.TableViewReachedBottommostOrLeftmost(this);
+				_isReachingBottommostOrLeftmost = true;
+			} else if (_isReachingBottommostOrLeftmost && !curIsReachingBottommostOrLeftmost) {
+				this.reachable.TableViewLeftBottommostOrLeftmost(this);
+				_isReachingBottommostOrLeftmost = false;
+			}
+		}
+
+		private void CalculateReachableStatus(Vector2 normalizedPosition, out bool isReachingTopmostOrRightmost, out bool isReachingBottommostOrLeftmost)
+		{
+			isReachingTopmostOrRightmost = isReachingBottommostOrLeftmost = false;
+			if (this.reachable == null)
+				return;
+			var upperTolerance = this.reachable.TableViewReachableEdgeTolerance(this);
+			float curPosition, lowerTolerance;
+			var deltaSize = _content.rect.size - _viewport.rect.size;
+			switch (_direction) {
+				case UITableViewDirection.TopToBottom:
+					lowerTolerance = deltaSize.y - upperTolerance;
+					curPosition = (1f - normalizedPosition.y) * deltaSize.y;
+					break;
+				case UITableViewDirection.RightToLeft: 
+					lowerTolerance = deltaSize.x - upperTolerance;
+					curPosition = (1f - normalizedPosition.x) * deltaSize.x;
+					break;
+				default: throw new ArgumentOutOfRangeException();
+			}
+			isReachingTopmostOrRightmost = curPosition < upperTolerance;
+			isReachingBottommostOrLeftmost = curPosition > lowerTolerance;
 		}
 
 		private void StopAutoScroll(Action onScrollingFinished)
