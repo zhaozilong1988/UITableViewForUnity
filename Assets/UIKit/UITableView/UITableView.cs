@@ -11,10 +11,13 @@ namespace UIKit
 	[RequireComponent(typeof(ScrollRect))]
 	public class UITableView : UIBehaviour
 	{
-		public ScrollRect scrollRect { get { return _scrollRect; } }
+		public const float DEFAULT_REACHABLE_EDGE_TOLERANCE = 0.1f;
+		public ScrollRect scrollRect => _scrollRect;
 		public IUITableViewDataSource dataSource { get; set; }
 		public IUITableViewMargin marginDataSource { get; set; }
 		public IUITableViewDelegate @delegate { get; set; }
+		public IUITableViewReachable reachable { get; set; }
+
 		/// <summary> If TRUE, the UITableViewCellLifeCycle will be ignored and all cells will be loaded at once, or not when FALSE. </summary>
 		public bool ignoreCellLifeCycle
 		{
@@ -50,6 +53,8 @@ namespace UIKit
 		private Coroutine _autoScroll;
 		private bool _isReloaded;
 		private Vector2 _normalizedPositionWhenReloaded;
+		private bool _isReachingBottommostOrLeftmost; // for detecting boundary when IUITableViewReachable is assigned.
+		private bool _isReachingTopmostOrRightmost;
 		[SerializeField] private ScrollRect _scrollRect;
 		[SerializeField] private RectTransform _viewport;
 		[SerializeField] private RectTransform _content;
@@ -105,7 +110,7 @@ namespace UIKit
 
 		private void InitializeCellsPool()
 		{
-			if (_cellsPool != null) 
+			if (_cellsPool != null)
 				return;
 			var poolObject = new GameObject("ReusableCells");
 			_cellsPool = poolObject.transform;
@@ -222,8 +227,10 @@ namespace UIKit
 
 		private void OnScrollPositionChanged(Vector2 normalizedPosition)
 		{
-			if (_holders.Count > 0)
-				ReloadCells(normalizedPosition, false);
+			if (_holders.Count <= 0)
+				return;
+			ReloadCells(normalizedPosition, false);
+			DetectAndNotifyReachableStatus(normalizedPosition);
 		}
 
 		private void ReloadCells(Vector2 normalizedPosition, bool alwaysRearrangeCell)
@@ -421,6 +428,56 @@ namespace UIKit
 				_normalizedPositionWhenReloaded = _scrollRect.normalizedPosition;
 				ReloadCells(_normalizedPositionWhenReloaded, false);
 			}
+
+			// Recalculate if the content is reaching view port's boundary.
+			CalculateReachableStatus(_scrollRect.normalizedPosition, out var curIsReachingTopmostOrRightmost, out var curIsReachingBottommostOrLeftmost);
+			_isReachingTopmostOrRightmost = curIsReachingTopmostOrRightmost;
+			_isReachingBottommostOrLeftmost = curIsReachingBottommostOrLeftmost;
+		}
+
+		///<summary> Detect if the table view has reached or left the topmost/rightmost or bottommost/leftmost</summary>
+		private void DetectAndNotifyReachableStatus(Vector2 normalizedPosition)
+		{
+			if (this.reachable == null)
+				return;
+			CalculateReachableStatus(normalizedPosition, out var curIsReachingTopmostOrRightmost, out var curIsReachingBottommostOrLeftmost);
+			if (!_isReachingTopmostOrRightmost && curIsReachingTopmostOrRightmost) {
+				this.reachable.TableViewReachedTopmostOrRightmost(this);
+				_isReachingTopmostOrRightmost = true;
+			} else if (_isReachingTopmostOrRightmost && !curIsReachingTopmostOrRightmost) {
+				this.reachable.TableViewLeftTopmostOrRightmost(this);
+				_isReachingTopmostOrRightmost = false;
+			}
+			if (!_isReachingBottommostOrLeftmost && curIsReachingBottommostOrLeftmost) {
+				this.reachable.TableViewReachedBottommostOrLeftmost(this);
+				_isReachingBottommostOrLeftmost = true;
+			} else if (_isReachingBottommostOrLeftmost && !curIsReachingBottommostOrLeftmost) {
+				this.reachable.TableViewLeftBottommostOrLeftmost(this);
+				_isReachingBottommostOrLeftmost = false;
+			}
+		}
+
+		private void CalculateReachableStatus(Vector2 normalizedPosition, out bool isReachingTopmostOrRightmost, out bool isReachingBottommostOrLeftmost)
+		{
+			isReachingTopmostOrRightmost = isReachingBottommostOrLeftmost = false;
+			if (this.reachable == null)
+				return;
+			var upperTolerance = this.reachable.TableViewReachableEdgeTolerance(this);
+			float curPosition, lowerTolerance;
+			var deltaSize = _content.rect.size - _viewport.rect.size;
+			switch (_direction) {
+				case UITableViewDirection.TopToBottom:
+					lowerTolerance = deltaSize.y - upperTolerance;
+					curPosition = (1f - normalizedPosition.y) * deltaSize.y;
+					break;
+				case UITableViewDirection.RightToLeft: 
+					lowerTolerance = deltaSize.x - upperTolerance;
+					curPosition = (1f - normalizedPosition.x) * deltaSize.x;
+					break;
+				default: throw new ArgumentOutOfRangeException();
+			}
+			isReachingTopmostOrRightmost = curPosition < upperTolerance;
+			isReachingBottommostOrLeftmost = curPosition > lowerTolerance;
 		}
 
 		private void StopAutoScroll(Action onScrollingFinished)
@@ -678,6 +735,17 @@ namespace UIKit
 			{
 				Debug.Assert(kvp.Value.loadedCell != null, nameof(kvp.Value.loadedCell) + " != null");
 				yield return kvp.Value.loadedCell;
+			}
+		}
+
+		/// <summary> The interface CellAtIndexInTableViewWillAppear(tableView, index) of all loaded cells will be called without recycling them.
+		/// WARNING: If you want to resize any cell or change the quantity of them,
+		/// use ReloadData() instead because the IUITableViewDataSource's methods will not be called. </summary>
+		public void RefreshAllLoadedCells()
+		{
+			foreach (var kvp in _loadedHolders) {
+				Debug.Assert(kvp.Value.loadedCell != null, nameof(kvp.Value.loadedCell) + " != null");
+				this.@delegate.CellAtIndexInTableViewWillAppear(this, kvp.Key);
 			}
 		}
 
