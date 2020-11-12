@@ -420,6 +420,9 @@ namespace UIKit
 			}
 			ResizeContent(newCount);
 
+			if (newCount == 0)
+				return;
+
 			if (startIndex.HasValue)
 				ScrollToCellAtIndex(startIndex.Value);
 			else
