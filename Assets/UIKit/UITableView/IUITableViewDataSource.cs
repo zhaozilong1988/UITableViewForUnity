@@ -18,7 +18,7 @@
 		/// <returns></returns>
 		int NumberOfCellsInTableView(UITableView tableView);
 		/// <summary>
-		/// Will be called once after Reload(), Reload(int), RearrangeData(), AppendData() or PrependData() is called, for getting number of cells in table view.
+		/// Will be called once after Reload(), Reload(int), RearrangeData(), AppendData() or PrependData() is called, for getting height or width of cells in table view.
 		/// </summary>
 		/// <param name="tableView"></param>
 		/// <param name="index"></param>
