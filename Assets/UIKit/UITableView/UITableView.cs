@@ -19,11 +19,9 @@ namespace UIKit
 		public IUITableViewReachable reachable { get; set; }
 
 		/// <summary> If TRUE, the UITableViewCellLifeCycle will be ignored and all cells will be loaded at once, or not when FALSE. </summary>
-		public bool ignoreCellLifeCycle
-		{
+		public bool ignoreCellLifeCycle {
 			get => _ignoreCellLifeCycle;
-			set
-			{
+			set {
 				if (_ignoreCellLifeCycle == value)
 					return;
 				_ignoreCellLifeCycle = value;
@@ -33,8 +31,7 @@ namespace UIKit
 		public UITableViewDirection direction
 		{
 			get => _direction;
-			set
-			{
+			set {
 				if (_direction == value)
 					return;
 				_direction = value;
@@ -82,8 +79,7 @@ namespace UIKit
 		protected void Update()
 		{
 			// Read the WORKAROUND which is written in summary of Reload().
-			if (_isReloaded)
-			{
+			if (_isReloaded) {
 				if (_scrollRect.normalizedPosition == _normalizedPositionWhenReloaded)
 					return;
 				_isReloaded = false;
@@ -133,8 +129,7 @@ namespace UIKit
 			var startPosition = (Vector2.one - normalizedPosition) * (contentSize - viewportSize);
 			var endPosition = startPosition + viewportSize;
 			int startIndex, endIndex;
-			switch (_direction)
-			{
+			switch (_direction) {
 				case UITableViewDirection.TopToBottom:
 					startIndex = FindIndexOfCellAtPosition(startPosition.y);
 					endIndex = FindIndexOfCellAtPosition(endPosition.y);
@@ -164,11 +159,9 @@ namespace UIKit
 
 		private int FindIndexOfCellAtPosition(float position, int startIndex, int length)
 		{
-			while (startIndex < length)
-			{
+			while (startIndex < length) {
 				var midIndex = (startIndex + length) / 2;
-				if (_holders[midIndex].position > position)
-				{
+				if (_holders[midIndex].position > position) {
 					length = midIndex;
 					continue;
 				}
@@ -182,8 +175,7 @@ namespace UIKit
 			var lastMaxLowerMargin = 0f;
 			var cumulativeScalar = 0f;
 			var numOfRowOrColumn = Mathf.CeilToInt((float)numberOfCells / _numberOfCellsAtRowOrColumn);
-			for (var i = 0; i < numOfRowOrColumn; i++)
-			{
+			for (var i = 0; i < numOfRowOrColumn; i++) {
 				// find max margin, scalar at row or column
 				float maxUpperMargin = 0f, maxLowerMargin = 0f, maxScalar = 0f;
 				for (var j = 0; j < _numberOfCellsAtRowOrColumn; j++) {
@@ -211,8 +203,7 @@ namespace UIKit
 			cumulativeScalar += lastMaxLowerMargin; // the last cell's margin
 
 			var size = _content.sizeDelta;
-			switch (_direction)
-			{
+			switch (_direction) {
 				case UITableViewDirection.TopToBottom:
 					size.y = cumulativeScalar;
 					break;
@@ -245,14 +236,12 @@ namespace UIKit
 
 		private void LoadCells(Range range, bool alwaysRearrangeCell)
 		{
-			foreach (var kvp in _loadedHolders)
-			{
+			foreach (var kvp in _loadedHolders) {
 				if (kvp.Key >= range.from && kvp.Key <= range.to)
 					continue;
 				RearrangeCell(kvp.Key);
 			}
-			for (var i = range.from; i <= range.to; i++)
-			{
+			for (var i = range.from; i <= range.to; i++) {
 				_loadedHolders[i] = _holders[i];
 				LoadCell(i, alwaysRearrangeCell);
 			}
@@ -261,8 +250,7 @@ namespace UIKit
 		private void LoadCell(int index, bool alwaysRearrangeCell)
 		{
 			var holder = _holders[index];
-			if (holder.loadedCell != null)
-			{
+			if (holder.loadedCell != null) {
 				if (alwaysRearrangeCell)
 					RearrangeCell(index);
 				return;
@@ -273,6 +261,7 @@ namespace UIKit
 			holder.loadedCell.rectTransform.localRotation = Quaternion.identity;
 			RearrangeCell(index);
 			holder.loadedCell.gameObject.SetActive(true);
+			holder.loadedCell.index = index;
 			@delegate?.CellAtIndexInTableViewWillAppear(this, index);
 #if UNITY_EDITOR
 			_cellsPool.name = $"ReusableCells({_cellsPool.childCount})";
@@ -282,8 +271,7 @@ namespace UIKit
 
 		private void UnloadUnusedCells(Range visibleRange)
 		{
-			foreach (var kvp in _loadedHolders)
-			{
+			foreach (var kvp in _loadedHolders) {
 				if (kvp.Key >= visibleRange.from && kvp.Key <= visibleRange.to)
 					continue;
 				if (kvp.Value.loadedCell.lifeCycle == UITableViewCellLifeCycle.RecycleWhenReloaded)
@@ -298,8 +286,7 @@ namespace UIKit
 
 		private void UnloadAllCells()
 		{
-			foreach (var kvp in _loadedHolders)
-			{
+			foreach (var kvp in _loadedHolders) {
 				UnloadCell(kvp.Key);
 				_swapper.Add(kvp.Key);
 			}
@@ -314,8 +301,8 @@ namespace UIKit
 			var cell = holder.loadedCell;
 			Debug.Assert(cell != null, nameof(cell) + " != null");
 			@delegate?.CellAtIndexInTableViewDidDisappear(this, index);
-			switch (cell.lifeCycle)
-			{
+			cell.index = null;
+			switch (cell.lifeCycle) {
 				case UITableViewCellLifeCycle.RecycleWhenDisappeared:
 				case UITableViewCellLifeCycle.RecycleWhenReloaded:
 					var isExist = _reusableCellQueues.TryGetValue(cell.reuseIdentifier, out var cellsQueue);
@@ -352,8 +339,7 @@ namespace UIKit
 			var emptyNumberAtLastRowOrColumn = 0;
 			var maxRowOrColumn = Mathf.CeilToInt((float)_holders.Count / _numberOfCellsAtRowOrColumn);
 			if (numberOfCellAtLastRowOrColumn != 0 && index >= (maxRowOrColumn - 1) * _numberOfCellsAtRowOrColumn && index < _holders.Count)
-				switch (_alignment)
-				{
+				switch (_alignment) {
 					case UIGridViewAlignment.RightOrTop: 
 						otherIndex = _numberOfCellsAtRowOrColumn - numberOfCellAtLastRowOrColumn + otherIndex;
 						break;
@@ -391,14 +377,15 @@ namespace UIKit
 				holder.loadedCell.rectTransform.sizeDelta = cellSize;
 		}
 
-		private void ReloadDataInternal(int? startIndex)
+		private void ReloadDataInternal(int? startIndex, Vector2? startNormalizedPosition)
 		{
 			if (dataSource == null)
 				throw new Exception("DataSource can not be null!");
+			if (startIndex.HasValue && startNormalizedPosition.HasValue)
+				throw new IndexOutOfRangeException("You can only choose one between startIndex and startNormalizedPosition.");
 			if (startIndex < 0)
 				throw new IndexOutOfRangeException("Start index must be more than zero.");
-			if (dataSource is IUIGridViewDataSource gridDataSource)
-			{
+			if (dataSource is IUIGridViewDataSource gridDataSource) {
 				_alignment = gridDataSource.AlignmentOfCellsAtRowOrColumnInGrid(this);
 				_numberOfCellsAtRowOrColumn = gridDataSource.NumberOfCellsAtRowOrColumnInGrid(this);
 			}
@@ -411,8 +398,7 @@ namespace UIKit
 			if (startIndex > newCount - 1)
 				throw new IndexOutOfRangeException("Start index must be less than quantity of cell.");
 			var deltaCount = Mathf.Abs(oldCount - newCount);
-			for (var i = 0; i < deltaCount; i++)
-			{
+			for (var i = 0; i < deltaCount; i++) {
 				if (oldCount > newCount)
 					_holders.RemoveAt(0);
 				else if (oldCount < newCount)
@@ -425,8 +411,11 @@ namespace UIKit
 
 			if (startIndex.HasValue)
 				ScrollToCellAtIndex(startIndex.Value);
-			else
-			{
+			else if (startNormalizedPosition.HasValue) {
+				ReloadCells(startNormalizedPosition.Value, false);
+				_scrollRect.normalizedPosition = startNormalizedPosition.Value;
+			}
+			else {
 				_isReloaded = true;
 				_normalizedPositionWhenReloaded = _scrollRect.normalizedPosition;
 				ReloadCells(_normalizedPositionWhenReloaded, false);
@@ -504,8 +493,7 @@ namespace UIKit
 			var to = GetNormalizedPositionOfCellAtIndex(index, withUpperMargin);
 			var progress = 0f; 
 			var startAt = Time.time;
-			while (!Mathf.Approximately(progress, 1f))
-			{
+			while (!Mathf.Approximately(progress, 1f)) {
 				yield return null;
 				progress = Mathf.Min((Time.time - startAt) / time, 1f);
 				var x = Mathf.Lerp(from.x, to.x, progress);
@@ -540,11 +528,35 @@ namespace UIKit
 			ResizeContent(0);
 		}
 
+		/// <summary>
+		/// Replace the current cell at row with a new cell. 
+		/// </summary>
+		/// <param name="index"></param>
+		public void ReloadDataAt(int index)
+		{
+			RearrangeData();
+			foreach (var cell in GetAllLoadedCells()) {
+				if (!cell.index.HasValue || cell.index.Value != index)
+					continue;
+				var targetIdx = cell.index.Value;
+				UnloadCell(targetIdx);
+				LoadCell(targetIdx, true);
+				break;
+			}
+		}
+
 		/// <summary> Recycle or destroy all loaded cells then reload them again. </summary>
 		/// <param name="startIndex">Table view will be scrolled to start index after data reloaded.</param>
 		public void ReloadData(int startIndex)
 		{
-			ReloadDataInternal(startIndex);
+			ReloadDataInternal(startIndex, null);
+		}
+
+		/// <summary> Recycle or destroy all loaded cells then reload them again with specialized normalized position. </summary>
+		/// <param name="normalizedPosition">specialized normalized position</param>
+		public void ReloadData(Vector2 normalizedPosition)
+		{
+			ReloadDataInternal(null, normalizedPosition);
 		}
 
 		/// <summary>
@@ -558,7 +570,7 @@ namespace UIKit
 		/// </summary>
 		public void ReloadData()
 		{
-			ReloadDataInternal(null);
+			ReloadDataInternal(null, null);
 		}
 
 		/// <summary> Append cells to table view without reload them. </summary>
@@ -600,8 +612,7 @@ namespace UIKit
 			_swapper.AddRange(_loadedHolders.Keys);
 			_swapper.Sort(); // ex. 1,3,5,8
 			_swapper.Reverse(); // ex. 8,5,3,1
-			foreach (var key in _swapper)
-			{
+			foreach (var key in _swapper) {
 				_loadedHolders[key + deltaCount] = _loadedHolders[key];
 				_loadedHolders.Remove(key);
 			}
@@ -624,16 +635,13 @@ namespace UIKit
 		{
 			T cell;
 			var reuseIdentifier = prefab.GetType().ToString();
-			if (lifeCycle != UITableViewCellLifeCycle.DestroyWhenDisappeared)
-			{
+			if (lifeCycle != UITableViewCellLifeCycle.DestroyWhenDisappeared) {
 				var isExist = _reusableCellQueues.TryGetValue(reuseIdentifier, out var cellsQueue);
-				if (!isExist)
-				{
+				if (!isExist) {
 					cellsQueue = new Queue<UITableViewCell>();
 					_reusableCellQueues.Add(reuseIdentifier, cellsQueue);
 				}
-				else if (cellsQueue.Count > 0)
-				{
+				else if (cellsQueue.Count > 0) {
 					cell = cellsQueue.Dequeue() as T;
 					Debug.Assert(cell != null, nameof(cell) + " != null");
 					return cell;
@@ -696,8 +704,7 @@ namespace UIKit
 			var normalizedPosition = _scrollRect.normalizedPosition;
 			var deltaSize = _content.rect.size - _viewport.rect.size;
 			var position = _holders[index].position - (withUpperMargin ? _holders[index].upperMargin : 0f);
-			switch (_direction)
-			{
+			switch (_direction) {
 				case UITableViewDirection.TopToBottom:
 					normalizedPosition.y = 1f - position / deltaSize.y;
 					break;
@@ -734,8 +741,7 @@ namespace UIKit
 		/// <summary> Return all appearing cells and those whose UITableViewCellLifeCycle is set to RecycleWhenReloaded. </summary>
 		public IEnumerable<UITableViewCell> GetAllLoadedCells()
 		{
-			foreach (var kvp in _loadedHolders)
-			{
+			foreach (var kvp in _loadedHolders) {
 				Debug.Assert(kvp.Value.loadedCell != null, nameof(kvp.Value.loadedCell) + " != null");
 				yield return kvp.Value.loadedCell;
 			}
@@ -755,11 +761,9 @@ namespace UIKit
 		/// <summary> Destroy the cells those which waiting for reuse. </summary>
 		public void DestroyCachedReusableCells()
 		{
-			foreach (var queue in _reusableCellQueues.Values)
-			{
+			foreach (var queue in _reusableCellQueues.Values) {
 				var count = queue.Count;
-				for (var i = 0; i < count; i++)
-				{
+				for (var i = 0; i < count; i++) {
 					var cell = queue.Dequeue();
 					Destroy(cell);
 				}

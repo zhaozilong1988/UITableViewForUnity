@@ -9,6 +9,8 @@ namespace UIKit
 		/// <summary> TRUE, Resize the cell when it is loaded or rearranged, or not if FALSE. Then you should be to resize it manually for your needs. </summary>
 		public bool isAutoResize { get; internal set; }
 		public UITableViewCellLifeCycle lifeCycle { get; internal set; }
+		/// <summary> The index of cell in table view, top->bottom:0~n, right->left:0~n. Null when cell is unloaded. </summary>
+		public int? index { get; internal set; }
 
 		protected virtual void Awake()
 		{
