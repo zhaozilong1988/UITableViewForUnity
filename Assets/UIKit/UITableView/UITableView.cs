@@ -41,7 +41,7 @@ namespace UIKit
 		}
 
 		private int _numberOfCellsAtRowOrColumn = 1;
-		private UIGridViewAlignment _alignment = UIGridViewAlignment.RightOrTop;
+		private UITableViewCellAlignment _cellAlignment = UITableViewCellAlignment.RightOrTop;
 		private readonly List<UITableViewCellHolder> _holders = new List<UITableViewCellHolder>(); // all holders
 		private readonly Dictionary<string, Queue<UITableViewCell>> _reusableCellQueues = new Dictionary<string, Queue<UITableViewCell>>(); // for caching the cells which waiting for be reused.
 		private readonly Dictionary<int, UITableViewCellHolder> _loadedHolders = new Dictionary<int, UITableViewCellHolder>(); // appearing cells and those whose UITableViewLifeCycle is set to RecycleWhenReloaded.
@@ -138,8 +138,7 @@ namespace UIKit
 					startIndex = FindIndexOfCellAtPosition(startPosition.x);
 					endIndex = FindIndexOfCellAtPosition(endPosition.x);
 					break;
-				default:
-					throw new ArgumentOutOfRangeException();
+				default: throw new ArgumentOutOfRangeException();
 			}
 
 			// find the first and the last index at row or column if it's a grid.
@@ -210,8 +209,7 @@ namespace UIKit
 				case UITableViewDirection.RightToLeft:
 					size.x = cumulativeScalar;
 					break;
-				default:
-					throw new ArgumentOutOfRangeException();
+				default: throw new ArgumentOutOfRangeException();
 			}
 			_content.sizeDelta = size;
 		}
@@ -319,8 +317,7 @@ namespace UIKit
 				case UITableViewCellLifeCycle.DestroyWhenDisappeared:
 					Destroy(cell.gameObject); // destroy if non-reusable
 					break;
-				default:
-					throw new ArgumentOutOfRangeException();
+				default: throw new ArgumentOutOfRangeException();
 			}
 			holder.loadedCell = null;
 		}
@@ -339,13 +336,13 @@ namespace UIKit
 			var emptyNumberAtLastRowOrColumn = 0;
 			var maxRowOrColumn = Mathf.CeilToInt((float)_holders.Count / _numberOfCellsAtRowOrColumn);
 			if (numberOfCellAtLastRowOrColumn != 0 && index >= (maxRowOrColumn - 1) * _numberOfCellsAtRowOrColumn && index < _holders.Count)
-				switch (_alignment) {
-					case UIGridViewAlignment.RightOrTop: 
+				switch (_cellAlignment) {
+					case UITableViewCellAlignment.RightOrTop: 
 						otherIndex = _numberOfCellsAtRowOrColumn - numberOfCellAtLastRowOrColumn + otherIndex;
 						break;
-					case UIGridViewAlignment.LeftOrBottom: // Do nothing.
+					case UITableViewCellAlignment.LeftOrBottom: // Do nothing.
 						break;
-					case UIGridViewAlignment.Center: 
+					case UITableViewCellAlignment.Center: 
 						emptyNumberAtLastRowOrColumn = _numberOfCellsAtRowOrColumn - numberOfCellAtLastRowOrColumn;
 						break;
 					default: throw new ArgumentOutOfRangeException();
@@ -369,24 +366,23 @@ namespace UIKit
 					cellSize.x = holder.scalar;
 					cellSize.y = otherScalar;
 					break;
-				default:
-					throw new ArgumentOutOfRangeException();
+				default: throw new ArgumentOutOfRangeException();
 			}
 			holder.loadedCell.rectTransform.anchoredPosition = anchoredPosition;
 			if (holder.loadedCell.isAutoResize)
 				holder.loadedCell.rectTransform.sizeDelta = cellSize;
 		}
 
-		private void ReloadDataInternal(int? startIndex, Vector2? startNormalizedPosition)
+		private void ReloadDataInternal(UITableViewCellLocation? startLocation, Vector2? startNormalizedPosition)
 		{
 			if (dataSource == null)
 				throw new Exception("DataSource can not be null!");
-			if (startIndex.HasValue && startNormalizedPosition.HasValue)
-				throw new IndexOutOfRangeException("You can only choose one between startIndex and startNormalizedPosition.");
-			if (startIndex < 0)
+			if (startLocation.HasValue && startNormalizedPosition.HasValue)
+				throw new IndexOutOfRangeException("You can only choose one between startLocation and startNormalizedPosition.");
+			if (startLocation?.index < 0)
 				throw new IndexOutOfRangeException("Start index must be more than zero.");
 			if (dataSource is IUIGridViewDataSource gridDataSource) {
-				_alignment = gridDataSource.AlignmentOfCellsAtRowOrColumnInGrid(this);
+				_cellAlignment = gridDataSource.AlignmentOfCellsAtRowOrColumnInGrid(this);
 				_numberOfCellsAtRowOrColumn = gridDataSource.NumberOfCellsAtRowOrColumnInGrid(this);
 			}
 			if (_numberOfCellsAtRowOrColumn < 1)
@@ -395,7 +391,7 @@ namespace UIKit
 			UnloadAllCells();
 			var oldCount = _holders.Count;
 			var newCount = dataSource.NumberOfCellsInTableView(this);
-			if (startIndex > newCount - 1)
+			if (startLocation?.index > newCount - 1)
 				throw new IndexOutOfRangeException("Start index must be less than quantity of cell.");
 			var deltaCount = Mathf.Abs(oldCount - newCount);
 			for (var i = 0; i < deltaCount; i++) {
@@ -409,13 +405,12 @@ namespace UIKit
 			if (newCount == 0)
 				return;
 
-			if (startIndex.HasValue)
-				ScrollToCellAtIndex(startIndex.Value);
+			if (startLocation.HasValue)
+				ScrollToCellAt(startLocation.Value);
 			else if (startNormalizedPosition.HasValue) {
 				ReloadCells(startNormalizedPosition.Value, false);
 				_scrollRect.normalizedPosition = startNormalizedPosition.Value;
-			}
-			else {
+			} else {
 				_isReloaded = true;
 				_normalizedPositionWhenReloaded = _scrollRect.normalizedPosition;
 				ReloadCells(_normalizedPositionWhenReloaded, false);
@@ -481,16 +476,18 @@ namespace UIKit
 			onScrollingFinished?.Invoke();
 		}
 
-		private void StartAutoScroll(int index, float time, bool withUpperMargin, Action onScrollingFinished)
+		private void StartAutoScroll(UITableViewCellLocation location, float time, Action onScrollingFinished)
 		{
 			StopAutoScroll(onScrollingFinished);
-			_autoScroll = StartCoroutine(AutoScroll(index, time, withUpperMargin, onScrollingFinished));
+			_autoScroll = StartCoroutine(AutoScroll(location, time, onScrollingFinished));
 		}
 
-		private IEnumerator AutoScroll(int index, float time, bool withUpperMargin, Action onScrollingFinished)
+		private IEnumerator AutoScroll(UITableViewCellLocation location, float time, Action onScrollingFinished)
 		{
+			if (location.index > _holders.Count - 1 || location.index < 0)
+				throw new IndexOutOfRangeException("Index must be less than cells' number and more than zero.");
 			var from = _scrollRect.normalizedPosition;
-			var to = GetNormalizedPositionOfCellAtIndex(index, withUpperMargin);
+			var to = GetNormalizedPositionOfCellAt(location);
 			var progress = 0f; 
 			var startAt = Time.time;
 			while (!Mathf.Approximately(progress, 1f)) {
@@ -528,10 +525,7 @@ namespace UIKit
 			ResizeContent(0);
 		}
 
-		/// <summary>
-		/// Replace the current cell at row with a new cell. 
-		/// </summary>
-		/// <param name="index"></param>
+		/// <summary> Replace the current cell at row with a new cell.  </summary>
 		public void ReloadDataAt(int index)
 		{
 			RearrangeData();
@@ -547,9 +541,18 @@ namespace UIKit
 
 		/// <summary> Recycle or destroy all loaded cells then reload them again. </summary>
 		/// <param name="startIndex">Table view will be scrolled to start index after data reloaded.</param>
-		public void ReloadData(int startIndex)
+		/// <param name="alignment"></param>
+		/// <param name="withMargin"></param>
+		/// <param name="displacement"></param>
+		public void ReloadData(int startIndex, UITableViewCellAlignment alignment = UITableViewCellAlignment.RightOrTop, bool withMargin = false, float displacement = 0f)
 		{
-			ReloadDataInternal(startIndex, null);
+			var location = new UITableViewCellLocation(startIndex, alignment, withMargin, displacement);
+			ReloadData(location);
+		}
+
+		public void ReloadData(UITableViewCellLocation location)
+		{
+			ReloadDataInternal(location, null);
 		}
 
 		/// <summary> Recycle or destroy all loaded cells then reload them again with specialized normalized position. </summary>
@@ -654,56 +657,92 @@ namespace UIKit
 			return cell;
 		}
 
-		/// <summary> Scroll to cell at index with animation, without margin. </summary>
-		public void ScrollToCellAtIndex(int index, float time, Action onScrollingFinished)
+		/// <summary> Scroll to the cell with animation. </summary>
+		/// <param name="index">Index of the cell</param>
+		/// <param name="time">Animation time</param>
+		/// <param name="withMargin">If TRUE, calculate margin(IUITableViewMargin) when locate the cell.</param>
+		/// <param name="alignment">Alignment of the cell on UITableView.</param>
+		/// <param name="displacement">The displacement relative to the cell. Positive number for move up, and negative number for move down.</param>
+		/// <param name="onScrollingFinished">Will be called when animation is finished or interrupted.</param>
+		/// <seealso cref="UIKit.UITableViewCellLocation">UITableViewCellLocation</seealso>
+		/// <seealso cref="ScrollToCellAt(UITableViewCellLocation, float, Action)">ScrollToCellAt(UITableViewCellLocation, float, Action)</seealso>
+		public void ScrollToCellAt(int index, float time, UITableViewCellAlignment alignment = UITableViewCellAlignment.RightOrTop, bool withMargin = false, float displacement = 0f, Action onScrollingFinished = null)
 		{
-			ScrollToCellAtIndex(index, time, false, onScrollingFinished);
+			var location = new UITableViewCellLocation(index, alignment, withMargin, displacement);
+			ScrollToCellAt(location, time, onScrollingFinished);
 		}
 
-		/// <summary> Scroll to cell at index with animation. </summary>
-		/// <param name="index">Index of cell at</param>
+		/// <summary> Scroll to the cell with animation. </summary>
+		/// <param name="location">Use to locate a point in UITableView(scroll view's content).</param>
 		/// <param name="time">Animation time</param>
-		/// <param name="withUpperMargin">With calculating upper margin</param>
 		/// <param name="onScrollingFinished">Will be called when animation is finished or interrupted.</param>
-		/// <exception cref="ArgumentException">Time is negative</exception>
-		public void ScrollToCellAtIndex(int index, float time, bool withUpperMargin, Action onScrollingFinished)
+		/// <exception cref="ArgumentException">Throw if time is negative</exception>
+		public void ScrollToCellAt(UITableViewCellLocation location, float time, Action onScrollingFinished)
 		{
-			if (index > _holders.Count - 1 || index < 0)
-				throw new IndexOutOfRangeException("Index must be less than cells' number and more than zero.");
 			if (time < 0f)
 				throw new ArgumentException("Time must be equal to or more than zero.");
 			if (Mathf.Approximately(time, 0f))
-				ScrollToCellAtIndex(index, withUpperMargin);
+				ScrollToCellAt(location);
 			else
-				StartAutoScroll(index, time, withUpperMargin, onScrollingFinished);
+				StartAutoScroll(location, time, onScrollingFinished);
 		}
 
-		/// <summary> Scroll to cell at index without upper margin. </summary>
-		public void ScrollToCellAtIndex(int index)
+		/// <summary> Scroll to the cell. </summary>
+		/// <param name="index">Index of the cell</param>
+		/// <param name="alignment">Alignment of the cell on UITableView.</param>
+		/// <param name="withMargin">If TRUE, calculate margin(IUITableViewMargin) when locate the cell.</param>
+		/// <param name="displacement">The displacement relative to the cell. Positive number for move up, and negative number for move down.</param>
+		public void ScrollToCellAt(int index, UITableViewCellAlignment alignment = UITableViewCellAlignment.RightOrTop, bool withMargin = false, float displacement = 0f)
 		{
-			ScrollToCellAtIndex(index, false);
+			var location = new UITableViewCellLocation(index, alignment, withMargin, displacement);
+			ScrollToCellAt(location);
 		}
 
-		/// <summary> Scroll to cell at index. </summary>
-		/// <param name="index">Index of cell at</param>
-		/// <param name="withUpperMargin">With calculating upper margin</param>
-		public void ScrollToCellAtIndex(int index, bool withUpperMargin)
+		/// <summary> Scroll to the cell. </summary>
+		/// <param name="location">Use to locate a point in UITableView(scroll view's content).</param>
+		public void ScrollToCellAt(UITableViewCellLocation location)
 		{
-			if (index > _holders.Count - 1 || index < 0)
+			if (location.index > _holders.Count - 1 || location.index < 0)
 				throw new IndexOutOfRangeException("Index must be less than cells' number and more than zero.");
-			_scrollRect.normalizedPosition = GetNormalizedPositionOfCellAtIndex(index, withUpperMargin);
+			_scrollRect.normalizedPosition = GetNormalizedPositionOfCellAt(location);
 			ReloadCells(_scrollRect.normalizedPosition, false);
 		}
 
-		/// <summary> Return scroll view's normalized position of cell at index without margin. </summary>
-		/// <param name="index">Index of cell at</param>
-		/// <param name="withUpperMargin">With calculating upper margin</param>
+		/// <summary> Return scroll view's normalized position of cell at the location. </summary>
+		/// <param name="location">Use to locate a point in UITableView(scroll view's content).</param>
 		/// <returns>Normalized position of scroll view</returns>
-		public Vector2 GetNormalizedPositionOfCellAtIndex(int index, bool withUpperMargin)
+		public Vector2 GetNormalizedPositionOfCellAt(UITableViewCellLocation location)
 		{
 			var normalizedPosition = _scrollRect.normalizedPosition;
 			var deltaSize = _content.rect.size - _viewport.rect.size;
-			var position = _holders[index].position - (withUpperMargin ? _holders[index].upperMargin : 0f);
+			var holder = _holders[location.index];
+			var position = holder.position;
+			float viewportLength;
+			switch (_direction) {
+				case UITableViewDirection.TopToBottom:
+					viewportLength = _viewport.rect.height;
+					break;
+				case UITableViewDirection.RightToLeft:
+					viewportLength = _viewport.rect.width;
+					break;
+				default: throw new ArgumentOutOfRangeException();
+			}
+			switch (location.alignment) {
+				case UITableViewCellAlignment.RightOrTop:
+					position -= (location.withMargin ? holder.upperMargin : 0f);
+					break;
+				case UITableViewCellAlignment.LeftOrBottom:
+					position -= (viewportLength - holder.scalar);
+					position += (location.withMargin ? holder.lowerMargin : 0f);
+					break;
+				case UITableViewCellAlignment.Center:
+					var cellMargin = holder.lowerMargin - holder.upperMargin;
+					var cellScalar = holder.scalar + (location.withMargin ? cellMargin : 0f);
+					position -= (viewportLength - cellScalar) / 2f;
+					break;
+				default: throw new ArgumentOutOfRangeException();
+			}
+			position += location.displacement;
 			switch (_direction) {
 				case UITableViewDirection.TopToBottom:
 					normalizedPosition.y = 1f - position / deltaSize.y;
@@ -711,8 +750,7 @@ namespace UIKit
 				case UITableViewDirection.RightToLeft:
 					normalizedPosition.x = 1f - position / deltaSize.x;
 					break;
-				default:
-					throw new ArgumentOutOfRangeException();
+				default: throw new ArgumentOutOfRangeException();
 			}
 			var x = Mathf.Clamp(0f, normalizedPosition.x, 1f);
 			var y = Mathf.Clamp(0f, normalizedPosition.y, 1f);
@@ -734,7 +772,6 @@ namespace UIKit
 			var cell = holder.loadedCell as T;
 			if (cell == null)
 				throw new ArgumentException($"Cell at index:{index} is not type of {typeof(T)}");
-
 			return cell;
 		}
 
@@ -800,21 +837,5 @@ namespace UIKit
 		TopToBottom = 0,
 		/// <summary> Index of cell at the rightmost is zero. </summary>
 		RightToLeft = 1,
-	}
-
-	public enum UIGridViewAlignment
-	{
-		/// <summary>
-		/// Right alignment at row on UITableViewDirection.TopToBottom,
-		/// or top alignment at column on UITableViewDirection.RightToLeft.
-		/// </summary>
-		RightOrTop = 0,
-		/// <summary>
-		/// Left alignment at row on UITableViewDirection.TopToBottom,
-		/// or bottom alignment at column on UITableViewDirection.RightToLeft.
-		/// </summary>
-		LeftOrBottom = 1,
-		/// <summary> Centering </summary>
-		Center = 2,
 	}
 }
