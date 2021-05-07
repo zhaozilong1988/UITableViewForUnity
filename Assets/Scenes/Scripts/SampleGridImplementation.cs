@@ -28,7 +28,7 @@ public class SampleGridImplementation : MonoBehaviour, IUIGridViewDataSource, IU
 	private void Start()
 	{
 		_tableView.ReloadData(0);
-		_tableView.ScrollToCellAtIndex(0, true);
+		_tableView.ScrollToCellAt(0, withMargin: true);
 	}
 
 	public void OnClickClose()
@@ -56,9 +56,9 @@ public class SampleGridImplementation : MonoBehaviour, IUIGridViewDataSource, IU
 		return 3;
 	}
 
-	public UIGridViewAlignment AlignmentOfCellsAtRowOrColumnInGrid(UITableView grid)
+	public UITableViewCellAlignment AlignmentOfCellsAtRowOrColumnInGrid(UITableView grid)
 	{
-		return UIGridViewAlignment.Center;
+		return UITableViewCellAlignment.Center;
 	}
 
 	public void CellAtIndexInTableViewWillAppear(UITableView tableView, int index)

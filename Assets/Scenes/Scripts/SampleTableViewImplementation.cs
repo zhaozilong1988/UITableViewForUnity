@@ -52,7 +52,7 @@ public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSour
 		_lastOrientation = Screen.orientation;
 		// Reload from 0th
 		_tableView.ReloadData(0);
-		_tableView.ScrollToCellAtIndex(0, true);
+		_tableView.ScrollToCellAt(0, withMargin: true);
 	}
 
 	private void Update()
@@ -112,14 +112,14 @@ public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSour
 	public void OnClickScrollTo()
 	{
 		var index = int.Parse(_cellIndexInput.text);
-		_tableView.ScrollToCellAtIndex(index, false);
+		_tableView.ScrollToCellAt(index, withMargin: false);
 	}
 
 	public void OnClickScrollTo(float time)
 	{
 		var index = int.Parse(_cellIndexInput.text);
 		Debug.Log("Go to cell at index of " + index);
-		_tableView.ScrollToCellAtIndex(index, time, true, () => {
+		_tableView.ScrollToCellAt(index, time, withMargin: true, onScrollingFinished: () => {
 			Debug.Log("Scrolling has finished");
 		});
 	}
@@ -162,7 +162,7 @@ public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSour
 		var dataList = _selectedTabIndex == 0 ? _tab1DataList : _tab2DataList;
 		dataList.Add(data);
 		_tableView.AppendData();
-		_tableView.ScrollToCellAtIndex(dataList.Count-1, 0.1f, true, null);
+		_tableView.ScrollToCellAt(dataList.Count-1, 0.1f, withMargin: true);
 		_chatInput.text = "";
 	}
 
@@ -186,7 +186,7 @@ public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSour
 				? Mathf.Lerp(sampleData.scalarBeforeExpand, sampleData.scalarAfterExpand, progress)
 				: Mathf.Lerp(sampleData.scalarAfterExpand, sampleData.scalarBeforeExpand, progress);
 			_tableView.RearrangeData();
-			_tableView.ScrollToCellAtIndex(index, false);
+			_tableView.ScrollToCellAt(index, withMargin: false);
 		}
 	}
 
