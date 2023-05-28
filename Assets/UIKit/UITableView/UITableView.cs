@@ -369,6 +369,10 @@ namespace UIKit
 				default: throw new ArgumentOutOfRangeException();
 			}
 			holder.loadedCell.rectTransform.anchoredPosition = anchoredPosition;
+			var t = holder.loadedCell.transform;
+			var pos = t.localPosition;
+			pos.z = 0f;
+			t.localPosition = pos;
 			if (holder.loadedCell.isAutoResize)
 				holder.loadedCell.rectTransform.sizeDelta = cellSize;
 		}
@@ -628,7 +632,7 @@ namespace UIKit
 			ReloadCells(_scrollRect.normalizedPosition, true);
 		}
 
-		/// <summary> Get a cell from reuse pool or instantiate a new one. </summary>
+		/// <summary> Get a cell from pool or instantiate a new one. </summary>
 		/// <param name="prefab">A prefab which one inherited from UITableView.</param>
 		/// <param name="lifeCycle">How the cell will be when it disappeared from scroll view's viewport or data is reloaded.</param>
 		/// <param name="isAutoResize">The cell will be resized when it appearing into scroll view's viewport if isAutoResize is true, or not if false.</param>
@@ -636,8 +640,19 @@ namespace UIKit
 		/// <returns>Subclass of UITableViewCell</returns>
 		public T ReuseOrCreateCell<T>(T prefab, UITableViewCellLifeCycle lifeCycle = UITableViewCellLifeCycle.RecycleWhenDisappeared, bool isAutoResize = true) where T : UITableViewCell
 		{
+			return ReuseOrCreateCell(prefab.GetType().ToString(), prefab, lifeCycle, isAutoResize);
+		}
+
+		/// <summary> Get a cell from the pool which use your own reuse identifier or instantiate a new one. </summary>
+		/// <param name="reuseIdentifier">You can create multiple different prefabs with only one UITableViewCell class by use your own reuse identifier</param>
+		/// <param name="prefab">A prefab which one inherited from UITableView.</param>
+		/// <param name="lifeCycle">How the cell will be when it disappeared from scroll view's viewport or data is reloaded.</param>
+		/// <param name="isAutoResize">The cell will be resized when it appearing into scroll view's viewport if isAutoResize is true, or not if false.</param>
+		/// <typeparam name="T">Type of cell</typeparam>
+		/// <returns>Subclass of UITableViewCell</returns>
+		public T ReuseOrCreateCell<T>(string reuseIdentifier, T prefab, UITableViewCellLifeCycle lifeCycle = UITableViewCellLifeCycle.RecycleWhenDisappeared, bool isAutoResize = true) where T : UITableViewCell
+		{
 			T cell;
-			var reuseIdentifier = prefab.GetType().ToString();
 			if (lifeCycle != UITableViewCellLifeCycle.DestroyWhenDisappeared) {
 				var isExist = _reusableCellQueues.TryGetValue(reuseIdentifier, out var cellsQueue);
 				if (!isExist) {
@@ -775,12 +790,45 @@ namespace UIKit
 			return cell;
 		}
 
+		/// <summary> Return it if the cell at index is appearing or UITableViewCellLifeCycle is set to RecycleWhenReloaded. </summary>
+		/// <param name="index">Index of cell at</param>
+		/// <param name="result">The cell be found</param>
+		/// <typeparam name="T">Type of UITableViewCell</typeparam>
+		/// <returns></returns>
+		public bool TryGetLoadedCell<T>(int index, out T result) where T : UITableViewCell
+		{
+			result = null;
+			if (index < 0 || _holders.Count - 1 < index)
+				return false;
+			if (!_loadedHolders.TryGetValue(index, out var holder))
+				return false;
+			var cell = holder.loadedCell as T;
+			if (cell == null)
+				return false;
+			result = cell;
+			return true;
+		}
+
 		/// <summary> Return all appearing cells and those whose UITableViewCellLifeCycle is set to RecycleWhenReloaded. </summary>
 		public IEnumerable<UITableViewCell> GetAllLoadedCells()
 		{
 			foreach (var kvp in _loadedHolders) {
 				Debug.Assert(kvp.Value.loadedCell != null, nameof(kvp.Value.loadedCell) + " != null");
 				yield return kvp.Value.loadedCell;
+			}
+		}
+
+		/// <summary> Return all appearing cells and those whose UITableViewCellLifeCycle is set to RecycleWhenReloaded where condition returns true. </summary>
+		public IEnumerable<T> GetAllLoadedCells<T>(Func<int, bool> condition) where T : UITableViewCell
+		{
+			foreach (var kvp in _loadedHolders) {
+				Debug.Assert(kvp.Value.loadedCell != null, nameof(kvp.Value.loadedCell) + " != null");
+				if (!condition.Invoke(kvp.Key))
+					continue;
+				var tCell = kvp.Value.loadedCell as T;
+				if (tCell == null)
+					continue;
+				yield return tCell;
 			}
 		}
 
