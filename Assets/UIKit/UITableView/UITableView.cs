@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using UIKit.Helper;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
@@ -9,7 +10,7 @@ namespace UIKit
 {
 	[DisallowMultipleComponent]
 	[RequireComponent(typeof(ScrollRect))]
-	public class UITableView : UIBehaviour
+	public class UITableView : UIBehaviour, IPointerDownHandler, IPointerUpHandler, IPointerClickHandler, IBeginDragHandler, IEndDragHandler, IDragHandler
 	{
 		public const float DEFAULT_REACHABLE_EDGE_TOLERANCE = 0.1f;
 		public ScrollRect scrollRect => _scrollRect;
@@ -17,6 +18,8 @@ namespace UIKit
 		public IUITableViewMargin marginDataSource { get; set; }
 		public IUITableViewDelegate @delegate { get; set; }
 		public IUITableViewReachable reachable { get; set; }
+		public IUITableViewClickable clickable { get; set; }
+		public IUITableViewDraggable draggable { get; set; }
 
 		/// <summary> If TRUE, the UITableViewCellLifeCycle will be ignored and all cells will be loaded at once, or not when FALSE. </summary>
 		public bool ignoreCellLifeCycle {
@@ -40,25 +43,29 @@ namespace UIKit
 			}
 		}
 
-		private int _numberOfCellsAtRowOrColumn = 1;
-		private UITableViewCellAlignment _cellAlignment = UITableViewCellAlignment.RightOrTop;
-		private readonly List<UITableViewCellHolder> _holders = new List<UITableViewCellHolder>(); // all holders
-		private readonly Dictionary<string, Queue<UITableViewCell>> _reusableCellQueues = new Dictionary<string, Queue<UITableViewCell>>(); // for caching the cells which waiting for be reused.
-		private readonly Dictionary<int, UITableViewCellHolder> _loadedHolders = new Dictionary<int, UITableViewCellHolder>(); // appearing cells and those whose UITableViewLifeCycle is set to RecycleWhenReloaded.
-		private readonly List<int> _swapper = new List<int>(); // helper for modifying dictionary of _loadedHolders.
-		private Transform _cellsPool;
-		private Coroutine _autoScroll;
-		private bool _isReloaded;
-		private Vector2 _normalizedPositionWhenReloaded;
-		private bool _isReachingBottommostOrLeftmost; // for detecting boundary when IUITableViewReachable is assigned.
-		private bool _isReachingTopmostOrRightmost;
-		[SerializeField] private ScrollRect _scrollRect;
-		[SerializeField] private RectTransform _viewport;
-		[SerializeField] private RectTransform _content;
-		[SerializeField] private UITableViewDirection _direction = UITableViewDirection.TopToBottom;
-		[SerializeField] private bool _ignoreCellLifeCycle;
+		int _numberOfCellsAtRowOrColumn = 1;
+		UITableViewCellAlignment _cellAlignment = UITableViewCellAlignment.RightOrTop;
+		readonly List<UITableViewCellHolder> _holders = new List<UITableViewCellHolder>(); // all holders
+		readonly Dictionary<string, Queue<UITableViewCell>> _reusableCellQueues = new Dictionary<string, Queue<UITableViewCell>>(); // for caching the cells which waiting for be reused.
+		readonly Dictionary<int, UITableViewCellHolder> _loadedHolders = new Dictionary<int, UITableViewCellHolder>(); // appearing cells and those whose UITableViewLifeCycle is set to RecycleWhenReloaded.
+		readonly List<int> _swapper = new List<int>(); // helper for modifying dictionary of _loadedHolders.
+		Transform _cellsPool;
+		Coroutine _autoScroll;
+		bool _isReloaded;
+		Vector2 _normalizedPositionWhenReloaded;
+		bool _isReachingBottommostOrLeftmost; // for detecting boundary when IUITableViewReachable is assigned.
+		bool _isReachingTopmostOrRightmost;
+		int? _draggingCellIndex;
+		int? _clickingCellIndex;
+		[SerializeField] ScrollRect _scrollRect;
+		[SerializeField] RectTransform _viewport;
+		[SerializeField] RectTransform _content;
+		[SerializeField] UITableViewDirection _direction = UITableViewDirection.TopToBottom;
+		[SerializeField] bool _ignoreCellLifeCycle;
 		/// <summary> Tag for distinguishing table view. </summary>
-		[SerializeField] public int tag;
+		public int tag;
+		/// <summary> If true, the click events will be interrupted once drag is began. This will only works when both of IUITableViewClickable and IUITableViewDraggable are implemented. </summary>
+		public bool cancelClickOnceBeginDrag;
 
 		protected override void Awake()
 		{
@@ -76,7 +83,7 @@ namespace UIKit
 			base.OnDestroy();
 		}
 
-		protected void Update()
+		protected virtual void Update()
 		{
 			// Read the WORKAROUND which is written in summary of Reload().
 			if (_isReloaded) {
@@ -94,7 +101,7 @@ namespace UIKit
 		}
 #endif
 
-		private void InitializeScrollRect()
+		void InitializeScrollRect()
 		{
 			if (_scrollRect == null)
 				_scrollRect = GetComponent<ScrollRect>();
@@ -104,7 +111,7 @@ namespace UIKit
 				_content = _scrollRect.content;
 		}
 
-		private void InitializeCellsPool()
+		void InitializeCellsPool()
 		{
 			if (_cellsPool != null)
 				return;
@@ -114,7 +121,7 @@ namespace UIKit
 		}
 
 		/// <summary> Validate if the settings are compatible with UITableView. </summary>
-		private void Validate()
+		void Validate()
 		{
 			var sizeFitter = _content.GetComponent<ContentSizeFitter>();
 			if (sizeFitter != null) // ContentSizeFitter which attaching to content can not be set to NON-Unconstrained.
@@ -122,7 +129,7 @@ namespace UIKit
 					throw new Exception("ContentSizeFitter which attaching to content can not be set to NON-Unconstrained.");
 		}
 
-		private Range RecalculateVisibleRange(Vector2 normalizedPosition)
+		Range RecalculateVisibleRange(Vector2 normalizedPosition)
 		{
 			var contentSize = _content.rect.size;
 			var viewportSize = _ignoreCellLifeCycle ? contentSize : _viewport.rect.size;
@@ -151,12 +158,12 @@ namespace UIKit
 			return new Range(startIndex, endIndex);
 		}
 
-		private int FindIndexOfCellAtPosition(float position)
+		int FindIndexOfCellAtPosition(float position)
 		{
 			return FindIndexOfCellAtPosition(position, 0, _holders.Count);
 		}
 
-		private int FindIndexOfCellAtPosition(float position, int startIndex, int length)
+		int FindIndexOfCellAtPosition(float position, int startIndex, int length)
 		{
 			while (startIndex < length) {
 				var midIndex = (startIndex + length) / 2;
@@ -169,7 +176,7 @@ namespace UIKit
 			return Math.Max(0, startIndex - 1);
 		}
 
-		private void ResizeContent(int numberOfCells)
+		void ResizeContent(int numberOfCells)
 		{
 			var lastMaxLowerMargin = 0f;
 			var cumulativeScalar = 0f;
@@ -214,7 +221,7 @@ namespace UIKit
 			_content.sizeDelta = size;
 		}
 
-		private void OnScrollPositionChanged(Vector2 normalizedPosition)
+		void OnScrollPositionChanged(Vector2 normalizedPosition)
 		{
 			if (_holders.Count <= 0)
 				return;
@@ -222,7 +229,7 @@ namespace UIKit
 			DetectAndNotifyReachableStatus(normalizedPosition);
 		}
 
-		private void ReloadCells(Vector2 normalizedPosition, bool alwaysRearrangeCell)
+		void ReloadCells(Vector2 normalizedPosition, bool alwaysRearrangeCell)
 		{
 			var range = RecalculateVisibleRange(normalizedPosition);
 			UnloadUnusedCells(range); // recycle invisible cells except life cycle is RecycleWhenReload
@@ -232,7 +239,7 @@ namespace UIKit
 #endif
 		}
 
-		private void LoadCells(Range range, bool alwaysRearrangeCell)
+		void LoadCells(Range range, bool alwaysRearrangeCell)
 		{
 			foreach (var kvp in _loadedHolders) {
 				if (kvp.Key >= range.from && kvp.Key <= range.to)
@@ -245,7 +252,7 @@ namespace UIKit
 			}
 		}
 
-		private void LoadCell(int index, bool alwaysRearrangeCell)
+		void LoadCell(int index, bool alwaysRearrangeCell)
 		{
 			var holder = _holders[index];
 			if (holder.loadedCell != null) {
@@ -267,7 +274,7 @@ namespace UIKit
 #endif
 		}
 
-		private void UnloadUnusedCells(Range visibleRange)
+		void UnloadUnusedCells(Range visibleRange)
 		{
 			foreach (var kvp in _loadedHolders) {
 				if (kvp.Key >= visibleRange.from && kvp.Key <= visibleRange.to)
@@ -282,7 +289,7 @@ namespace UIKit
 			_swapper.Clear();
 		}
 
-		private void UnloadAllCells()
+		void UnloadAllCells()
 		{
 			foreach (var kvp in _loadedHolders) {
 				UnloadCell(kvp.Key);
@@ -293,7 +300,7 @@ namespace UIKit
 			_swapper.Clear();
 		}
 
-		private void UnloadCell(int index)
+		void UnloadCell(int index)
 		{
 			var holder = _holders[index];
 			var cell = holder.loadedCell;
@@ -322,7 +329,7 @@ namespace UIKit
 			holder.loadedCell = null;
 		}
 
-		private void RearrangeCell(int index)
+		void RearrangeCell(int index)
 		{
 			var holder = _holders[index];
 			var cellRectTransform = holder.loadedCell.rectTransform;
@@ -377,7 +384,7 @@ namespace UIKit
 				holder.loadedCell.rectTransform.sizeDelta = cellSize;
 		}
 
-		private void ReloadDataInternal(UITableViewCellLocation? startLocation, Vector2? startNormalizedPosition)
+		void ReloadDataInternal(UITableViewCellLocation? startLocation, Vector2? startNormalizedPosition)
 		{
 			if (dataSource == null)
 				throw new Exception("DataSource can not be null!");
@@ -427,7 +434,7 @@ namespace UIKit
 		}
 
 		///<summary> Detect if the table view has reached or left the topmost/rightmost or bottommost/leftmost</summary>
-		private void DetectAndNotifyReachableStatus(Vector2 normalizedPosition)
+		void DetectAndNotifyReachableStatus(Vector2 normalizedPosition)
 		{
 			if (this.reachable == null)
 				return;
@@ -448,7 +455,7 @@ namespace UIKit
 			}
 		}
 
-		private void CalculateReachableStatus(Vector2 normalizedPosition, out bool isReachingTopmostOrRightmost, out bool isReachingBottommostOrLeftmost)
+		void CalculateReachableStatus(Vector2 normalizedPosition, out bool isReachingTopmostOrRightmost, out bool isReachingBottommostOrLeftmost)
 		{
 			isReachingTopmostOrRightmost = isReachingBottommostOrLeftmost = false;
 			if (this.reachable == null)
@@ -471,7 +478,7 @@ namespace UIKit
 			isReachingBottommostOrLeftmost = curPosition > lowerTolerance;
 		}
 
-		private void StopAutoScroll(Action onScrollingFinished)
+		void StopAutoScroll(Action onScrollingFinished)
 		{
 			if (_autoScroll == null)
 				return;
@@ -480,13 +487,13 @@ namespace UIKit
 			onScrollingFinished?.Invoke();
 		}
 
-		private void StartAutoScroll(UITableViewCellLocation location, float time, Action onScrollingFinished)
+		void StartAutoScroll(UITableViewCellLocation location, float time, Action onScrollingFinished)
 		{
 			StopAutoScroll(onScrollingFinished);
 			_autoScroll = StartCoroutine(AutoScroll(location, time, onScrollingFinished));
 		}
 
-		private IEnumerator AutoScroll(UITableViewCellLocation location, float time, Action onScrollingFinished)
+		IEnumerator AutoScroll(UITableViewCellLocation location, float time, Action onScrollingFinished)
 		{
 			if (location.index > _holders.Count - 1 || location.index < 0)
 				throw new IndexOutOfRangeException("Index must be less than cells' number and more than zero.");
@@ -632,7 +639,7 @@ namespace UIKit
 			ReloadCells(_scrollRect.normalizedPosition, true);
 		}
 
-		/// <summary> Get a cell from pool or instantiate a new one. </summary>
+		/// <summary> Get a cell from reuse pool or instantiate a new one. </summary>
 		/// <param name="prefab">A prefab which one inherited from UITableView.</param>
 		/// <param name="lifeCycle">How the cell will be when it disappeared from scroll view's viewport or data is reloaded.</param>
 		/// <param name="isAutoResize">The cell will be resized when it appearing into scroll view's viewport if isAutoResize is true, or not if false.</param>
@@ -643,13 +650,6 @@ namespace UIKit
 			return ReuseOrCreateCell(prefab.GetType().ToString(), prefab, lifeCycle, isAutoResize);
 		}
 
-		/// <summary> Get a cell from the pool which use your own reuse identifier or instantiate a new one. </summary>
-		/// <param name="reuseIdentifier">You can create multiple different prefabs with only one UITableViewCell class by use your own reuse identifier</param>
-		/// <param name="prefab">A prefab which one inherited from UITableView.</param>
-		/// <param name="lifeCycle">How the cell will be when it disappeared from scroll view's viewport or data is reloaded.</param>
-		/// <param name="isAutoResize">The cell will be resized when it appearing into scroll view's viewport if isAutoResize is true, or not if false.</param>
-		/// <typeparam name="T">Type of cell</typeparam>
-		/// <returns>Subclass of UITableViewCell</returns>
 		public T ReuseOrCreateCell<T>(string reuseIdentifier, T prefab, UITableViewCellLifeCycle lifeCycle = UITableViewCellLifeCycle.RecycleWhenDisappeared, bool isAutoResize = true) where T : UITableViewCell
 		{
 			T cell;
@@ -789,12 +789,14 @@ namespace UIKit
 				throw new ArgumentException($"Cell at index:{index} is not type of {typeof(T)}");
 			return cell;
 		}
+		
+		public UITableViewCell GetLoadedCell(int index)
+		{
+			if (index < 0 || _holders.Count - 1 < index)
+				throw new IndexOutOfRangeException("Index is less than 0 or more than count of cells.");
+			return _loadedHolders.TryGetValue(index, out var holder) ? holder.loadedCell : null;
+		}
 
-		/// <summary> Return it if the cell at index is appearing or UITableViewCellLifeCycle is set to RecycleWhenReloaded. </summary>
-		/// <param name="index">Index of cell at</param>
-		/// <param name="result">The cell be found</param>
-		/// <typeparam name="T">Type of UITableViewCell</typeparam>
-		/// <returns></returns>
 		public bool TryGetLoadedCell<T>(int index, out T result) where T : UITableViewCell
 		{
 			result = null;
@@ -818,7 +820,11 @@ namespace UIKit
 			}
 		}
 
-		/// <summary> Return all appearing cells and those whose UITableViewCellLifeCycle is set to RecycleWhenReloaded where condition returns true. </summary>
+		public IEnumerable<T> GetAllLoadedCells<T>() where T : UITableViewCell
+		{
+			return GetAllLoadedCells<T>(_ => true);
+		}
+
 		public IEnumerable<T> GetAllLoadedCells<T>(Func<int, bool> condition) where T : UITableViewCell
 		{
 			foreach (var kvp in _loadedHolders) {
@@ -830,6 +836,77 @@ namespace UIKit
 					continue;
 				yield return tCell;
 			}
+		}
+
+		public IEnumerable<UITableViewCell> GetAllIntersectedCells(int withCellIndex)
+		{
+			var withCell = GetLoadedCell(withCellIndex);
+			if (withCell == null)
+				yield break;
+			foreach (var kvp in _loadedHolders) {
+				Debug.Assert(kvp.Value.loadedCell != null, nameof(kvp.Value.loadedCell) + " != null");
+				if (kvp.Key == withCellIndex)
+					continue;
+				if (kvp.Value.loadedCell.rectTransform.CalculateAreaOfIntersection(withCell.worldRect) <= 0f)
+					continue;
+				yield return kvp.Value.loadedCell;
+			}
+		}
+
+		public IEnumerable<T> GetAllIntersectedCells<T>(int withCellIndex) where T : UITableViewCell
+		{
+			var withCell = GetLoadedCell(withCellIndex);
+			if (withCell == null)
+				yield break;
+			foreach (var cell in GetAllIntersectedCells(withCellIndex)) {
+				var tCell = cell as T;
+				if (tCell == null)
+					continue;
+				yield return tCell;
+			}
+		}
+
+		public bool TryFindMostIntersectedCell(int withCellIndex, out int mostIntersectedCellIndex, out float maxAreaOfIntersection)
+		{
+			mostIntersectedCellIndex = -1;
+			maxAreaOfIntersection = 0f;
+			var withCell = GetLoadedCell(withCellIndex);
+			if (withCell == null)
+				return false;
+			foreach (var kvp in _loadedHolders) {
+				Debug.Assert(kvp.Value.loadedCell != null, nameof(kvp.Value.loadedCell) + " != null");
+				if (kvp.Key == withCellIndex)
+					continue;
+				var area = kvp.Value.loadedCell.rectTransform.CalculateAreaOfIntersection(withCell.worldRect);
+				if (maxAreaOfIntersection >= area)
+					continue;
+				mostIntersectedCellIndex = kvp.Key;
+				maxAreaOfIntersection = area;
+			}
+			return mostIntersectedCellIndex >= 0;
+		}
+
+		public bool TryFindMostIntersectedCell<T>(int withCellIndex, out int mostIntersectedCellIndex, out float maxAreaOfIntersection) where T : UITableViewCell
+		{
+			mostIntersectedCellIndex = -1;
+			maxAreaOfIntersection = 0f;
+			var withCell = GetLoadedCell(withCellIndex);
+			if (withCell == null)
+				return false;
+			foreach (var kvp in _loadedHolders) {
+				Debug.Assert(kvp.Value.loadedCell != null, nameof(kvp.Value.loadedCell) + " != null");
+				if (kvp.Key == withCellIndex)
+					continue;
+				var tCell = kvp.Value.loadedCell as T;
+				if (tCell == null)
+					continue;
+				var area = tCell.rectTransform.CalculateAreaOfIntersection(withCell.worldRect);
+				if (maxAreaOfIntersection >= area)
+					continue;
+				mostIntersectedCellIndex = kvp.Key;
+				maxAreaOfIntersection = area;
+			}
+			return mostIntersectedCellIndex >= 0;
 		}
 
 		/// <summary> The interface CellAtIndexInTableViewWillAppear(tableView, index) of all loaded cells will be called without recycling them.
@@ -855,7 +932,106 @@ namespace UIKit
 			}
 		}
 
-		private readonly struct Range
+		Vector3 TransformPoint(PointerEventData eventData, IUITableViewInteractable interactable)
+		{
+			var cam = interactable.TableViewCameraForInteractive(this);
+			return cam == null ? eventData.position : cam.ScreenToWorldPoint(eventData.position);
+		}
+
+		bool TryFindClickedLoadedCell(PointerEventData eventData, IUITableViewInteractable interactable, out UITableViewCell target)
+		{
+			var position = TransformPoint(eventData, interactable);
+			foreach (var kvp in _loadedHolders) {
+				if (!kvp.Value.loadedCell.worldRect.Contains(position))
+					continue;
+				target = kvp.Value.loadedCell;
+				return true;
+			}
+			target = null;
+			return false;
+		}
+
+		#region Interfaces of EventSystems
+		public void OnPointerDown(PointerEventData eventData)
+		{
+			_clickingCellIndex = null;
+			if (this.clickable == null)
+				return;
+			if (TryFindClickedLoadedCell(eventData, this.clickable, out var result)) {
+				this.clickable.TableViewOnPointerDownCellAt(this, result.index!.Value, eventData);
+				_clickingCellIndex = result.index!.Value;
+			}
+		}
+
+		public void OnPointerClick(PointerEventData eventData)
+		{
+			if (this.clickable == null)
+				return;
+			if (TryFindClickedLoadedCell(eventData, this.clickable, out var result) && _clickingCellIndex == result.index) {
+				this.clickable.TableViewOnPointerClickCellAt(this, result.index!.Value, eventData);
+			}
+			_clickingCellIndex = null;
+		}
+
+		public void OnPointerUp(PointerEventData eventData)
+		{
+			if (this.clickable == null)
+				return;
+			if (TryFindClickedLoadedCell(eventData, this.clickable, out var result)) {
+				this.clickable.TableViewOnPointerUpCellAt(this, result.index!.Value, eventData);
+				_clickingCellIndex = _clickingCellIndex == result.index ? _clickingCellIndex : null;
+			}
+		}
+
+		public void OnBeginDrag(PointerEventData eventData)
+		{
+			_draggingCellIndex = null;
+			if (this.draggable == null)
+				return;
+			if (cancelClickOnceBeginDrag)
+				_clickingCellIndex = null;
+			if (TryFindClickedLoadedCell(eventData, this.draggable, out var result) 
+			    && this.draggable.TableViewOnBeginDragCellAt(this, result.index!.Value, eventData)) {
+				_draggingCellIndex = result.index;
+				GetLoadedCell(_draggingCellIndex.Value).transform.localPosition = scrollRect.content.InverseTransformPoint(eventData.position);
+			}
+		}
+
+		public void OnDrag(PointerEventData eventData)
+		{
+			if (!_draggingCellIndex.HasValue)
+				return;
+			if (this.draggable == null) {
+				_draggingCellIndex = null;
+				return;
+			}
+			var position = TransformPoint(eventData, this.draggable);
+			var cell = GetLoadedCell(_draggingCellIndex!.Value);
+			if (cell != null) {
+				cell.rectTransform.localPosition = scrollRect.content.InverseTransformPoint(position);
+			}
+			this.draggable.TableViewOnDragCellAt(this, _draggingCellIndex!.Value, eventData);
+		}
+
+		public void OnEndDrag(PointerEventData eventData)
+		{
+			if (!_draggingCellIndex.HasValue)
+				return;
+			if (this.draggable == null) {
+				_draggingCellIndex = null;
+				return;
+			}
+			var position = TransformPoint(eventData, this.draggable);
+			var cell = GetLoadedCell(_draggingCellIndex!.Value);
+			if (cell != null) {
+				cell.rectTransform.localPosition = scrollRect.content.InverseTransformPoint(position);
+			}
+			this.draggable.TableViewOnEndDragCellAt(this, _draggingCellIndex!.Value, eventData);
+			_draggingCellIndex = null;
+		}
+		#endregion
+
+		readonly struct Range
 		{
 			public int from { get; }
 			public int to { get; }
@@ -865,7 +1041,8 @@ namespace UIKit
 				this.to = to;
 			}
 		}
-		private class UITableViewCellHolder
+
+		class UITableViewCellHolder
 		{
 			public UITableViewCell loadedCell { get; set; }
 			/// <summary> Height or width of the cell. </summary>
