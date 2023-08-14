@@ -64,8 +64,8 @@ namespace UIKit
 		[SerializeField] bool _ignoreCellLifeCycle;
 		/// <summary> Tag for distinguishing table view. </summary>
 		public int tag;
-		/// <summary> If true, the click events will be interrupted once drag is began. This will only works when both of IUITableViewClickable and IUITableViewDraggable are implemented. </summary>
-		public bool cancelClickOnceBeginDrag;
+		/// <summary> If true, the click events will be kept even if drag is began.</summary>
+		public bool keepClickEvenIfBeginDrag;
 
 		protected override void Awake()
 		{
@@ -985,11 +985,11 @@ namespace UIKit
 
 		public void OnBeginDrag(PointerEventData eventData)
 		{
+			if (!keepClickEvenIfBeginDrag)
+				_clickingCellIndex = null;
 			_draggingCellIndex = null;
 			if (this.draggable == null)
 				return;
-			if (cancelClickOnceBeginDrag)
-				_clickingCellIndex = null;
 			if (TryFindClickedLoadedCell(eventData, this.draggable, out var result) 
 			    && this.draggable.TableViewOnBeginDragCellAt(this, result.index!.Value, eventData)) {
 				_draggingCellIndex = result.index;
