@@ -4,7 +4,6 @@ UITableViewForUnity是一个可以方便实现各种列表式UI需求的Unity引
 
 比如
 | 消息列表 | 可展开式列表 | 可追加式列表 |
-| Chat List | Expandable List | Appendable List
 | --- | --- | --- |
 | ![](sample_chat.gif) | ![](sample_expend.gif) | ![](sample_append.gif)
 | 网格 | 可拖拽 | 可编辑 |
