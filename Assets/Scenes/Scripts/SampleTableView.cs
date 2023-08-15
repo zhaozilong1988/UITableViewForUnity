@@ -3,38 +3,25 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UIKit;
-using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using Random = UnityEngine.Random;
 
-public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSource, IUITableViewDelegate, IUITableViewMargin
+public class SampleTableView : UITableView, IUITableViewDataSource, IUITableViewDelegate, IUITableViewMargin
 {
-	[SerializeField]
-	private UITableView _tableView;
-	[SerializeField]
-	private GameObject _gridView;
-	[SerializeField, Header("cell prefabs")]
-	private SampleImageCell _imageCellPrefab;
-	[SerializeField]
-	private SampleTextCell _textCellPrefab;
-	[SerializeField]
-	private SampleTabCell _tabCellPrefab;
-	[SerializeField]
-	private SampleChatCell _chatCellPrefab;
-	[Space]
-	[SerializeField]
-	private InputField _cellIndexInput;
-	[SerializeField]
-	private InputField _chatInput;
-	[SerializeField]
-	private Text _textSizeCalculator;
+	[Header("cell prefabs")]
+	[SerializeField] SampleImageCell _imageCellPrefab;
+	[SerializeField] SampleTextCell _textCellPrefab;
+	[SerializeField] SampleTabCell _tabCellPrefab;
+	[SerializeField] SampleChatCell _chatCellPrefab;
 
-	private readonly List<SampleData> _tab1DataList = new List<SampleData>();
-	private readonly List<SampleData> _tab2DataList = new List<SampleData>();
-	private int _selectedTabIndex;
-	private ScreenOrientation _lastOrientation;
+	readonly List<SampleData> _tab1DataList = new List<SampleData>();
+	readonly List<SampleData> _tab2DataList = new List<SampleData>();
+	int _selectedTabIndex;
+	ScreenOrientation _lastOrientation;
 
-	private void Awake()
+	protected override void Awake()
 	{
+		base.Awake();
 		// Prepare for data source
 		_tab1DataList.Add(CreateSampleForTab());
 		_tab1DataList.AddRange(CreateSamples(10));
@@ -42,29 +29,22 @@ public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSour
 		_tab2DataList.AddRange(CreateSamples(30));
 
 		// Setup table view
-		_tableView.dataSource = this;
-		_tableView.marginDataSource = this;
-		_tableView.@delegate = this;
+		dataSource = this;
+		marginDataSource = this;
+		@delegate = this;
 	}
 
-	private void Start()
+	protected override void Update()
 	{
-		_lastOrientation = Screen.orientation;
-		// Reload from 0th
-		_tableView.ReloadData(0);
-		_tableView.ScrollToCellAt(0, withMargin: true);
-	}
-
-	private void Update()
-	{
+		base.Update();
 		if (_lastOrientation != Screen.orientation)
 		{
 			_lastOrientation = Screen.orientation;
-			_tableView.ReloadData();
+			ReloadData();
 		}
 	}
 
-	private static SampleData CreateSampleForTab()
+	static SampleData CreateSampleForTab()
 	{
 		var data = new SampleData
 		{
@@ -74,7 +54,7 @@ public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSour
 		return data;
 	}
 
-	private IEnumerable<SampleData> CreateSamples(int count)
+	IEnumerable<SampleData> CreateSamples(int count)
 	{
 		for (var i = 0; i < count; i++)
 		{
@@ -100,78 +80,43 @@ public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSour
 		}
 	}
 
-	private void OnTabClicked(int tabIndex)
+	void OnTabClicked(int tabIndex)
 	{
 		if (_selectedTabIndex == tabIndex) 
 			return;
-		_tableView.UnloadData();
+		UnloadData();
 		_selectedTabIndex = tabIndex;
-		_tableView.ReloadData(0);
+		ReloadData(0);
 	}
 
-	public void OnClickScrollTo()
+	public void PrependData(SampleData data)
 	{
-		var index = int.Parse(_cellIndexInput.text);
-		_tableView.ScrollToCellAt(index, withMargin: false);
-	}
-
-	public void OnClickScrollTo(float time)
-	{
-		var index = int.Parse(_cellIndexInput.text);
-		Debug.Log("Go to cell at index of " + index);
-		_tableView.ScrollToCellAt(index, time, withMargin: true, onScrollingFinished: () => {
-			Debug.Log("Scrolling has finished");
-		});
+		var dataList = _selectedTabIndex == 0 ? _tab1DataList : _tab2DataList;
+		dataList.Insert(0, data);
+		PrependData(); 
+		ScrollToCellAt(0, 0.1f, withMargin: true);
 	}
 
 	public void OnClickPrepend()
 	{
 		var dataList = _selectedTabIndex == 0 ? _tab1DataList : _tab2DataList;
 		dataList.InsertRange(0, CreateSamples(5));
-		_tableView.PrependData();
+		PrependData();
 	}
 
 	public void OnClickAppend()
 	{
 		var dataList = _selectedTabIndex == 0 ? _tab1DataList : _tab2DataList;
 		dataList.AddRange(CreateSamples(5));
-		_tableView.AppendData();
+		AppendData();
 	}
 
-	private float CalculateTextHeight(string text, float textWidth, int fontSize)
-	{
-		_textSizeCalculator.fontSize = fontSize;
-		var size = _textSizeCalculator.rectTransform.sizeDelta;
-		size.x = textWidth;
-		_textSizeCalculator.rectTransform.sizeDelta = size;
-		_textSizeCalculator.text = text;
-		return _textSizeCalculator.preferredHeight;
-	}
-
-	public void OnClickSend()
-	{
-		if (string.IsNullOrEmpty(_chatInput.text))
-			return;
-		var height = CalculateTextHeight(_chatInput.text, SampleChatCell.MESSAGE_TEXT_WIDTH, SampleChatCell.MESSAGE_FONT_SIZE);
-		var data = new SampleData
-		{
-			sampleType = SampleData.SampleType.Chat,
-			scalar = height,
-			text = _chatInput.text
-		};
-		var dataList = _selectedTabIndex == 0 ? _tab1DataList : _tab2DataList;
-		dataList.Add(data);
-		_tableView.AppendData();
-		_tableView.ScrollToCellAt(dataList.Count-1, 0.1f, withMargin: true);
-		_chatInput.text = "";
-	}
-
-	private void Expand(int index)
+	void Expand(int index)
 	{
 		StartCoroutine(CoExpandOrClose(index));
 	}
 
-	private IEnumerator CoExpandOrClose(int index)
+	IEnumerator CoExpandOrClose(int index)
 	{
 		var dataList = _selectedTabIndex == 0 ? _tab1DataList : _tab2DataList;
 		var sampleData = dataList[index];
@@ -185,14 +130,9 @@ public class SampleTableViewImplementation : MonoBehaviour, IUITableViewDataSour
 			dataList[index].scalar = sampleData.isExpanded 
 				? Mathf.Lerp(sampleData.scalarBeforeExpand, sampleData.scalarAfterExpand, progress)
 				: Mathf.Lerp(sampleData.scalarAfterExpand, sampleData.scalarBeforeExpand, progress);
-			_tableView.RearrangeData();
-			_tableView.ScrollToCellAt(index, withMargin: false);
+			RearrangeData();
+			ScrollToCellAt(index, withMargin: false);
 		}
-	}
-
-	public void OnClickGrid()
-	{
-		_gridView.SetActive(true);
 	}
 
 	#region IUITableViewDataSource
