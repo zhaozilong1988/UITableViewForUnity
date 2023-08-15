@@ -5,9 +5,12 @@
 UITableViewForUnity is a componet which can be used for implementing various of list UI views with Unity engine.
 
 For example
-| Chat List | Expandable List | Grid |
+| Chat List | Expandable List | Appendable List
 | --- | --- | --- |
-| ![](sample_chat.gif) | ![](sample_expend.gif) | <img src="sample_grid.png" width="280" height="500" /> |
+| ![](sample_chat.gif) | ![](sample_expend.gif) | ![](sample_append.gif)
+| Grid | Draggable Grid | Deletable Grid |
+![](sample_grid.gif) | ![](sample_grid_drag.gif) | ![](sample_grid_del.gif) |
+
 
 # Why I need this?
 
@@ -15,7 +18,7 @@ UITableViewForUnity will help you to develop various of list views effectively w
 
 # How to use?
 
-See [SampleScene.unity](https://github.com/zhaozilong1988/UITableViewForUnity/blob/master/Assets/Scenes/SampleScene.unity) and [SampleTableViewImplementation.cs](https://github.com/zhaozilong1988/UITableViewForUnity/blob/master/Assets/Scenes/Scripts/SampleTableViewImplementation.cs).
+See [SampleScene.unity](https://github.com/zhaozilong1988/UITableViewForUnity/blob/master/Assets/Scenes/SampleScene.unity) and [SampleScene.cs](https://github.com/zhaozilong1988/UITableViewForUnity/blob/master/Assets/Scenes/Scripts/SampleScene.cs).
 
 # The concept of design
 
