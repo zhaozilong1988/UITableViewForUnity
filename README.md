@@ -7,7 +7,7 @@ UITableViewForUnity is a componet which can be used for implementing various of 
 For example
 | Chat List | Expandable List | Appendable List
 | --- | --- | --- |
-| ![](sample_chat.gif) | ![](sample_expend.gif) | ![](sample_expend.gif)
+| ![](sample_chat.gif) | ![](sample_expend.gif) | ![](sample_append.gif)
 | Grid | Draggable Grid | Deletable Grid |
 ![](sample_grid.gif) | ![](sample_grid_drag.gif) | ![](sample_grid_del.gif) |
 
