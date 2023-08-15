@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UIKit.Helper;
 
 namespace UIKit
 {
@@ -11,6 +12,7 @@ namespace UIKit
 		public UITableViewCellLifeCycle lifeCycle { get; internal set; }
 		/// <summary> The index of cell in table view, top->bottom:0~n, right->left:0~n. Null when cell is unloaded. </summary>
 		public int? index { get; internal set; }
+		public Rect worldRect => rectTransform.WorldRect();
 
 		protected virtual void Awake()
 		{
