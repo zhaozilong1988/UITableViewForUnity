@@ -3,9 +3,12 @@
 UITableViewForUnity是一个可以方便实现各种列表式UI需求的Unity引擎的组件。<br>
 
 比如
-| 消息列表 | 可展开式列表 | 表格 |
+| 消息列表 | 可展开式列表 | 可追加式列表 |
+| Chat List | Expandable List | Appendable List
 | --- | --- | --- |
-| ![](sample_chat.gif) | ![](sample_expend.gif) | <img src="sample_grid.png" width="280" height="500" /> |
+| ![](sample_chat.gif) | ![](sample_expend.gif) | ![](sample_append.gif)
+| 网格 | 可拖拽 | 可编辑 |
+![](sample_grid.gif) | ![](sample_grid_drag.gif) | ![](sample_grid_del.gif) |
 
 # 为什么需要?
 
@@ -51,7 +54,7 @@ Cell的高度可以被任意调整（除了0），所以像上边提到的可展
 
 # 怎么使用?
 
-请参考[SampleScene.unity](https://github.com/zhaozilong1988/UITableViewForUnity/blob/master/Assets/Scenes/SampleScene.unity)和[SampleTableViewImplementation.cs](https://github.com/zhaozilong1988/UITableViewForUnity/blob/master/Assets/Scenes/Scripts/SampleTableViewImplementation.cs)。
+请参考[SampleScene.unity](https://github.com/zhaozilong1988/UITableViewForUnity/blob/master/Assets/Scenes/SampleScene.unity)和[SampleScene.cs](https://github.com/zhaozilong1988/UITableViewForUnity/blob/master/Assets/Scenes/Scripts/SampleScene.cs)。
 
 # 关于设计
 

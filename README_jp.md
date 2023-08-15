@@ -3,9 +3,11 @@
 UITableViewForUnityは、アプリ開発中によくあるリスト系のUI(2D)仕様を、楽に実現できるUnityエンジンのコンポーネントです。
 
 例
-| チャット式 | ジャバラ式 | グリッド式 | 
+| チャット式 | ジャバラ式 | Appendable List | 
 | --- | --- | --- |
-| ![](sample_chat.gif) | ![](sample_expend.gif) | <img src="sample_grid.png" width="280" height="500" /> |
+| ![](sample_chat.gif) | ![](sample_expend.gif) | ![](sample_append.gif)
+| グリッド式 | Draggable Grid | Deletable Grid |
+![](sample_grid.gif) | ![](sample_grid_drag.gif) | ![](sample_grid_del.gif) |
 
 # なぜ必要?
 
@@ -53,7 +55,7 @@ Cellの高さを自由(0不可)に調整できるので、ジャバラ式みた�
 
 # どう使う?
 
-[SampleScene.unity](https://github.com/zhaozilong1988/UITableViewForUnity/blob/master/Assets/Scenes/SampleScene.unity)と[SampleTableViewImplementation.cs](https://github.com/zhaozilong1988/UITableViewForUnity/blob/master/Assets/Scenes/Scripts/SampleTableViewImplementation.cs)の実装をご参考ください。
+[SampleScene.unity](https://github.com/zhaozilong1988/UITableViewForUnity/blob/master/Assets/Scenes/SampleScene.unity)と[SampleScene.cs](https://github.com/zhaozilong1988/UITableViewForUnity/blob/master/Assets/Scenes/Scripts/SampleScene.cs)の実装をご参考ください。
 
 # 設計について
 
