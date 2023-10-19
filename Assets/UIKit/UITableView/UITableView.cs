@@ -182,7 +182,7 @@ namespace UIKit
 			var lastMaxLowerMargin = 0f;
 			var cumulativeLength = 0f;
 			var cellIndex = 0;
-			var rowNumber = _columnPerRowInGrid?.Count ?? 1;
+			var rowNumber = _columnPerRowInGrid?.Count ?? numberOfCells;
 			for (var rowIndex = 0; rowIndex < rowNumber; rowIndex++) {
 				// find max margin, length at row
 				float maxUpperMargin = 0f, maxLowerMargin = 0f, maxLength = 0f;
