@@ -73,17 +73,17 @@ public class SampleGridView : UITableView, IUIGridViewDataSource, IUITableViewDe
 		return _dataList.Count;
 	}
 
-	public float ScalarForCellInTableView(UITableView tableView, int index)
+	public float LengthForCellInTableView(UITableView tableView, int index)
 	{
 		return 200f;
 	}
 
-	public int NumberOfCellsAtRowOrColumnInGrid(UITableView tableView)
+	public int NumberOfColumnPerRow(UITableView tableView, int rowIndex)
 	{
 		return _columnNumber;
 	}
 
-	public UITableViewCellAlignment AlignmentOfCellsAtRowOrColumnInGrid(UITableView grid)
+	public UITableViewCellAlignment AlignmentOfCellsAtLastRow(UITableView grid)
 	{
 		return UITableViewCellAlignment.Center;
 	}

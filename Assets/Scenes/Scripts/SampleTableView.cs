@@ -159,7 +159,7 @@ public class SampleTableView : UITableView, IUITableViewDataSource, IUITableView
 		return _selectedTabIndex == 0 ? _tab1DataList.Count : _tab2DataList.Count;
 	}
 
-	public float ScalarForCellInTableView(UITableView tableView, int index)
+	public float LengthForCellInTableView(UITableView tableView, int index)
 	{
 		return _selectedTabIndex == 0 ? _tab1DataList[index].scalar : _tab2DataList[index].scalar;
 	}
@@ -212,12 +212,12 @@ public class SampleTableView : UITableView, IUITableViewDataSource, IUITableView
 	}
 	#endregion
 
-	public float ScalarForUpperMarginInTableView(UITableView tableView, int index)
+	public float LengthForUpperMarginInTableView(UITableView tableView, int index)
 	{
 		return index == 0 ? 100f : 0f;
 	}
 
-	public float ScalarForLowerMarginInTableView(UITableView tableView, int index)
+	public float LengthForLowerMarginInTableView(UITableView tableView, int index)
 	{
 		var dataList = _selectedTabIndex == 0 ? _tab1DataList : _tab2DataList;
 		return index == dataList.Count - 1 ? 100f : 0f;

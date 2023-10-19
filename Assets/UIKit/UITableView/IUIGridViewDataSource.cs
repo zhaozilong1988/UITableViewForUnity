@@ -3,14 +3,14 @@
 	public interface IUIGridViewDataSource : IUITableViewDataSource
 	{
 		/// <summary>
-		/// Number of cells at row or column in grid (table view).
+		/// Number of column at row in grid (table view).
 		/// The return value should be greater than 0.
 		/// </summary>
-		int NumberOfCellsAtRowOrColumnInGrid(UITableView grid);
+		int NumberOfColumnPerRow(UITableView grid, int rowIndex);
 
 		/// <summary>
-		/// Alignment of cells at last row or column in grid view (table view).
+		/// Alignment of cells at last row in grid view (table view).
 		/// </summary>
-		UITableViewCellAlignment AlignmentOfCellsAtRowOrColumnInGrid(UITableView grid);
+		UITableViewCellAlignment AlignmentOfCellsAtLastRow(UITableView grid);
 	}
 }
