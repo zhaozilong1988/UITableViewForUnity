@@ -8,12 +8,12 @@
 		/// <summary>
 		/// Top or right margin for cell at index in tableview.
 		/// </summary>
-		/// <returns>Scalar of margin</returns>
-		float ScalarForUpperMarginInTableView(UITableView tableView, int rowOrColumn);
+		/// <returns>Length of margin</returns>
+		float LengthForUpperMarginInTableView(UITableView tableView, int rowIndex);
 		/// <summary>
 		/// Bottom or left margin for cell at index in tableview.
 		/// </summary>
-		/// <returns>Scalar of margin</returns>
-		float ScalarForLowerMarginInTableView(UITableView tableView, int rowOrColumn);
+		/// <returns>Length of margin</returns>
+		float LengthForLowerMarginInTableView(UITableView tableView, int rowIndex);
 	}
 }
