@@ -81,7 +81,7 @@ public class SampleGridView : UITableView, IUIGridViewDataSource, IUITableViewDe
 	public int NumberOfColumnPerRow(UITableView tableView, int rowIndex)
 	{
 		if (rowIndex % 2 == 0) {
-			return _columnNumber / 2 ;
+			return Mathf.Max(_columnNumber / 2, 1) ;
 		}
 		return _columnNumber;
 	}
@@ -138,7 +138,7 @@ public class SampleGridView : UITableView, IUIGridViewDataSource, IUITableViewDe
 			ReloadDataAt(mostIntersectedCellIndex);
 			ReloadDataAt(draggedIndex);
 		}
-		RearrangeData();
+		RefreshAllLoadedCells();
 	}
 
 	public void TableViewOnPointerDownCellAt(UITableView tableView, int index, PointerEventData eventData)
