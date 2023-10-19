@@ -60,7 +60,7 @@ public class SampleClickableTableView : UITableView, IUITableViewDataSource, IUI
 		return _metaList.Count;
 	}
 
-	public float ScalarForCellInTableView(UITableView tableView, int index)
+	public float LengthForCellInTableView(UITableView tableView, int index)
 	{
 		return 200f;
 	}
@@ -124,15 +124,15 @@ public class SampleClickableTableView : UITableView, IUITableViewDataSource, IUI
 	{
 	}
 
-	public float ScalarForUpperMarginInTableView(UITableView tableView, int rowOrColumn)
+	public float LengthForUpperMarginInTableView(UITableView tableView, int rowIndex)
 	{
-		if (rowOrColumn == 0) {
+		if (rowIndex == 0) {
 			return 10f;
 		}
 		return 5f;
 	}
 
-	public float ScalarForLowerMarginInTableView(UITableView tableView, int rowOrColumn)
+	public float LengthForLowerMarginInTableView(UITableView tableView, int rowIndex)
 	{
 		return 5f;
 	}
