@@ -1,4 +1,3 @@
-using System.Drawing;
 using UnityEngine;
 
 namespace UIKit.Helper
@@ -24,10 +23,13 @@ namespace UIKit.Helper
 			var thisWorldRect = rectTransform.WorldRect();
 			if (!thisWorldRect.Overlaps(otherWorldRect))
 				return float.MinValue;
-			var rectangle1 = new RectangleF(thisWorldRect.x, thisWorldRect.y, thisWorldRect.width, thisWorldRect.height);
-			var rectangle2 = new RectangleF(otherWorldRect.x, otherWorldRect.y, otherWorldRect.width, otherWorldRect.height);
-			var intersect = RectangleF.Intersect(rectangle1, rectangle2);
-			var area = intersect.Width * intersect.Height;
+			var x1 = Mathf.Min(thisWorldRect.xMax, otherWorldRect.xMax);
+			var x2 = Mathf.Max(thisWorldRect.xMin, otherWorldRect.xMin);
+			var y1 = Mathf.Min(thisWorldRect.yMax, otherWorldRect.yMax);
+			var y2 = Mathf.Max(thisWorldRect.yMin, otherWorldRect.yMin);
+			var width = Mathf.Max(0.0f, x1 - x2);
+			var height = Mathf.Max(0.0f, y1 - y2);
+			var area = width * height;
 			return area;
 		}
 	}
