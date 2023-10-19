@@ -80,6 +80,9 @@ public class SampleGridView : UITableView, IUIGridViewDataSource, IUITableViewDe
 
 	public int NumberOfColumnPerRow(UITableView tableView, int rowIndex)
 	{
+		if (rowIndex % 2 == 0) {
+			return _columnNumber / 2 ;
+		}
 		return _columnNumber;
 	}
 
