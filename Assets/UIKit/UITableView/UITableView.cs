@@ -129,23 +129,21 @@ namespace UIKit
 					throw new Exception("ContentSizeFitter which attaching to content can not be set to NON-Unconstrained.");
 		}
 
-		Range RecalculateVisibleRange(Vector2 normalizedPosition)
+		Vector2Int RecalculateVisibleRange(Vector2 normalizedPosition)
 		{
+			if (_direction.IsReversedNormalizedPosition())
+				normalizedPosition = Vector2.one - normalizedPosition;
 			var contentSize = _content.rect.size;
 			var viewportSize = _ignoreCellLifeCycle ? contentSize : _viewport.rect.size;
-			var startPosition = (Vector2.one - normalizedPosition) * (contentSize - viewportSize);
+			var startPosition = normalizedPosition * (contentSize - viewportSize);
 			var endPosition = startPosition + viewportSize;
 			int startIndex, endIndex;
-			switch (_direction) {
-				case UITableViewDirection.TopToBottom:
-					startIndex = FindIndexOfCellAtPosition(startPosition.y);
-					endIndex = FindIndexOfCellAtPosition(endPosition.y);
-					break;
-				case UITableViewDirection.RightToLeft:
-					startIndex = FindIndexOfCellAtPosition(startPosition.x);
-					endIndex = FindIndexOfCellAtPosition(endPosition.x);
-					break;
-				default: throw new ArgumentOutOfRangeException();
+			if (_direction.IsVertical()) {
+				startIndex = FindIndexOfCellAtPosition(startPosition.y);
+				endIndex = FindIndexOfCellAtPosition(endPosition.y);
+			} else {
+				startIndex = FindIndexOfCellAtPosition(startPosition.x);
+				endIndex = FindIndexOfCellAtPosition(endPosition.x);
 			}
 
 			// find the first and the last index of column at row if it's a grid.
@@ -156,7 +154,7 @@ namespace UIKit
 				endIndex = Mathf.Min(endIndex, _holders.Count-1);
 			}
 
-			return new Range(startIndex, endIndex);
+			return new Vector2Int(startIndex, endIndex);
 		}
 
 		int FindIndexOfCellAtPosition(float position)
@@ -210,18 +208,9 @@ namespace UIKit
 				lastMaxLowerMargin = maxLowerMargin;
 			}
 			cumulativeLength += lastMaxLowerMargin; // the last cell's margin
-
-			var size = _content.sizeDelta;
-			switch (_direction) {
-				case UITableViewDirection.TopToBottom:
-					size.y = cumulativeLength;
-					break;
-				case UITableViewDirection.RightToLeft:
-					size.x = cumulativeLength;
-					break;
-				default: throw new ArgumentOutOfRangeException();
-			}
-			_content.sizeDelta = size;
+			_content.sizeDelta = _direction.IsVertical()
+				? new Vector2(_content.sizeDelta.x, cumulativeLength)
+				: new Vector2(cumulativeLength, _content.sizeDelta.y);
 		}
 
 		void OnScrollPositionChanged(Vector2 normalizedPosition)
@@ -229,7 +218,7 @@ namespace UIKit
 			if (_holders.Count <= 0)
 				return;
 			ReloadCells(normalizedPosition, false);
-			DetectAndNotifyReachableStatus(normalizedPosition);
+			DetectAndNotifyReachableStatus();
 		}
 
 		void ReloadCells(Vector2 normalizedPosition, bool alwaysRearrangeCell)
@@ -238,18 +227,18 @@ namespace UIKit
 			UnloadUnusedCells(range); // recycle invisible cells except life cycle is RecycleWhenReload
 			LoadCells(range, alwaysRearrangeCell); // reuse or create visible cells
 #if UNITY_EDITOR
-			_content.name = $"Content({range.from}~{range.to})";
+			_content.name = $"Content({range.x}~{range.y})";
 #endif
 		}
 
-		void LoadCells(Range range, bool alwaysRearrangeCell)
+		void LoadCells(Vector2Int range, bool alwaysRearrangeCell)
 		{
 			foreach (var kvp in _loadedHolders) {
-				if (kvp.Key >= range.from && kvp.Key <= range.to)
+				if (kvp.Key >= range.x && kvp.Key <= range.y)
 					continue;
 				RearrangeCell(kvp.Key);
 			}
-			for (var i = range.from; i <= range.to; i++) {
+			for (var i = range.x; i <= range.y; i++) {
 				_loadedHolders[i] = _holders[i];
 				LoadCell(i, alwaysRearrangeCell);
 			}
@@ -277,10 +266,10 @@ namespace UIKit
 #endif
 		}
 
-		void UnloadUnusedCells(Range visibleRange)
+		void UnloadUnusedCells(Vector2Int visibleRange)
 		{
 			foreach (var kvp in _loadedHolders) {
-				if (kvp.Key >= visibleRange.from && kvp.Key <= visibleRange.to)
+				if (kvp.Key >= visibleRange.x && kvp.Key <= visibleRange.y)
 					continue;
 				if (kvp.Value.loadedCell.lifeCycle == UITableViewCellLifeCycle.RecycleWhenReloaded)
 					continue;
@@ -335,11 +324,7 @@ namespace UIKit
 		void RearrangeCell(int index)
 		{
 			var holder = _holders[index];
-			var cellRectTransform = holder.loadedCell.rectTransform;
-			Vector2 anchoredPosition, cellSize, contentSize = _content.rect.size;
 			int columnIndex = holder.columnIndex, columnNumber = 1;
-			float lengthOfColumn;
-			Vector2 anchorMax = cellRectTransform.anchorMax, pivot = cellRectTransform.pivot;
 
 			// Cells' alignment at last row for grid view. 
 			var emptyColumnAtLastRow = 0;
@@ -358,35 +343,36 @@ namespace UIKit
 				}
 			}
 
-			if (_columnPerRowInGrid != null) {
+			float lengthOfColumn;
+			var cellRectTransform = holder.loadedCell.rectTransform;
+			Vector2 anchoredPosition, cellSize, contentSize = _content.rect.size;
+			Vector2 anchorMax = cellRectTransform.anchorMax, anchorMin = cellRectTransform.anchorMin, pivot = cellRectTransform.pivot;
+			if (_columnPerRowInGrid != null)
 				columnNumber = _columnPerRowInGrid[holder.rowIndex];
+			if (_direction.IsVertical()) {
+				lengthOfColumn = _content.rect.size.x / columnNumber;
+				anchoredPosition.x = (emptyColumnAtLastRow * anchorMax.x + columnIndex + pivot.x) * lengthOfColumn - contentSize.x * anchorMax.x;
+				anchoredPosition.y = _direction.IsReversedNormalizedPosition()
+					? -(anchorMin.y - pivot.y) * holder.length - holder.position 
+					: pivot.y * holder.length + holder.position;
+				cellSize.x = lengthOfColumn;
+				cellSize.y = holder.length;
+			} else {
+				lengthOfColumn = _content.rect.size.y / columnNumber;
+				anchoredPosition.x = _direction.IsReversedNormalizedPosition()
+					? -(anchorMin.x - pivot.x) * holder.length - holder.position
+					: pivot.x * holder.length + holder.position;
+				anchoredPosition.y = (emptyColumnAtLastRow * anchorMax.y + columnIndex + pivot.y) * lengthOfColumn - contentSize.y * anchorMax.y;
+				cellSize.x = holder.length;
+				cellSize.y = lengthOfColumn;
 			}
-			switch (_direction) {
-				case UITableViewDirection.TopToBottom:
-					lengthOfColumn = contentSize.x / columnNumber;
-					anchoredPosition = new Vector2(
-						-(contentSize.x - emptyColumnAtLastRow * lengthOfColumn) * anchorMax.x + columnIndex * lengthOfColumn + (1f - pivot.x) * lengthOfColumn, 
-						contentSize.y * anchorMax.y - holder.position - (1f - pivot.y) * holder.length);
-					cellSize.x = lengthOfColumn;
-					cellSize.y = holder.length;
-					break;
-				case UITableViewDirection.RightToLeft:
-					lengthOfColumn = contentSize.y / columnNumber;
-					anchoredPosition = new Vector2(
-						contentSize.x * anchorMax.x - holder.position - (1f - pivot.x) * holder.length, 
-						(contentSize.y - emptyColumnAtLastRow * lengthOfColumn) * anchorMax.y - columnIndex * lengthOfColumn - (1f - pivot.y) * lengthOfColumn);
-					cellSize.x = holder.length;
-					cellSize.y = lengthOfColumn;
-					break;
-				default: throw new ArgumentOutOfRangeException();
-			}
-			holder.loadedCell.rectTransform.anchoredPosition = anchoredPosition;
-			var t = holder.loadedCell.transform;
+			var t = holder.loadedCell.rectTransform;
+			t.anchoredPosition = anchoredPosition;
 			var pos = t.localPosition;
 			pos.z = 0f;
 			t.localPosition = pos;
 			if (holder.loadedCell.isAutoResize)
-				holder.loadedCell.rectTransform.sizeDelta = cellSize;
+				t.sizeDelta = cellSize;
 		}
 
 		void ReloadDataInternal(UITableViewCellLocation? startLocation, Vector2? startNormalizedPosition)
@@ -442,17 +428,17 @@ namespace UIKit
 			}
 
 			// Recalculate if the content is reaching view port's boundary.
-			CalculateReachableStatus(_scrollRect.normalizedPosition, out var curIsReachingTopmostOrRightmost, out var curIsReachingBottommostOrLeftmost);
+			CalculateReachableStatus(out var curIsReachingTopmostOrRightmost, out var curIsReachingBottommostOrLeftmost);
 			_isReachingTopmostOrRightmost = curIsReachingTopmostOrRightmost;
 			_isReachingBottommostOrLeftmost = curIsReachingBottommostOrLeftmost;
 		}
 
 		///<summary> Detect if the table view has reached or left the topmost/rightmost or bottommost/leftmost</summary>
-		void DetectAndNotifyReachableStatus(Vector2 normalizedPosition)
+		void DetectAndNotifyReachableStatus()
 		{
 			if (this.reachable == null)
 				return;
-			CalculateReachableStatus(normalizedPosition, out var curIsReachingTopmostOrRightmost, out var curIsReachingBottommostOrLeftmost);
+			CalculateReachableStatus(out var curIsReachingTopmostOrRightmost, out var curIsReachingBottommostOrLeftmost);
 			if (!_isReachingTopmostOrRightmost && curIsReachingTopmostOrRightmost) {
 				this.reachable.TableViewReachedTopmostOrRightmost(this);
 				_isReachingTopmostOrRightmost = true;
@@ -469,7 +455,7 @@ namespace UIKit
 			}
 		}
 
-		void CalculateReachableStatus(Vector2 normalizedPosition, out bool isReachingTopmostOrRightmost, out bool isReachingBottommostOrLeftmost)
+		void CalculateReachableStatus(out bool isReachingTopmostOrRightmost, out bool isReachingBottommostOrLeftmost)
 		{
 			isReachingTopmostOrRightmost = isReachingBottommostOrLeftmost = false;
 			if (this.reachable == null)
@@ -477,16 +463,12 @@ namespace UIKit
 			var upperTolerance = this.reachable.TableViewReachableEdgeTolerance(this);
 			float curPosition, lowerTolerance;
 			var deltaSize = _content.rect.size - _viewport.rect.size;
-			switch (_direction) {
-				case UITableViewDirection.TopToBottom:
-					lowerTolerance = deltaSize.y - upperTolerance;
-					curPosition = (1f - normalizedPosition.y) * deltaSize.y;
-					break;
-				case UITableViewDirection.RightToLeft: 
-					lowerTolerance = deltaSize.x - upperTolerance;
-					curPosition = (1f - normalizedPosition.x) * deltaSize.x;
-					break;
-				default: throw new ArgumentOutOfRangeException();
+			if (_direction.IsVertical()) {
+				lowerTolerance = deltaSize.y - upperTolerance;
+				curPosition = (1f - _scrollRect.normalizedPosition.y) * deltaSize.y;
+			} else {
+				lowerTolerance = deltaSize.x - upperTolerance;
+				curPosition = (1f - _scrollRect.normalizedPosition.x) * deltaSize.x;
 			}
 			isReachingTopmostOrRightmost = curPosition < upperTolerance;
 			isReachingBottommostOrLeftmost = curPosition > lowerTolerance;
@@ -618,7 +600,10 @@ namespace UIKit
 			var oldContentSize = _content.rect.size;
 			var oldAnchoredPosition = _content.anchoredPosition;
 			ResizeContent(newCount);
-			_content.anchoredPosition = oldAnchoredPosition - (_content.rect.size - oldContentSize) * (Vector2.one - _content.pivot);
+			if (_direction.IsReversedNormalizedPosition())
+				_content.anchoredPosition = oldAnchoredPosition - (_content.rect.size - oldContentSize) * (Vector2.one - _content.pivot);
+			else
+				_content.anchoredPosition = oldAnchoredPosition + (_content.rect.size - oldContentSize) * _content.pivot;
 			ReloadCells(_scrollRect.normalizedPosition, true);
 		}
 
@@ -649,7 +634,10 @@ namespace UIKit
 			var oldContentSize = _content.rect.size;
 			var oldAnchoredPosition = _content.anchoredPosition;
 			ResizeContent(newCount);
-			_content.anchoredPosition = oldAnchoredPosition + (_content.rect.size - oldContentSize) * _content.pivot;
+			if (_direction.IsReversedNormalizedPosition())
+				_content.anchoredPosition = oldAnchoredPosition + (_content.rect.size - oldContentSize) * _content.pivot;
+			else
+				_content.anchoredPosition = oldAnchoredPosition - (_content.rect.size - oldContentSize) * (Vector2.one - _content.pivot);
 			ReloadCells(_scrollRect.normalizedPosition, true);
 		}
 
@@ -680,6 +668,16 @@ namespace UIKit
 				}
 			}
 			cell = Instantiate(prefab);
+			Vector2 cellAnchorMin;
+			var cellAnchorMax = _direction switch {
+				UITableViewDirection.TopToBottom => cellAnchorMin = Vector2.up,
+				UITableViewDirection.BottomToTop => cellAnchorMin = Vector2.zero,
+				UITableViewDirection.RightToLeft => cellAnchorMin = Vector2.one,
+				UITableViewDirection.LeftToRight => cellAnchorMin = Vector2.up,
+				_ => throw new ArgumentOutOfRangeException()
+			};
+			cell.rectTransform.anchorMin = cellAnchorMin;
+			cell.rectTransform.anchorMax = cellAnchorMax;
 			cell.reuseIdentifier = reuseIdentifier;
 			cell.isAutoResize = isAutoResize;
 			cell.lifeCycle = lifeCycle;
@@ -733,7 +731,7 @@ namespace UIKit
 		{
 			if (location.index > _holders.Count - 1 || location.index < 0)
 				throw new IndexOutOfRangeException("Index must be less than cells' number and more than zero.");
-			_scrollRect.normalizedPosition = GetNormalizedPositionOfCellAt(location);
+			_scrollRect.normalizedPosition = GetNormalizedPositionOfCellAt(location); 
 			ReloadCells(_scrollRect.normalizedPosition, false);
 		}
 
@@ -742,20 +740,9 @@ namespace UIKit
 		/// <returns>Normalized position of scroll view</returns>
 		public Vector2 GetNormalizedPositionOfCellAt(UITableViewCellLocation location)
 		{
-			var normalizedPosition = _scrollRect.normalizedPosition;
-			var deltaSize = _content.rect.size - _viewport.rect.size;
 			var holder = _holders[location.index];
 			var position = holder.position;
-			float viewportLength;
-			switch (_direction) {
-				case UITableViewDirection.TopToBottom:
-					viewportLength = _viewport.rect.height;
-					break;
-				case UITableViewDirection.RightToLeft:
-					viewportLength = _viewport.rect.width;
-					break;
-				default: throw new ArgumentOutOfRangeException();
-			}
+			var viewportLength = _direction.IsVertical() ? _viewport.rect.height : _viewport.rect.width;
 			switch (location.alignment) {
 				case UITableViewCellAlignment.RightOrTop:
 					position -= (location.withMargin ? holder.upperMargin : 0f);
@@ -772,17 +759,25 @@ namespace UIKit
 				default: throw new ArgumentOutOfRangeException();
 			}
 			position += location.displacement;
+			var deltaSize = _content.rect.size - _viewport.rect.size;
+			var normalizedPosition = _scrollRect.normalizedPosition;
 			switch (_direction) {
 				case UITableViewDirection.TopToBottom:
 					normalizedPosition.y = 1f - position / deltaSize.y;
 					break;
+				case UITableViewDirection.BottomToTop:
+					normalizedPosition.y = position / deltaSize.y;
+					break;
 				case UITableViewDirection.RightToLeft:
 					normalizedPosition.x = 1f - position / deltaSize.x;
 					break;
+				case UITableViewDirection.LeftToRight:
+					normalizedPosition.x = position / deltaSize.x;
+					break;
 				default: throw new ArgumentOutOfRangeException();
 			}
-			var x = Mathf.Clamp(0f, normalizedPosition.x, 1f);
-			var y = Mathf.Clamp(0f, normalizedPosition.y, 1f);
+			var x = Mathf.Clamp(normalizedPosition.x, 0f, 1f);
+			var y = Mathf.Clamp(normalizedPosition.y, 0f, 1f);
 			return new Vector2(x, y);
 		}
 
@@ -1045,17 +1040,6 @@ namespace UIKit
 		}
 		#endregion
 
-		readonly struct Range
-		{
-			public int from { get; }
-			public int to { get; }
-			public Range(int from, int to)
-			{
-				this.from = from;
-				this.to = to;
-			}
-		}
-
 		class UITableViewCellHolder
 		{
 			public UITableViewCell loadedCell { get; set; }
@@ -1067,18 +1051,10 @@ namespace UIKit
 			public float lowerMargin { get; set; }
 			/// <summary> The position relative to scroll view's content without considering anchor. </summary>
 			public float position { get; set; }
-			/// <summary> If the direction is Top to Bottom, the row is horizontal direction, or vertical direction in Right to Left. </summary>
+			/// <summary> If the direction is Top ⇔ Bottom, the row is horizontal direction, or vertical direction in Right to Left. </summary>
 			public int rowIndex { get; set; }
-			/// <summary> If the direction is Top to Bottom, the column is vertical direction, or horizontal direction in Right to Left. </summary>
+			/// <summary> If the direction is Top ⇔ Bottom, the column is vertical direction, or horizontal direction in Right to Left. </summary>
 			public int columnIndex { get; set; }
 		}
-	}
-
-	public enum UITableViewDirection
-	{
-		/// <summary> Index of cell at the top is zero. </summary>
-		TopToBottom = 0,
-		/// <summary> Index of cell at the rightmost is zero. </summary>
-		RightToLeft = 1,
 	}
 }
