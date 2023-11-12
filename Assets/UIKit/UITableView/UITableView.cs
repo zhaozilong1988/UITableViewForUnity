@@ -654,20 +654,11 @@ namespace UIKit
 
 		public T ReuseOrCreateCell<T>(string reuseIdentifier, T prefab, UITableViewCellLifeCycle lifeCycle = UITableViewCellLifeCycle.RecycleWhenDisappeared, bool isAutoResize = true) where T : UITableViewCell
 		{
-			T cell;
-			if (lifeCycle != UITableViewCellLifeCycle.DestroyWhenDisappeared) {
-				var isExist = _reusableCellQueues.TryGetValue(reuseIdentifier, out var cellsQueue);
-				if (!isExist) {
-					cellsQueue = new Queue<UITableViewCell>();
-					_reusableCellQueues.Add(reuseIdentifier, cellsQueue);
-				}
-				else if (cellsQueue.Count > 0) {
-					cell = cellsQueue.Dequeue() as T;
-					Debug.Assert(cell != null, nameof(cell) + " != null");
-					return cell;
-				}
+			if (string.IsNullOrEmpty(reuseIdentifier)) {
+				lifeCycle = UITableViewCellLifeCycle.DestroyWhenDisappeared;
+				Debug.LogWarning($"Cell ({typeof(T).FullName}) which use null or empty reuseIdentifier will be set UITableViewCellLifeCycle.DestroyWhenDisappeared forcibly.");
 			}
-			cell = Instantiate(prefab);
+			T cell = null;
 			Vector2 cellAnchorMin;
 			var cellAnchorMax = _direction switch {
 				UITableViewDirection.TopToBottom => cellAnchorMin = Vector2.up,
@@ -676,9 +667,22 @@ namespace UIKit
 				UITableViewDirection.LeftToRight => cellAnchorMin = Vector2.up,
 				_ => throw new ArgumentOutOfRangeException()
 			};
+			if (lifeCycle != UITableViewCellLifeCycle.DestroyWhenDisappeared) {
+				var isExist = _reusableCellQueues.TryGetValue(reuseIdentifier, out var cellsQueue);
+				if (!isExist) {
+					cellsQueue = new Queue<UITableViewCell>();
+					_reusableCellQueues.Add(reuseIdentifier, cellsQueue);
+				} else if (cellsQueue.Count > 0) {
+					cell = cellsQueue.Dequeue() as T;
+					Debug.Assert(cell != null, nameof(cell) + " != null");
+				}
+			}
+			if (cell == null) {
+				cell = Instantiate(prefab);
+				cell.reuseIdentifier = reuseIdentifier;
+			}
 			cell.rectTransform.anchorMin = cellAnchorMin;
 			cell.rectTransform.anchorMax = cellAnchorMax;
-			cell.reuseIdentifier = reuseIdentifier;
 			cell.isAutoResize = isAutoResize;
 			cell.lifeCycle = lifeCycle;
 			return cell;
