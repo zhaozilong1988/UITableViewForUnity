@@ -184,9 +184,13 @@ namespace UIKit
 			for (var rowIndex = 0; rowIndex < rowNumber; rowIndex++) {
 				// find max margin, length at row
 				float maxUpperMargin = 0f, maxLowerMargin = 0f, maxLength = 0f;
-				var upperMargin = marginDataSource?.LengthForUpperMarginInTableView(this, rowIndex) ?? 0f;
+				var upperMargin = _direction.IsReversedNormalizedPosition() 
+					? (marginDataSource?.LengthForUpperMarginInTableView(this, rowIndex) ?? 0f) 
+					: (marginDataSource?.LengthForLowerMarginInTableView(this, rowIndex) ?? 0f);
 				maxUpperMargin = Mathf.Max(maxUpperMargin, upperMargin);
-				var lowerMargin = marginDataSource?.LengthForLowerMarginInTableView(this, rowIndex) ?? 0f;
+				var lowerMargin = _direction.IsReversedNormalizedPosition() 
+					? (marginDataSource?.LengthForLowerMarginInTableView(this, rowIndex) ?? 0f) 
+					: (marginDataSource?.LengthForUpperMarginInTableView(this, rowIndex) ?? 0f);
 				maxLowerMargin = Mathf.Max(maxLowerMargin, lowerMargin);
 				var length = dataSource.LengthForCellInTableView(this, rowIndex);
 				maxLength = Mathf.Max(maxLength, length);
