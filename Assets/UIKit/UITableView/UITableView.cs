@@ -131,7 +131,7 @@ namespace UIKit
 
 		Vector2Int RecalculateVisibleRange(Vector2 normalizedPosition)
 		{
-			if (_direction.IsReversedNormalizedPosition())
+			if (_direction.IsTopToBottomOrRightToLeft())
 				normalizedPosition = Vector2.one - normalizedPosition;
 			var contentSize = _content.rect.size;
 			var viewportSize = _ignoreCellLifeCycle ? contentSize : _viewport.rect.size;
@@ -184,11 +184,11 @@ namespace UIKit
 			for (var rowIndex = 0; rowIndex < rowNumber; rowIndex++) {
 				// find max margin, length at row
 				float maxUpperMargin = 0f, maxLowerMargin = 0f, maxLength = 0f;
-				var upperMargin = _direction.IsReversedNormalizedPosition() 
+				var upperMargin = _direction.IsTopToBottomOrRightToLeft() 
 					? (marginDataSource?.LengthForUpperMarginInTableView(this, rowIndex) ?? 0f) 
 					: (marginDataSource?.LengthForLowerMarginInTableView(this, rowIndex) ?? 0f);
 				maxUpperMargin = Mathf.Max(maxUpperMargin, upperMargin);
-				var lowerMargin = _direction.IsReversedNormalizedPosition() 
+				var lowerMargin = _direction.IsTopToBottomOrRightToLeft() 
 					? (marginDataSource?.LengthForLowerMarginInTableView(this, rowIndex) ?? 0f) 
 					: (marginDataSource?.LengthForUpperMarginInTableView(this, rowIndex) ?? 0f);
 				maxLowerMargin = Mathf.Max(maxLowerMargin, lowerMargin);
@@ -356,14 +356,14 @@ namespace UIKit
 			if (_direction.IsVertical()) {
 				lengthOfColumn = _content.rect.size.x / columnNumber;
 				anchoredPosition.x = (emptyColumnAtLastRow * anchorMax.x + columnIndex + pivot.x) * lengthOfColumn - contentSize.x * anchorMax.x;
-				anchoredPosition.y = _direction.IsReversedNormalizedPosition()
+				anchoredPosition.y = _direction.IsTopToBottomOrRightToLeft()
 					? -(anchorMin.y - pivot.y) * holder.length - holder.position 
 					: pivot.y * holder.length + holder.position;
 				cellSize.x = lengthOfColumn;
 				cellSize.y = holder.length;
 			} else {
 				lengthOfColumn = _content.rect.size.y / columnNumber;
-				anchoredPosition.x = _direction.IsReversedNormalizedPosition()
+				anchoredPosition.x = _direction.IsTopToBottomOrRightToLeft()
 					? -(anchorMin.x - pivot.x) * holder.length - holder.position
 					: pivot.x * holder.length + holder.position;
 				anchoredPosition.y = (emptyColumnAtLastRow * anchorMax.y + columnIndex + pivot.y) * lengthOfColumn - contentSize.y * anchorMax.y;
@@ -604,7 +604,7 @@ namespace UIKit
 			var oldContentSize = _content.rect.size;
 			var oldAnchoredPosition = _content.anchoredPosition;
 			ResizeContent(newCount);
-			if (_direction.IsReversedNormalizedPosition())
+			if (_direction.IsTopToBottomOrRightToLeft())
 				_content.anchoredPosition = oldAnchoredPosition - (_content.rect.size - oldContentSize) * (Vector2.one - _content.pivot);
 			else
 				_content.anchoredPosition = oldAnchoredPosition + (_content.rect.size - oldContentSize) * _content.pivot;
@@ -638,7 +638,7 @@ namespace UIKit
 			var oldContentSize = _content.rect.size;
 			var oldAnchoredPosition = _content.anchoredPosition;
 			ResizeContent(newCount);
-			if (_direction.IsReversedNormalizedPosition())
+			if (_direction.IsTopToBottomOrRightToLeft())
 				_content.anchoredPosition = oldAnchoredPosition + (_content.rect.size - oldContentSize) * _content.pivot;
 			else
 				_content.anchoredPosition = oldAnchoredPosition - (_content.rect.size - oldContentSize) * (Vector2.one - _content.pivot);

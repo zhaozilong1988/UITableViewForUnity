@@ -28,7 +28,7 @@ namespace UIKit
 		}
 
 		/// <summary> Is same direction to normalized position of ScrollRect. </summary>
-		public static bool IsReversedNormalizedPosition(this UITableViewDirection self)
+		public static bool IsTopToBottomOrRightToLeft(this UITableViewDirection self)
 		{
 			switch (self) {
 				case UITableViewDirection.TopToBottom:
