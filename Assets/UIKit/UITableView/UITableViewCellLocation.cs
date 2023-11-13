@@ -10,8 +10,8 @@
 		/// <summary> If TRUE, calculate margin(IUITableViewMargin) when locate the cell. </summary>
 		public bool withMargin;
 		/// <summary> The displacement relative to the cell.
-		/// Positive number for move up,
-		/// and negative number for move down.</summary>
+		/// Positive value for move up or right,
+		/// and negative value for move down or left.</summary>
 		public float displacement;
 
 		public UITableViewCellLocation(int index, UITableViewCellAlignment alignment, bool withMargin, float displacement)

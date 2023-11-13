@@ -762,20 +762,23 @@ namespace UIKit
 					break;
 				default: throw new ArgumentOutOfRangeException();
 			}
-			position += location.displacement;
 			var deltaSize = _content.rect.size - _viewport.rect.size;
 			var normalizedPosition = _scrollRect.normalizedPosition;
 			switch (_direction) {
 				case UITableViewDirection.TopToBottom:
+					position += location.displacement;
 					normalizedPosition.y = 1f - position / deltaSize.y;
 					break;
 				case UITableViewDirection.BottomToTop:
+					position -= location.displacement;
 					normalizedPosition.y = position / deltaSize.y;
 					break;
 				case UITableViewDirection.RightToLeft:
+					position += location.displacement;
 					normalizedPosition.x = 1f - position / deltaSize.x;
 					break;
 				case UITableViewDirection.LeftToRight:
+					position -= location.displacement;
 					normalizedPosition.x = position / deltaSize.x;
 					break;
 				default: throw new ArgumentOutOfRangeException();
