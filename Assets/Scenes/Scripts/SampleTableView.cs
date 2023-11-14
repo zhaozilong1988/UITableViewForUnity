@@ -214,12 +214,18 @@ public class SampleTableView : UITableView, IUITableViewDataSource, IUITableView
 
 	public float LengthForUpperMarginInTableView(UITableView tableView, int index)
 	{
-		return index == 0 ? 100f : 0f;
+		if (tableView.direction.IsTopToBottomOrRightToLeft())
+			return index == 0 ? 100f : 0f;
+		var dataList = _selectedTabIndex == 0 ? _tab1DataList : _tab2DataList;
+		return index == dataList.Count - 1 ? 100f : 0f;
 	}
 
 	public float LengthForLowerMarginInTableView(UITableView tableView, int index)
 	{
-		var dataList = _selectedTabIndex == 0 ? _tab1DataList : _tab2DataList;
-		return index == dataList.Count - 1 ? 100f : 0f;
+		if (tableView.direction.IsTopToBottomOrRightToLeft()) {
+			var dataList = _selectedTabIndex == 0 ? _tab1DataList : _tab2DataList;
+			return index == dataList.Count - 1 ? 100f : 0f;
+		}
+		return index == 0 ? 100f : 0f;
 	}
 }
