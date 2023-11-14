@@ -1,3 +1,4 @@
+using UIKit;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -17,6 +18,17 @@ public class SampleScene : MonoBehaviour
 		_clickableTableView.onClickTableOrGridViewCell = OnClickTableOrGridViewCell;
 		_clickableTableView.onClickDragCell = OnClickDragCell;
 		_clickableTableView.onClickDeleteCell = OnClickDeleteCell;
+		_clickableTableView.onClickReverseDirection = () => {
+			if (_gridView.gameObject.activeSelf) {
+				_gridView.direction = _gridView.direction == UITableViewDirection.TopToBottom
+					? UITableViewDirection.BottomToTop
+					: UITableViewDirection.TopToBottom;
+			} else {
+				_tableView.direction = _tableView.direction == UITableViewDirection.TopToBottom
+					? UITableViewDirection.BottomToTop
+					: UITableViewDirection.TopToBottom;
+			}
+		};
 	}
 
 	void Start()

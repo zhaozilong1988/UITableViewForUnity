@@ -16,6 +16,7 @@ public class SampleClickableTableView : UITableView, IUITableViewDataSource, IUI
 	public Action onClickAppendCell;
 	public Action onClickDragCell;
 	public Action onClickDeleteCell;
+	public Action onClickReverseDirection;
 
 	protected override void Awake()
 	{
@@ -28,13 +29,13 @@ public class SampleClickableTableView : UITableView, IUITableViewDataSource, IUI
 
 	public void ReloadDataForGridView()
 	{
-		Reload(Title.TableOrGrid, Title.Drag, Title.Delete);
+		Reload(Title.TableOrGrid, Title.ReverseDirection, Title.Drag, Title.Delete);
 		ReloadData(0);
 	}
 
 	public void ReloadDataForTableView()
 	{
-		Reload(Title.TableOrGrid, Title.Append, Title.Prepend, Title.ScrollTo);
+		Reload(Title.TableOrGrid, Title.ReverseDirection, Title.Append, Title.Prepend, Title.ScrollTo);
 		ReloadData(0);
 	}
 
@@ -114,6 +115,9 @@ public class SampleClickableTableView : UITableView, IUITableViewDataSource, IUI
 				}
 				this.onClickDeleteCell.Invoke();
 				break;
+			case Title.ReverseDirection:
+				this.onClickReverseDirection.Invoke();
+				break;
 			default:
 				throw new ArgumentOutOfRangeException();
 		}
@@ -142,6 +146,7 @@ public class SampleClickableTableView : UITableView, IUITableViewDataSource, IUI
 		TableOrGrid,
 		Drag,
 		Delete,
+		ReverseDirection,
 		Append,
 		Prepend,
 		ScrollTo,
