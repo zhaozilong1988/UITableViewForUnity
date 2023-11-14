@@ -39,7 +39,12 @@ namespace UIKit
 					return;
 				_direction = value;
 				Validate();
-				ReloadData();
+				var np = _scrollRect.normalizedPosition;
+				if (_direction.IsVertical())
+					np.y = 1f - _scrollRect.normalizedPosition.y;
+				else
+					np.x = 1f - _scrollRect.normalizedPosition.x;
+				ReloadData(np);
 			}
 		}
 
