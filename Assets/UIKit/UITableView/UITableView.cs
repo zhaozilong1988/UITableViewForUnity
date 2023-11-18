@@ -61,8 +61,8 @@ namespace UIKit
 		[SerializeField] RectTransform _content;
 		[SerializeField] UITableViewDirection _direction = UITableViewDirection.TopToBottom;
 		[SerializeField] bool _ignoreCellLifeCycle;
-		/// <summary> Tag for distinguishing table view. </summary>
-		public int tag;
+		/// <summary> Tag for distinguishing table view. For example, Using two table views with only one datasource. </summary>
+		public int _tag;
 		/// <summary> If true, the click events will be kept even if drag is began.</summary>
 		public bool keepClickEvenIfBeginDrag;
 
@@ -348,7 +348,7 @@ namespace UIKit
 				columnNumber = _columnPerRowInGrid[holder.rowIndex];
 			if (_direction.IsVertical()) {
 				lengthOfColumn = _content.rect.size.x / columnNumber;
-				anchoredPosition.x = (emptyColumnAtLastRow * anchorMax.x + columnIndex + pivot.x) * lengthOfColumn - contentSize.x * anchorMax.x;
+				anchoredPosition.x = (emptyColumnAtLastRow / 2f + columnIndex + pivot.x) * lengthOfColumn - contentSize.x * anchorMax.x;
 				anchoredPosition.y = _direction.IsTopToBottomOrRightToLeft()
 					? -(anchorMin.y - pivot.y) * holder.length - holder.position 
 					: pivot.y * holder.length + holder.position;
@@ -359,7 +359,7 @@ namespace UIKit
 				anchoredPosition.x = _direction.IsTopToBottomOrRightToLeft()
 					? -(anchorMin.x - pivot.x) * holder.length - holder.position
 					: pivot.x * holder.length + holder.position;
-				anchoredPosition.y = (emptyColumnAtLastRow * anchorMax.y + columnIndex + pivot.y) * lengthOfColumn - contentSize.y * anchorMax.y;
+				anchoredPosition.y = (emptyColumnAtLastRow / 2f + columnIndex + pivot.y) * lengthOfColumn - contentSize.y * anchorMax.y;
 				cellSize.x = holder.length;
 				cellSize.y = lengthOfColumn;
 			}
