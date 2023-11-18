@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using UIKit.Helper;
 using UnityEngine;
@@ -55,13 +54,10 @@ namespace UIKit
 		readonly Dictionary<int, UITableViewCellHolder> _loadedHolders = new Dictionary<int, UITableViewCellHolder>(); // appearing cells and those whose UITableViewLifeCycle is set to RecycleWhenReloaded.
 		readonly List<int> _swapper = new List<int>(); // helper for modifying dictionary of _loadedHolders.
 		Transform _cellsPool;
-		Coroutine _autoScroll;
-		bool _isReloaded;
-		Vector2 _normalizedPositionWhenReloaded;
-		bool _isReachingBottommostOrLeftmost; // for detecting boundary when IUITableViewReachable is assigned.
-		bool _isReachingTopmostOrRightmost;
-		int? _draggingCellIndex;
-		int? _clickingCellIndex;
+		bool _onNormalizedPositionChangedCalled;
+		bool _isReachingBottommostOrLeftmost, _isReachingTopmostOrRightmost; // for detecting boundary when IUITableViewReachable is assigned.
+		int? _draggingCellIndex, _clickingCellIndex;
+		ScrollState _scrollState = new ScrollState();
 		[SerializeField] ScrollRect _scrollRect;
 		[SerializeField] RectTransform _viewport;
 		[SerializeField] RectTransform _content;
@@ -78,25 +74,27 @@ namespace UIKit
 			InitializeScrollRect();
 			InitializeCellsPool();
 			Validate();
-			_scrollRect.onValueChanged.AddListener(OnScrollPositionChanged);
+			_scrollRect.onValueChanged.AddListener(OnNormalizedPositionChanged);
 		}
 
 		protected override void OnDestroy()
 		{
 			if (_scrollRect != null)
-				_scrollRect.onValueChanged.RemoveListener(OnScrollPositionChanged);
+				_scrollRect.onValueChanged.RemoveListener(OnNormalizedPositionChanged);
 			base.OnDestroy();
 		}
 
 		protected virtual void Update()
 		{
-			// Read the WORKAROUND which is written in summary of Reload().
-			if (_isReloaded) {
-				if (_scrollRect.normalizedPosition == _normalizedPositionWhenReloaded)
-					return;
-				_isReloaded = false;
-				ReloadCells(_scrollRect.normalizedPosition, false);
-			}
+			UpdateScrollState();
+		}
+
+		void UpdateScrollState()
+		{
+			if (!_scrollState.started) return;
+			_scrollRect.normalizedPosition = _scrollState.normalizedPosition;
+			if (!_scrollState.stopped) return;
+			_scrollState.Stop();
 		}
 
 #if UNITY_EDITOR
@@ -222,10 +220,11 @@ namespace UIKit
 				: new Vector2(cumulativeLength, _content.sizeDelta.y);
 		}
 
-		void OnScrollPositionChanged(Vector2 normalizedPosition)
+		void OnNormalizedPositionChanged(Vector2 normalizedPosition)
 		{
 			if (_holders.Count <= 0)
 				return;
+			_onNormalizedPositionChangedCalled = true;
 			ReloadCells(normalizedPosition, false);
 			DetectAndNotifyReachableStatus();
 		}
@@ -425,16 +424,15 @@ namespace UIKit
 			if (newCount == 0)
 				return;
 
+			_onNormalizedPositionChangedCalled = false;
 			if (startLocation.HasValue)
-				ScrollToCellAt(startLocation.Value);
-			else if (startNormalizedPosition.HasValue) {
-				ReloadCells(startNormalizedPosition.Value, false);
+				_scrollRect.normalizedPosition = GetNormalizedPositionOfCellAt(startLocation.Value);
+			else if (startNormalizedPosition.HasValue)
 				_scrollRect.normalizedPosition = startNormalizedPosition.Value;
-			} else {
-				_isReloaded = true;
-				_normalizedPositionWhenReloaded = _scrollRect.normalizedPosition;
-				ReloadCells(_normalizedPositionWhenReloaded, false);
-			}
+			else
+				_scrollRect.normalizedPosition = _scrollRect.normalizedPosition; // WORKAROUND: Make sure private method of EnsureLayoutHasRebuilt() in scrollRect is called.
+			if (!_onNormalizedPositionChangedCalled)
+				ReloadCells(_scrollRect.normalizedPosition, false);
 
 			// Recalculate if the content is reaching view port's boundary.
 			CalculateReachableStatus(out var curIsReachingTopmostOrRightmost, out var curIsReachingBottommostOrLeftmost);
@@ -483,38 +481,10 @@ namespace UIKit
 			isReachingBottommostOrLeftmost = curPosition > lowerTolerance;
 		}
 
-		void StopAutoScroll(Action onScrollingFinished)
+		public void StopAutoScroll()
 		{
-			if (_autoScroll == null)
-				return;
-			StopCoroutine(_autoScroll);
-			_autoScroll = null;
-			onScrollingFinished?.Invoke();
-		}
-
-		void StartAutoScroll(UITableViewCellLocation location, float time, Action onScrollingFinished)
-		{
-			StopAutoScroll(onScrollingFinished);
-			_autoScroll = StartCoroutine(AutoScroll(location, time, onScrollingFinished));
-		}
-
-		IEnumerator AutoScroll(UITableViewCellLocation location, float time, Action onScrollingFinished)
-		{
-			if (location.index > _holders.Count - 1 || location.index < 0)
-				throw new IndexOutOfRangeException("Index must be less than cells' number and more than zero.");
-			var from = _scrollRect.normalizedPosition;
-			var to = GetNormalizedPositionOfCellAt(location);
-			var progress = 0f; 
-			var startAt = Time.time;
-			while (!Mathf.Approximately(progress, 1f)) {
-				yield return null;
-				progress = Mathf.Min((Time.time - startAt) / time, 1f);
-				var x = Mathf.Lerp(from.x, to.x, progress);
-				var y = Mathf.Lerp(from.y, to.y, progress);
-				_scrollRect.normalizedPosition = new Vector2(x, y);
-			}
-			_autoScroll = null;
-			onScrollingFinished?.Invoke();
+			_scrollState?.onScrollingStopped?.Invoke();
+			_scrollState = null;
 		}
 
 		/// <summary> Resize and reposition cells without recycle or destroy them. </summary>
@@ -578,15 +548,7 @@ namespace UIKit
 			ReloadDataInternal(null, normalizedPosition);
 		}
 
-		/// <summary>
-		/// Recycle or destroy all loaded cells then reload them again with current normalized position.
-		/// WORKAROUND:
-		/// The normalized position may be set incorrectly at first frame after resizing scroll view's content.
-		/// So, once Reload() is called, the cells may be not loaded correctly at same frame.
-		/// Even though the cells will be correctly reloaded after second frame.
-		/// It's recommended to call Reload(int startIndex) instead of Reload().
-		/// Tested in Unity 2018.4.8f1.
-		/// </summary>
+		/// <summary> Recycle or destroy all loaded cells then reload them again with current normalized position. </summary>
 		public void ReloadData()
 		{
 			ReloadDataInternal(null, null);
@@ -699,32 +661,29 @@ namespace UIKit
 
 		/// <summary> Scroll to the cell with animation. </summary>
 		/// <param name="index">Index of the cell</param>
-		/// <param name="time">Animation time</param>
+		/// <param name="duration">Animation time</param>
 		/// <param name="withMargin">If TRUE, calculate margin(IUITableViewMargin) when locate the cell.</param>
 		/// <param name="alignment">Alignment of the cell on UITableView.</param>
 		/// <param name="displacement">The displacement relative to the cell. Positive number for move up, and negative number for move down.</param>
-		/// <param name="onScrollingFinished">Will be called when animation is finished or interrupted.</param>
+		/// <param name="onScrollingStopped">Will be called when animation is finished or interrupted.</param>
 		/// <seealso cref="UIKit.UITableViewCellLocation">UITableViewCellLocation</seealso>
 		/// <seealso cref="ScrollToCellAt(UITableViewCellLocation, float, Action)">ScrollToCellAt(UITableViewCellLocation, float, Action)</seealso>
-		public void ScrollToCellAt(int index, float time, UITableViewCellAlignment alignment = UITableViewCellAlignment.RightOrTop, bool withMargin = false, float displacement = 0f, Action onScrollingFinished = null)
+		public void ScrollToCellAt(int index, float duration, UITableViewCellAlignment alignment = UITableViewCellAlignment.RightOrTop, bool withMargin = false, float displacement = 0f, Action onScrollingStopped = null)
 		{
 			var location = new UITableViewCellLocation(index, alignment, withMargin, displacement);
-			ScrollToCellAt(location, time, onScrollingFinished);
+			ScrollToCellAt(location, duration, onScrollingStopped);
 		}
 
 		/// <summary> Scroll to the cell with animation. </summary>
 		/// <param name="location">Use to locate a point in UITableView(scroll view's content).</param>
-		/// <param name="time">Animation time</param>
-		/// <param name="onScrollingFinished">Will be called when animation is finished or interrupted.</param>
-		/// <exception cref="ArgumentException">Throw if time is negative</exception>
-		public void ScrollToCellAt(UITableViewCellLocation location, float time, Action onScrollingFinished)
+		/// <param name="duration">Animation time</param>
+		/// <param name="onScrollingStopped">Will be called when animation is finished or interrupted.</param>
+		public void ScrollToCellAt(UITableViewCellLocation location, float duration, Action onScrollingStopped)
 		{
-			if (time < 0f)
-				throw new ArgumentException("Time must be equal to or more than zero.");
-			if (Mathf.Approximately(time, 0f))
-				ScrollToCellAt(location);
-			else
-				StartAutoScroll(location, time, onScrollingFinished);
+			if (location.index > _holders.Count - 1 || location.index < 0)
+				throw new IndexOutOfRangeException("Index must be less than cells' number and more than zero.");
+			_scrollState.Stop();
+			_scrollState.Start(_scrollRect.normalizedPosition, GetNormalizedPositionOfCellAt(location), duration, onScrollingStopped);
 		}
 
 		/// <summary> Scroll to the cell. </summary>
@@ -737,15 +696,11 @@ namespace UIKit
 			var location = new UITableViewCellLocation(index, alignment, withMargin, displacement);
 			ScrollToCellAt(location);
 		}
-
 		/// <summary> Scroll to the cell. </summary>
 		/// <param name="location">Use to locate a point in UITableView(scroll view's content).</param>
 		public void ScrollToCellAt(UITableViewCellLocation location)
 		{
-			if (location.index > _holders.Count - 1 || location.index < 0)
-				throw new IndexOutOfRangeException("Index must be less than cells' number and more than zero.");
-			_scrollRect.normalizedPosition = GetNormalizedPositionOfCellAt(location); 
-			ReloadCells(_scrollRect.normalizedPosition, false);
+			ScrollToCellAt(location, 0f, null);
 		}
 
 		/// <summary> Return scroll view's normalized position of cell at the location. </summary>
@@ -801,12 +756,9 @@ namespace UIKit
 		/// <param name="index">Index of cell at</param>
 		/// <typeparam name="T">Type of UITableViewCell</typeparam>
 		/// <returns>The loaded cell or null</returns>
-		/// <exception cref="IndexOutOfRangeException">Index is out of length of cells</exception>
 		/// <exception cref="ArgumentException">Cell at index is not type of T</exception>
 		public T GetLoadedCell<T>(int index) where T : UITableViewCell
 		{
-			if (index < 0 || _holders.Count - 1 < index)
-				throw new IndexOutOfRangeException("Index is less than 0 or more than count of cells.");
 			if (!_loadedHolders.TryGetValue(index, out var holder))
 				return null;
 			var cell = holder.loadedCell as T;
@@ -817,8 +769,6 @@ namespace UIKit
 		
 		public UITableViewCell GetLoadedCell(int index)
 		{
-			if (index < 0 || _holders.Count - 1 < index)
-				throw new IndexOutOfRangeException("Index is less than 0 or more than count of cells.");
 			return _loadedHolders.TryGetValue(index, out var holder) ? holder.loadedCell : null;
 		}
 
@@ -840,7 +790,6 @@ namespace UIKit
 		public IEnumerable<UITableViewCell> GetAllLoadedCells()
 		{
 			foreach (var kvp in _loadedHolders) {
-				Debug.Assert(kvp.Value.loadedCell != null, nameof(kvp.Value.loadedCell) + " != null");
 				yield return kvp.Value.loadedCell;
 			}
 		}
@@ -853,7 +802,6 @@ namespace UIKit
 		public IEnumerable<T> GetAllLoadedCells<T>(Func<int, bool> condition) where T : UITableViewCell
 		{
 			foreach (var kvp in _loadedHolders) {
-				Debug.Assert(kvp.Value.loadedCell != null, nameof(kvp.Value.loadedCell) + " != null");
 				if (!condition.Invoke(kvp.Key))
 					continue;
 				var tCell = kvp.Value.loadedCell as T;
@@ -869,7 +817,6 @@ namespace UIKit
 			if (withCell == null)
 				yield break;
 			foreach (var kvp in _loadedHolders) {
-				Debug.Assert(kvp.Value.loadedCell != null, nameof(kvp.Value.loadedCell) + " != null");
 				if (kvp.Key == withCellIndex)
 					continue;
 				if (kvp.Value.loadedCell.rectTransform.CalculateAreaOfIntersection(withCell.worldRect) <= 0f)
@@ -899,7 +846,6 @@ namespace UIKit
 			if (withCell == null)
 				return false;
 			foreach (var kvp in _loadedHolders) {
-				Debug.Assert(kvp.Value.loadedCell != null, nameof(kvp.Value.loadedCell) + " != null");
 				if (kvp.Key == withCellIndex)
 					continue;
 				var area = kvp.Value.loadedCell.rectTransform.CalculateAreaOfIntersection(withCell.worldRect);
@@ -919,7 +865,6 @@ namespace UIKit
 			if (withCell == null)
 				return false;
 			foreach (var kvp in _loadedHolders) {
-				Debug.Assert(kvp.Value.loadedCell != null, nameof(kvp.Value.loadedCell) + " != null");
 				if (kvp.Key == withCellIndex)
 					continue;
 				var tCell = kvp.Value.loadedCell as T;
@@ -940,7 +885,6 @@ namespace UIKit
 		public void RefreshAllLoadedCells()
 		{
 			foreach (var kvp in _loadedHolders) {
-				Debug.Assert(kvp.Value.loadedCell != null, nameof(kvp.Value.loadedCell) + " != null");
 				this.@delegate.CellAtIndexInTableViewWillAppear(this, kvp.Key);
 			}
 		}
@@ -982,10 +926,9 @@ namespace UIKit
 			_clickingCellIndex = null;
 			if (this.clickable == null)
 				return;
-			if (TryFindClickedLoadedCell(eventData, this.clickable, out var result)) {
-				this.clickable.TableViewOnPointerDownCellAt(this, result.index!.Value, eventData);
-				_clickingCellIndex = result.index!.Value;
-			}
+			if (!TryFindClickedLoadedCell(eventData, this.clickable, out var result)) return;
+			this.clickable.TableViewOnPointerDownCellAt(this, result.index!.Value, eventData);
+			_clickingCellIndex = result.index!.Value;
 		}
 
 		public void OnPointerClick(PointerEventData eventData)
@@ -1002,10 +945,9 @@ namespace UIKit
 		{
 			if (this.clickable == null)
 				return;
-			if (TryFindClickedLoadedCell(eventData, this.clickable, out var result)) {
-				this.clickable.TableViewOnPointerUpCellAt(this, result.index!.Value, eventData);
-				_clickingCellIndex = _clickingCellIndex == result.index ? _clickingCellIndex : null;
-			}
+			if (!TryFindClickedLoadedCell(eventData, this.clickable, out var result)) return;
+			this.clickable.TableViewOnPointerUpCellAt(this, result.index!.Value, eventData);
+			_clickingCellIndex = _clickingCellIndex == result.index ? _clickingCellIndex : null;
 		}
 
 		public void OnBeginDrag(PointerEventData eventData)
@@ -1015,11 +957,10 @@ namespace UIKit
 			_draggingCellIndex = null;
 			if (this.draggable == null)
 				return;
-			if (TryFindClickedLoadedCell(eventData, this.draggable, out var result) 
-			    && this.draggable.TableViewOnBeginDragCellAt(this, result.index!.Value, eventData)) {
-				_draggingCellIndex = result.index;
-				GetLoadedCell(_draggingCellIndex.Value).transform.localPosition = scrollRect.content.InverseTransformPoint(eventData.position);
-			}
+			if (!TryFindClickedLoadedCell(eventData, this.draggable, out var result)
+			    || !this.draggable.TableViewOnBeginDragCellAt(this, result.index!.Value, eventData)) return;
+			_draggingCellIndex = result.index;
+			GetLoadedCell(_draggingCellIndex.Value).transform.localPosition = scrollRect.content.InverseTransformPoint(eventData.position);
 		}
 
 		public void OnDrag(PointerEventData eventData)
@@ -1071,6 +1012,34 @@ namespace UIKit
 			public int rowIndex { get; set; }
 			/// <summary> If the direction is Top ⇔ Bottom, the column is vertical direction, or horizontal direction in Right to Left. </summary>
 			public int columnIndex { get; set; }
+		}
+		class ScrollState
+		{
+			public bool started { get; private set; }
+			public Action onScrollingStopped { get; private set; }
+			public bool stopped => _stopImmediately || Mathf.Approximately(progress, 1f);
+			public Vector2 normalizedPosition => new(Mathf.Lerp(_from.x, _to.x, progress), Mathf.Lerp(_from.y, _to.y, progress));
+			float progress => _stopImmediately ? 1f : Mathf.Min((Time.time - _startAt) / _duration, 1f);
+			float _startAt, _duration;
+			Vector2 _from, _to;
+			bool _stopImmediately;
+			public void Start(Vector2 from, Vector2 to, float duration, Action onStopped)
+			{
+				this.started = true;
+				this.onScrollingStopped = onStopped;
+				_from = from;
+				_to = to;
+				_duration = Mathf.Max(duration, 0f);
+				_stopImmediately = Mathf.Approximately(_duration, 0f);
+				_startAt = Time.time;
+			}
+			public void Stop()
+			{
+				if (!started) return;
+				this.started = false;
+				this.onScrollingStopped?.Invoke();
+				this.onScrollingStopped = null;
+			}
 		}
 	}
 }
