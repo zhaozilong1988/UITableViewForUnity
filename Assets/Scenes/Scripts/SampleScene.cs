@@ -74,7 +74,7 @@ public class SampleScene : MonoBehaviour
 	void OnClickScrollToCell(int index)
 	{
 		Debug.Log("Scroll to cell at index of " + index);
-		_tableView.ScrollToCellAt(index, 0.3f, withMargin: true, onScrollingFinished: () => {
+		_tableView.ScrollToCellAt(index, 0.3f, withMargin: true, onScrollingStopped: () => {
 			Debug.Log("Scrolling has finished");
 		});
 
