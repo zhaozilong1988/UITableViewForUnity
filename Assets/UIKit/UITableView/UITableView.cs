@@ -466,8 +466,7 @@ namespace UIKit
 
 		public void StopAutoScroll()
 		{
-			_scrollState?.onScrollingStopped?.Invoke();
-			_scrollState = null;
+			_scrollState.Stop();
 		}
 
 		/// <summary> Resize and reposition cells without recycle or destroy them. </summary>
