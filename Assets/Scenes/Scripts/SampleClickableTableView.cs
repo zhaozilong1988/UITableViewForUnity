@@ -41,7 +41,7 @@ public class SampleClickableTableView : UITableView, IUITableViewDataSource, IUI
 
 	void Reload(params Title[] titles)
 	{
-		_metaList ??= new List<Meta>();
+		_metaList = _metaList ?? new List<Meta>();
 		_metaList.Clear();
 		foreach (var t in titles) {
 			_metaList.Add(new Meta(t));

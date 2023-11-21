@@ -335,7 +335,7 @@ namespace UIKit
 					case UITableViewCellAlignment.LeftOrBottom: // Do nothing.
 						break;
 					case UITableViewCellAlignment.Center:
-						emptyColumnAtLastRow = columnNumber - _holders[^1].columnIndex - 1;
+						emptyColumnAtLastRow = columnNumber - _holders[_holders.Count - 1].columnIndex - 1;
 						break;
 					default: throw new ArgumentOutOfRangeException();
 				}
@@ -382,7 +382,7 @@ namespace UIKit
 				throw new IndexOutOfRangeException("Start index must be more than zero.");
 			var newCount = dataSource.NumberOfCellsInTableView(this);
 			if (dataSource is IUIGridViewDataSource gridDataSource) {
-				_columnPerRowInGrid ??= new List<int>();
+				_columnPerRowInGrid = _columnPerRowInGrid ?? new List<int>();
 				_columnPerRowInGrid.Clear();
 				_cellAlignment = gridDataSource.AlignmentOfCellsAtLastRow(this);
 				int numberOfCellsAtRow, rowIndex = 0;
@@ -611,14 +611,15 @@ namespace UIKit
 				Debug.LogWarning($"Cell ({typeof(T).FullName}) which use null or empty reuseIdentifier will be set UITableViewCellLifeCycle.DestroyWhenDisappeared forcibly.");
 			}
 			T cell = null;
-			Vector2 cellAnchorMin;
-			var cellAnchorMax = _direction switch {
-				UITableViewDirection.TopToBottom => cellAnchorMin = Vector2.up,
-				UITableViewDirection.BottomToTop => cellAnchorMin = Vector2.zero,
-				UITableViewDirection.RightToLeft => cellAnchorMin = Vector2.one,
-				UITableViewDirection.LeftToRight => cellAnchorMin = Vector2.up,
-				_ => throw new ArgumentOutOfRangeException()
-			};
+			Vector2 cellAnchorMin, cellAnchorMax;
+			switch (_direction) {
+				case UITableViewDirection.TopToBottom: cellAnchorMax = cellAnchorMin = Vector2.up; break;
+				case UITableViewDirection.BottomToTop: cellAnchorMax = cellAnchorMin = Vector2.zero; break;
+				case UITableViewDirection.RightToLeft: cellAnchorMax = cellAnchorMin = Vector2.one; break;
+				case UITableViewDirection.LeftToRight: cellAnchorMax = cellAnchorMin = Vector2.up; break;
+				default: throw new ArgumentOutOfRangeException();
+			}
+
 			if (lifeCycle != UITableViewCellLifeCycle.DestroyWhenDisappeared) {
 				var isExist = _reusableCellQueues.TryGetValue(reuseIdentifier, out var cellsQueue);
 				if (!isExist) {
@@ -866,7 +867,7 @@ namespace UIKit
 		Vector3 TransformPoint(PointerEventData eventData, IUITableViewInteractable interactable)
 		{
 			var cam = interactable.TableViewCameraForInteractive(this);
-			return cam == null ? eventData.position : cam.ScreenToWorldPoint(eventData.position);
+			return cam == null ? (Vector3)eventData.position : cam.ScreenToWorldPoint(eventData.position);
 		}
 
 		bool TryFindClickedLoadedCell(PointerEventData eventData, IUITableViewInteractable interactable, out UITableViewCell target)
@@ -887,15 +888,15 @@ namespace UIKit
 			_clickingCellIndex = null;
 			if (this.clickable == null) return;
 			if (!TryFindClickedLoadedCell(eventData, this.clickable, out var result)) return;
-			this.clickable.TableViewOnPointerDownCellAt(this, result.index!.Value, eventData);
-			_clickingCellIndex = result.index!.Value;
+			this.clickable.TableViewOnPointerDownCellAt(this, result.index.Value, eventData);
+			_clickingCellIndex = result.index.Value;
 		}
 
 		public void OnPointerClick(PointerEventData eventData)
 		{
 			if (this.clickable == null) return;
 			if (TryFindClickedLoadedCell(eventData, this.clickable, out var result) && _clickingCellIndex == result.index)
-				this.clickable.TableViewOnPointerClickCellAt(this, result.index!.Value, eventData);
+				this.clickable.TableViewOnPointerClickCellAt(this, result.index.Value, eventData);
 			_clickingCellIndex = null;
 		}
 
@@ -903,7 +904,7 @@ namespace UIKit
 		{
 			if (this.clickable == null) return;
 			if (!TryFindClickedLoadedCell(eventData, this.clickable, out var result)) return;
-			this.clickable.TableViewOnPointerUpCellAt(this, result.index!.Value, eventData);
+			this.clickable.TableViewOnPointerUpCellAt(this, result.index.Value, eventData);
 			_clickingCellIndex = _clickingCellIndex == result.index ? _clickingCellIndex : null;
 		}
 
@@ -914,7 +915,7 @@ namespace UIKit
 			_draggingCellIndex = null;
 			if (this.draggable == null) return;
 			if (!TryFindClickedLoadedCell(eventData, this.draggable, out var result)
-			    || !this.draggable.TableViewOnBeginDragCellAt(this, result.index!.Value, eventData)) return;
+			    || !this.draggable.TableViewOnBeginDragCellAt(this, result.index.Value, eventData)) return;
 			_draggingCellIndex = result.index;
 			GetLoadedCell(_draggingCellIndex.Value).transform.localPosition = scrollRect.content.InverseTransformPoint(eventData.position);
 		}
@@ -927,10 +928,10 @@ namespace UIKit
 				return;
 			}
 			var position = TransformPoint(eventData, this.draggable);
-			var cell = GetLoadedCell(_draggingCellIndex!.Value);
+			var cell = GetLoadedCell(_draggingCellIndex.Value);
 			if (cell != null)
 				cell.rectTransform.localPosition = scrollRect.content.InverseTransformPoint(position);
-			this.draggable.TableViewOnDragCellAt(this, _draggingCellIndex!.Value, eventData);
+			this.draggable.TableViewOnDragCellAt(this, _draggingCellIndex.Value, eventData);
 		}
 
 		public void OnEndDrag(PointerEventData eventData)
@@ -941,10 +942,10 @@ namespace UIKit
 				return;
 			}
 			var position = TransformPoint(eventData, this.draggable);
-			var cell = GetLoadedCell(_draggingCellIndex!.Value);
+			var cell = GetLoadedCell(_draggingCellIndex.Value);
 			if (cell != null)
 				cell.rectTransform.localPosition = scrollRect.content.InverseTransformPoint(position);
-			this.draggable.TableViewOnEndDragCellAt(this, _draggingCellIndex!.Value, eventData);
+			this.draggable.TableViewOnEndDragCellAt(this, _draggingCellIndex.Value, eventData);
 			_draggingCellIndex = null;
 		}
 		#endregion
@@ -970,7 +971,7 @@ namespace UIKit
 			public bool started { get; private set; }
 			public Action onScrollingStopped { get; private set; }
 			public bool stopped => _stopImmediately || Mathf.Approximately(progress, 1f);
-			public Vector2 normalizedPosition => new(Mathf.Lerp(_from.x, _to.x, progress), Mathf.Lerp(_from.y, _to.y, progress));
+			public Vector2 normalizedPosition => new Vector2(Mathf.Lerp(_from.x, _to.x, progress), Mathf.Lerp(_from.y, _to.y, progress));
 			float progress => _stopImmediately ? 1f : Mathf.Min((Time.time - _startAt) / _duration, 1f);
 			float _startAt, _duration;
 			Vector2 _from, _to;
