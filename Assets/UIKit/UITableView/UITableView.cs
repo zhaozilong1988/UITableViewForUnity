@@ -194,6 +194,12 @@ namespace UIKit
 				maxLength = Mathf.Max(maxLength, length);
 
 				var columnNumber = _columnPerRowInGrid?[rowIndex] ?? 1;
+				var cellIndexForCalculateMaxLength = cellIndex;
+				for (var columnIndex = 0; columnIndex < columnNumber && cellIndexForCalculateMaxLength < numberOfCells; columnIndex++) {
+					var length = dataSource.LengthForCellInTableView(this, cellIndexForCalculateMaxLength);
+					maxLength = Mathf.Max(maxLength, length);
+					cellIndexForCalculateMaxLength++;
+				}
 				for (var columnIndex = 0; columnIndex < columnNumber && cellIndex < numberOfCells; columnIndex++) {
 					var holder = _holders[cellIndex];
 					holder.upperMargin = maxUpperMargin;
