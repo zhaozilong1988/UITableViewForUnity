@@ -31,7 +31,6 @@ public class SampleGridView : UITableView, IUIGridViewDataSource, IUITableViewDe
 		// Setup table view
 		dataSource = this;
 		@delegate = this;
-		draggable = this;
 		clickable = this;
 	}
 
@@ -49,7 +48,9 @@ public class SampleGridView : UITableView, IUIGridViewDataSource, IUITableViewDe
 	public void SwitchDragMode()
 	{
 		_mode = _mode != Mode.Draggable ? Mode.Draggable : Mode.Normal;
-		scrollRect.vertical = _mode != Mode.Draggable;
+		var undraggable = _mode != Mode.Draggable;
+		scrollRect.vertical = undraggable;
+		draggable = undraggable ? null : this;
 		ReloadData();
 	}
 
@@ -86,9 +87,9 @@ public class SampleGridView : UITableView, IUIGridViewDataSource, IUITableViewDe
 		return _columnNumber;
 	}
 
-	public UITableViewCellAlignment AlignmentOfCellsAtLastRow(UITableView grid)
+	public UITableViewAlignment AlignmentOfCellsAtLastRow(UITableView grid)
 	{
-		return UITableViewCellAlignment.Center;
+		return UITableViewAlignment.Center;
 	}
 
 	public void CellAtIndexInTableViewWillAppear(UITableView tableView, int index)
@@ -107,36 +108,43 @@ public class SampleGridView : UITableView, IUIGridViewDataSource, IUITableViewDe
 		return null;
 	}
 
-	public bool TableViewOnBeginDragCellAt(UITableView tableView, int draggedIndex, PointerEventData eventData)
+	public bool TableViewDragCellMovable(UITableView tableView)
 	{
-		var isDraggable = _dataList[draggedIndex] >= 0 && _mode == Mode.Draggable;
-		if (isDraggable) {
-			tableView.GetLoadedCell(draggedIndex).rectTransform.SetAsLastSibling();
-		}
-		return isDraggable;
+		return true;
 	}
 
-	public void TableViewOnDragCellAt(UITableView tableView, int draggedIndex, PointerEventData eventData)
+	public void TableViewOnBeginDrag(UITableView tableView, int? draggedIndex, PointerEventData eventData)
 	{
-		foreach (var cell in GetAllLoadedCells<SampleGridCell>()) {
+		if (!draggedIndex.HasValue)
+			return;
+		if (_dataList[draggedIndex.Value] >= 0 && _mode == Mode.Draggable)
+			tableView.GetLoadedCell(draggedIndex.Value).rectTransform.SetAsLastSibling();
+	}
+
+	public void TableViewOnDrag(UITableView tableView, int? draggedIndex, PointerEventData eventData)
+	{
+		if (!draggedIndex.HasValue)
+			return;
+		foreach (var cell in GetAllLoadedCells<SampleGridCell>())
 			cell.SetMergeable(false);
-		}
-		if (tableView.TryFindMostIntersectedCell<SampleGridCell>(draggedIndex, out var mostIntersectedCellIndex, out var maxArea) && maxArea > 150f) {
+		if (tableView.TryFindMostIntersectedCell<SampleGridCell>(draggedIndex.Value, out var mostIntersectedCellIndex, out var maxArea) && maxArea > 150f)
 			tableView.GetLoadedCell<SampleGridCell>(mostIntersectedCellIndex).SetMergeable(true);
-		}
 	}
 
-	public void TableViewOnEndDragCellAt(UITableView tableView, int draggedIndex, PointerEventData eventData)
+	public void TableViewOnEndDrag(UITableView tableView, int? draggedIndex, PointerEventData eventData)
 	{
+		if (!draggedIndex.HasValue) {
+			return;
+		}
 		foreach (var cell in GetAllLoadedCells<SampleGridCell>()) {
 			cell.SetMergeable(false);
 		}
-		if (tableView.TryFindMostIntersectedCell<SampleGridCell>(draggedIndex, out var mostIntersectedCellIndex, out var maxArea) && maxArea > 150f) {
+		if (tableView.TryFindMostIntersectedCell<SampleGridCell>(draggedIndex.Value, out var mostIntersectedCellIndex, out var maxArea) && maxArea > 150f) {
 			var swap = _dataList[mostIntersectedCellIndex];
-			_dataList[mostIntersectedCellIndex] = _dataList[draggedIndex];
-			_dataList[draggedIndex] = swap;
+			_dataList[mostIntersectedCellIndex] = _dataList[draggedIndex.Value];
+			_dataList[draggedIndex.Value] = swap;
 			ReloadDataAt(mostIntersectedCellIndex);
-			ReloadDataAt(draggedIndex);
+			ReloadDataAt(draggedIndex.Value);
 		}
 		RefreshAllLoadedCells();
 	}

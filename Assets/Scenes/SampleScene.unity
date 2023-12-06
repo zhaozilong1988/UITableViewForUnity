@@ -1734,7 +1734,7 @@ MonoBehaviour:
   _content: {fileID: 879252848}
   _direction: 3
   _ignoreCellLifeCycle: 0
-  tag: 0
+  _tag: 0
   keepClickEvenIfBeginDrag: 0
   _clickableCell: {fileID: 952083237558582737, guid: f63765b6dadb145f8a2fa180f201cf54,
     type: 3}
@@ -2548,7 +2548,7 @@ MonoBehaviour:
   _content: {fileID: 1187111710}
   _direction: 0
   _ignoreCellLifeCycle: 0
-  tag: 0
+  _tag: 0
   keepClickEvenIfBeginDrag: 0
   _gridCell: {fileID: 8669581284404242529, guid: 34756287df3954d08a084bfea8364c58,
     type: 3}
@@ -2858,7 +2858,7 @@ MonoBehaviour:
   _content: {fileID: 686237908}
   _direction: 0
   _ignoreCellLifeCycle: 0
-  tag: 0
+  _tag: 0
   keepClickEvenIfBeginDrag: 0
   _imageCellPrefab: {fileID: 6296921478661641863, guid: 5a54b65bbf2034e0c90a804a1cfa9477,
     type: 3}
