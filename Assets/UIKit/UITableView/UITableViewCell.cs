@@ -30,14 +30,4 @@ namespace UIKit
 		/// <summary> The cell will be destroyed when it disappeared from scroll view's viewport. </summary>
 		DestroyWhenDisappeared,
 	}
-
-	public enum UITableViewCellAlignment
-	{
-		/// <summary> Right alignment at row on UITableViewDirection.TopToBottom, or top alignment at column on UITableViewDirection.RightToLeft. </summary>
-		RightOrTop = 0,
-		/// <summary> Centering </summary>
-		Center = 1,
-		/// <summary> Left alignment at row on UITableViewDirection.TopToBottom, or bottom alignment at column on UITableViewDirection.RightToLeft. </summary>
-		LeftOrBottom = 2,
-	}
 }

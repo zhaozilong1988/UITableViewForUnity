@@ -6,7 +6,7 @@
 		/// <summary> Index of the cell. </summary>
 		public int index;
 		/// <summary> Alignment of the cell on UITableView. </summary>
-		public UITableViewCellAlignment alignment;
+		public UITableViewAlignment alignment;
 		/// <summary> If TRUE, calculate margin(IUITableViewMargin) when locate the cell. </summary>
 		public bool withMargin;
 		/// <summary> The displacement relative to the cell.
@@ -14,7 +14,7 @@
 		/// and negative value for move down or left.</summary>
 		public float displacement;
 
-		public UITableViewCellLocation(int index, UITableViewCellAlignment alignment, bool withMargin, float displacement)
+		public UITableViewCellLocation(int index, UITableViewAlignment alignment, bool withMargin, float displacement)
 		{
 			this.index = index;
 			this.alignment = alignment;

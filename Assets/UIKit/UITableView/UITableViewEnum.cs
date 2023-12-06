@@ -2,6 +2,29 @@ using System;
 
 namespace UIKit
 {
+	internal enum UITableViewMagneticInternalState
+	{
+		Scrolling,
+		Attracting,
+		Stopped,
+	}
+	public enum UITableViewMagneticState
+	{
+		Start,
+		Completed,
+		Interrupted,
+	}
+
+	public enum UITableViewAlignment
+	{
+		/// <summary> Right alignment at row on UITableViewDirection.TopToBottom, or top alignment at column on UITableViewDirection.RightToLeft. </summary>
+		RightOrTop = 0,
+		/// <summary> Centering </summary>
+		Center = 1,
+		/// <summary> Left alignment at row on UITableViewDirection.TopToBottom, or bottom alignment at column on UITableViewDirection.RightToLeft. </summary>
+		LeftOrBottom = 2,
+	}
+
 	public enum UITableViewDirection
 	{
 		/// <summary> Index of cell at the top is zero. </summary>
