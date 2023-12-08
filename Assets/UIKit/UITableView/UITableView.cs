@@ -932,7 +932,7 @@ namespace UIKit
 		{
 			var position = TransformPoint(eventData, interactable);
 			var viewportSize = _viewport.rect.size;
-			var tableViewPosition = viewportSize * (_viewport.pivot - Vector2.one) - (Vector2)_viewport.InverseTransformPoint(position);
+			var tableViewPosition = viewportSize * (Vector2.one - _viewport.pivot) - (Vector2)_viewport.InverseTransformPoint(position);
 			var calibrationPoint = new Vector2(tableViewPosition.x / viewportSize.x, tableViewPosition.y / viewportSize.y);
 			if (!_direction.IsTopToBottomOrRightToLeft())
 				calibrationPoint = Vector2.one - calibrationPoint;
