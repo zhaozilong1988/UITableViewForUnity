@@ -11,6 +11,6 @@
 		/// <summary>
 		/// Alignment of cells at last row in grid view (table view).
 		/// </summary>
-		UITableViewCellAlignment AlignmentOfCellsAtLastRow(UITableView grid);
+		UITableViewAlignment AlignmentOfCellsAtLastRow(UITableView grid);
 	}
 }
