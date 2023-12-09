@@ -945,8 +945,9 @@ namespace UIKit
 				endIndex = Mathf.Min(endIndex, _holders.Count - 1);
 			}
 			for (var i = startIndex; i <= endIndex; i++) {
-				if (!_loadedHolders[i].loadedCell.worldRect.Contains(position)) continue;
-				target = _loadedHolders[i].loadedCell;
+				if (!_loadedHolders.TryGetValue(i, out var holder)) continue;
+				if (!holder.loadedCell.worldRect.Contains(position)) continue;
+				target = holder.loadedCell;
 				return true;
 			}
 			target = null;
