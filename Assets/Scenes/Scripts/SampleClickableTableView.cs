@@ -4,7 +4,7 @@ using UIKit;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-public class SampleClickableTableView : UITableView, IUITableViewDataSource, IUITableViewDelegate, IUITableViewClickable, IUITableViewMargin
+public class SampleClickableTableView : UITableView, IUITableViewDataSource, IUITableViewDelegate, IUITableViewClickable, IUITableViewMargin, IUITableViewFlickable, IUITableViewMagneticAlignment
 {
 	[SerializeField] SampleClickableCell _clickableCell;
 	[SerializeField] SampleScrollToCell _scrollToCell;
@@ -25,6 +25,9 @@ public class SampleClickableTableView : UITableView, IUITableViewDataSource, IUI
 		@delegate = this;
 		marginDataSource = this;
 		clickable = this;
+
+		magneticAlignment = this;
+		flickable = this;
 	}
 
 	public void ReloadDataForGridView()
@@ -35,7 +38,7 @@ public class SampleClickableTableView : UITableView, IUITableViewDataSource, IUI
 
 	public void ReloadDataForTableView()
 	{
-		Reload(Title.TableOrGrid, Title.ReverseDirection, Title.Append, Title.Prepend, Title.ScrollTo);
+		Reload(Title.TableOrGrid, Title.ReverseDirection, Title.Append, Title.Prepend);
 		ReloadData(0);
 	}
 
@@ -63,7 +66,7 @@ public class SampleClickableTableView : UITableView, IUITableViewDataSource, IUI
 
 	public float LengthForCellInTableView(UITableView tableView, int index)
 	{
-		return 200f;
+		return 500f;
 	}
 
 	public void CellAtIndexInTableViewWillAppear(UITableView tableView, int index)
@@ -88,7 +91,8 @@ public class SampleClickableTableView : UITableView, IUITableViewDataSource, IUI
 
 	public void TableViewOnPointerClickCellAt(UITableView tableView, int index, PointerEventData eventData)
 	{
-		Debug.Log($"{_metaList[index].title} cell is clicked.");
+		Debug.Log($"{index} cell is clicked.");
+		return;
 		switch (_metaList[index].title) {
 			case Title.TableOrGrid:
 				this.onClickTableOrGridViewCell.Invoke();
@@ -162,5 +166,45 @@ public class SampleClickableTableView : UITableView, IUITableViewDataSource, IUI
 			this.title = t;
 			this.selected = false;
 		}
+	}
+
+	public (float lower, float upper) FlickDistanceRangeOfTriggerFlickInTableView(UITableView tableView)
+	{
+		return DEFAULT_FLICK_DISTANCE_RANGE_OF_TRIGGER_FLICK;
+	}
+
+	public float FlickTimeOfTriggerFlickInTableView(UITableView tableView)
+	{
+		return DEFAULT_FLICK_TIME_OF_TRIGGER_FLICK;
+	}
+
+	public void TableViewOnDidFlick(UITableView tableView, int? indexOfFlickedCell, UITableViewDirection direction)
+	{
+		if (indexOfFlickedCell.HasValue) {
+			var toIndex = direction.IsTopToBottomOrRightToLeft() ? indexOfFlickedCell.Value + 1 : indexOfFlickedCell.Value - 1;
+			toIndex = Mathf.Clamp(toIndex, 0, _metaList.Count - 1);
+			ScrollToCellAt(toIndex, 0.5f);
+		}
+		
+	}
+
+	public float SpeedOfTriggerMagneticAlignmentInTableView(UITableView tableView)
+	{
+		return DEFAULT_SPEED_OF_TRIGGER_MAGNETIC_ALIGNMENT;
+	}
+
+	public float SpeedOfCompleteMagneticAlignmentInTableView(UITableView tableView)
+	{
+		return DEFAULT_SPEED_OF_COMPLETE_MAGNETIC_ALIGNMENT;
+	}
+
+	public Vector2 CalibrationPointOfMagneticAlignmentInTableView(UITableView tableView)
+	{
+		return Vector2.one * 0.5f;
+	}
+
+	public void MagneticStateDidChangeInTableView(UITableView tableView, int ofCellIndex, UITableViewMagneticState state)
+	{
+		// Debug.Log("MagneticStateDidChangeInTableView: " + ofCellIndex);
 	}
 }

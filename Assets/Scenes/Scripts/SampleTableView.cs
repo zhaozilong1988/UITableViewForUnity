@@ -6,7 +6,7 @@ using UIKit;
 using UnityEngine.EventSystems;
 using Random = UnityEngine.Random;
 
-public class SampleTableView : UITableView, IUITableViewDataSource, IUITableViewDelegate, IUITableViewMargin
+public class SampleTableView : UITableView, IUITableViewDataSource, IUITableViewDelegate, IUITableViewMargin, IUITableViewClickable
 {
 	[Header("cell prefabs")]
 	[SerializeField] SampleImageCell _imageCellPrefab;
@@ -32,6 +32,7 @@ public class SampleTableView : UITableView, IUITableViewDataSource, IUITableView
 		dataSource = this;
 		marginDataSource = this;
 		@delegate = this;
+		clickable = this;
 	}
 
 	protected override void Update()
@@ -197,7 +198,7 @@ public class SampleTableView : UITableView, IUITableViewDataSource, IUITableView
 				throw new ArgumentOutOfRangeException();
 		}
 
-		Debug.Log($"Cell at index:{index} is appeared. UITableViewLifeCycle is <color=green>{lifeCycle}</color>");
+		// Debug.Log($"Cell at index:{index} is appeared. UITableViewLifeCycle is <color=green>{lifeCycle}</color>");
 	}
 
 	public void CellAtIndexInTableViewDidDisappear(UITableView tableView, int index)
@@ -208,7 +209,7 @@ public class SampleTableView : UITableView, IUITableViewDataSource, IUITableView
 			var imageCell = tableView.GetLoadedCell<SampleImageCell>(index);
 			imageCell.ClearUp();
 		}
-		Debug.Log($"cell at index:{index} will disappear.");
+		// Debug.Log($"cell at index:{index} will disappear.");
 	}
 	#endregion
 
@@ -227,5 +228,25 @@ public class SampleTableView : UITableView, IUITableViewDataSource, IUITableView
 			return index == dataList.Count - 1 ? 100f : 0f;
 		}
 		return index == 0 ? 100f : 0f;
+	}
+
+	public Camera TableViewCameraForInteractive(UITableView tableView)
+	{
+		return null;
+	}
+
+	public void TableViewOnPointerDownCellAt(UITableView tableView, int index, PointerEventData eventData)
+	{
+		
+	}
+
+	public void TableViewOnPointerClickCellAt(UITableView tableView, int index, PointerEventData eventData)
+	{
+		Debug.Log("TableViewOnPointerClickCellAt: " + index);
+	}
+
+	public void TableViewOnPointerUpCellAt(UITableView tableView, int index, PointerEventData eventData)
+	{
+		
 	}
 }

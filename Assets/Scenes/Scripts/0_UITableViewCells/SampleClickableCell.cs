@@ -11,6 +11,8 @@ public class SampleClickableCell : UITableViewCell
 	public void UpdateData(SampleClickableTableView.Meta meta)
 	{
 		_bg.color = meta.selected ? Color.red : Color.white;
+		_label.text = index.Value.ToString();
+		return;
 
 		switch (meta.title) {
 			case SampleClickableTableView.Title.TableOrGrid:
