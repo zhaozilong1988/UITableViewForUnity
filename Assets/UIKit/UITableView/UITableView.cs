@@ -739,8 +739,9 @@ namespace UIKit
 
 		Vector2 GetNormalizedPositionOfCellAt(int index, Vector2 calibrationPoint)
 		{
-			var displacement = (calibrationPoint - Vector2.one * 0.5f) * _viewport.rect.size;
-			return GetNormalizedPositionOfCellAt(index, UITableViewAlignment.Center, false, _direction.IsVertical() ? displacement.y : displacement.x);
+			var displacement = (dataSource.LengthForCellInTableView(this, index) - _viewport.rect.width) / 2f;//(calibrationPoint - Vector2.one * 0.5f) * _viewport.rect.size;
+			return GetNormalizedPositionOfCellAt(index, UITableViewAlignment.Center, false,
+				displacement); //_direction.IsVertical() ? displacement.y : displacement.x);
 		}
 
 		public Vector2 GetNormalizedPositionOfCellAt(int index, UITableViewAlignment alignment, bool withMargin, float displacement)

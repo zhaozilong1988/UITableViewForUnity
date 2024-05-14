@@ -32,7 +32,7 @@ public class SampleClickableTableView : UITableView, IUITableViewDataSource, IUI
 
 	public void ReloadDataForGridView()
 	{
-		Reload(Title.TableOrGrid, Title.ReverseDirection, Title.Drag, Title.Delete);
+		Reload(Title.TableOrGrid, Title.ReverseDirection, Title.Drag, Title.Delete, Title.Delete, Title.Delete, Title.Delete, Title.Delete);
 		ReloadData(0);
 	}
 
@@ -66,7 +66,7 @@ public class SampleClickableTableView : UITableView, IUITableViewDataSource, IUI
 
 	public float LengthForCellInTableView(UITableView tableView, int index)
 	{
-		return 500f;
+		return 300f;
 	}
 
 	public void CellAtIndexInTableViewWillAppear(UITableView tableView, int index)
@@ -134,14 +134,17 @@ public class SampleClickableTableView : UITableView, IUITableViewDataSource, IUI
 
 	public float LengthForUpperMarginInTableView(UITableView tableView, int rowIndex)
 	{
-		if (rowIndex == 0) {
-			return 10f;
+		if (rowIndex == _metaList.Count-1) {
+			return this.scrollRect.viewport.rect.width;
 		}
 		return 5f;
 	}
 
 	public float LengthForLowerMarginInTableView(UITableView tableView, int rowIndex)
 	{
+		if (rowIndex == 0) {
+			return this.scrollRect.viewport.rect.width;
+		}
 		return 5f;
 	}
 
@@ -185,7 +188,6 @@ public class SampleClickableTableView : UITableView, IUITableViewDataSource, IUI
 			toIndex = Mathf.Clamp(toIndex, 0, _metaList.Count - 1);
 			ScrollToCellAt(toIndex, 0.5f);
 		}
-		
 	}
 
 	public float SpeedOfTriggerMagneticAlignmentInTableView(UITableView tableView)
@@ -200,7 +202,7 @@ public class SampleClickableTableView : UITableView, IUITableViewDataSource, IUI
 
 	public Vector2 CalibrationPointOfMagneticAlignmentInTableView(UITableView tableView)
 	{
-		return Vector2.one * 0.5f;
+		return new Vector2(0.5f, 1f);
 	}
 
 	public void MagneticStateDidChangeInTableView(UITableView tableView, int ofCellIndex, UITableViewMagneticState state)
