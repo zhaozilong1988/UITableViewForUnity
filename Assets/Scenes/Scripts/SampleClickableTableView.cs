@@ -134,17 +134,11 @@ public class SampleClickableTableView : UITableView, IUITableViewDataSource, IUI
 
 	public float LengthForUpperMarginInTableView(UITableView tableView, int rowIndex)
 	{
-		if (rowIndex == _metaList.Count-1) {
-			return this.scrollRect.viewport.rect.width;
-		}
 		return 5f;
 	}
 
 	public float LengthForLowerMarginInTableView(UITableView tableView, int rowIndex)
 	{
-		if (rowIndex == 0) {
-			return this.scrollRect.viewport.rect.width;
-		}
 		return 5f;
 	}
 
@@ -202,7 +196,8 @@ public class SampleClickableTableView : UITableView, IUITableViewDataSource, IUI
 
 	public Vector2 CalibrationPointOfMagneticAlignmentInTableView(UITableView tableView)
 	{
-		return new Vector2(0.5f, 1f);
+		// セルの基準点は中央なので、左寄せの場合、「セルの長さ * 0.5 / viewportの幅」はページングの照準点になる。
+		return new Vector2(LengthForCellInTableView(this, 0) * 0.5f / scrollRect.viewport.rect.width, 0.5f);
 	}
 
 	public void MagneticStateDidChangeInTableView(UITableView tableView, int ofCellIndex, UITableViewMagneticState state)
