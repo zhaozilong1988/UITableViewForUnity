@@ -4,6 +4,9 @@ using UIKit.Helper;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace UIKit
 {
@@ -67,6 +70,12 @@ namespace UIKit
 		[SerializeField] RectTransform _viewport;
 		[SerializeField] RectTransform _content;
 		[SerializeField] UITableViewDirection _direction = UITableViewDirection.TopToBottom;
+#if UNITY_EDITOR
+		bool _wasUseNestedScrollRect;
+		[SerializeField, Header("Select if this is a nested ScrollRect \nthat needs to scroll or handle other interactions.")]
+		bool _useNestedScrollRect;
+#endif
+		[Header("If selected, \nthe UITableViewCellLifeCycle will be ignored, \nand all cells will be loaded at once.")]
 		[SerializeField] bool _ignoreCellLifeCycle;
 		/// <summary> Tag for distinguishing table view. For example, Using two table views with only one datasource. </summary>
 		public int _tag;
@@ -138,6 +147,13 @@ namespace UIKit
 		{
 			InitializeScrollRect();
 			Validate();
+
+			EditorApplication.update += () => {
+				if (_useNestedScrollRect == _wasUseNestedScrollRect) return;
+				_wasUseNestedScrollRect = _useNestedScrollRect;
+				if (_scrollRect as NestedScrollRect != null == _useNestedScrollRect) return;
+				NestedScrollRect.ExchangeBetweenScrollRectAndNestedScrollRect(_scrollRect);
+			};
 		}
 #endif
 		void InitializeScrollRect()
