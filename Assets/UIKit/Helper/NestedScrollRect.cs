@@ -74,7 +74,7 @@ namespace UIKit.Helper
 #if UNITY_EDITOR
 		public static void ExchangeBetweenScrollRectAndNestedScrollRect(ScrollRect scrollRect)
 		{
-			if (scrollRect is null) return;
+			if (!scrollRect) return;
 			var temp = scrollRect is NestedScrollRect 
 				? new GameObject().AddComponent<ScrollRect>() 
 				: new GameObject().AddComponent<NestedScrollRect>();
