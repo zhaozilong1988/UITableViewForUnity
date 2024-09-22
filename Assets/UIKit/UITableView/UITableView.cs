@@ -4,6 +4,9 @@ using UIKit.Helper;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace UIKit
 {
@@ -27,7 +30,7 @@ namespace UIKit
 		public IUITableViewMagneticAlignment magneticAlignment { get; set; }
 		public IUITableViewFlickable flickable { get; set; }
 
-		/// <summary> If TRUE, the UITableViewCellLifeCycle will be ignored and all cells will be loaded at once, or not when FALSE. </summary>
+		/// <summary> If selected, the UITableViewCellLifeCycle will be ignored, and all cells will be loaded at once.</summary>
 		public bool ignoreCellLifeCycle {
 			get => _ignoreCellLifeCycle;
 			set {
@@ -67,11 +70,19 @@ namespace UIKit
 		[SerializeField] RectTransform _viewport;
 		[SerializeField] RectTransform _content;
 		[SerializeField] UITableViewDirection _direction = UITableViewDirection.TopToBottom;
+#if UNITY_EDITOR
+		bool _wasUseNestedScrollRect;
+		[SerializeField, Header("Select if this is a nested ScrollRect \nthat needs to scroll or handle other interactions.")]
+		bool _useNestedScrollRect;
+#endif
+		[Header("If selected, \nthe UITableViewCellLifeCycle will be ignored, \nand all cells will be loaded at once.")]
 		[SerializeField] bool _ignoreCellLifeCycle;
-		/// <summary> Tag for distinguishing table view. For example, Using two table views with only one datasource. </summary>
+		/// <summary> For distinguishing between table views. For example, using two table views with a single datasource. </summary>
+		[Header("For distinguishing between table views. \nFor example, using two table views \nwith a single datasource.")]
 		public int _tag;
-		/// <summary> If true, the click events will be kept even if drag is began.</summary>
-		public bool keepClickEvenIfBeginDrag;
+		/// <summary> If selected, the click events will be preserved even after dragging begins. </summary>
+		[Header("If selected, \nthe click events will be preserved \neven after dragging begins.")]
+		public bool preserveClickEvenDragBegins;
 		public delegate void OnScrollingStopped(bool interrupted);
 
 		protected override void Awake()
@@ -138,6 +149,13 @@ namespace UIKit
 		{
 			InitializeScrollRect();
 			Validate();
+
+			EditorApplication.update += () => {
+				if (_useNestedScrollRect == _wasUseNestedScrollRect) return;
+				_wasUseNestedScrollRect = _useNestedScrollRect;
+				if (_scrollRect as NestedScrollRect != null == _useNestedScrollRect) return;
+				NestedScrollRect.ExchangeBetweenScrollRectAndNestedScrollRect(_scrollRect);
+			};
 		}
 #endif
 		void InitializeScrollRect()
@@ -1008,7 +1026,7 @@ namespace UIKit
 		}
 		void OnBeginDragIfDraggable(PointerEventData eventData)
 		{
-			if (!keepClickEvenIfBeginDrag) _clickCellIndex = null;
+			if (!preserveClickEvenDragBegins) _clickCellIndex = null;
 			_dragCellIndex = null;
 			if (this.draggable == null) return;
 			if (TryFindClickedLoadedCell(eventData, this.draggable, out var result))

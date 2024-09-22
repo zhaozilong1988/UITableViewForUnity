@@ -8,6 +8,8 @@ UITableViewForUnityは、アプリ開発中によくあるリスト系のUI(2D)�
 | ![](sample_chat.gif) | ![](sample_expend.gif) | ![](sample_append.gif)
 | グリッド式 | Draggable Grid | Deletable Grid |
 ![](sample_grid.gif) | ![](sample_grid_drag.gif) | ![](sample_grid_del.gif) |
+| Nested Scrolling |
+![](sample_nested_scrollrect.gif) |
 
 # なぜ必要?
 

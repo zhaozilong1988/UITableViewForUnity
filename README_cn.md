@@ -8,6 +8,8 @@ UITableViewForUnity是一个可以方便实现各种列表式UI需求的Unity引
 | ![](sample_chat.gif) | ![](sample_expend.gif) | ![](sample_append.gif)
 | 网格 | 可拖拽 | 可编辑 |
 ![](sample_grid.gif) | ![](sample_grid_drag.gif) | ![](sample_grid_del.gif) |
+| Nested Scrolling |
+![](sample_nested_scrollrect.gif) |
 
 # 为什么需要?
 
