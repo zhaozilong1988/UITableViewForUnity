@@ -1,0 +1,4 @@
+Assets/MobileDependencyResolver/Editor/Google.IOSResolver.dll
+Assets/MobileDependencyResolver/Editor/Google.JarResolver.dll
+Assets/MobileDependencyResolver/Editor/Google.VersionHandler.dll
+Assets/MobileDependencyResolver/Editor/Google.VersionHandlerImpl.dll

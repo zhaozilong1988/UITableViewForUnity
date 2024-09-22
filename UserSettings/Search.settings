@@ -9,6 +9,9 @@ onBoardingDoNotAskAgain = true
 showPackageIndexes = false
 showStatusBar = false
 scopes = {
+	"last_search.66F56946" = ""
+	"OpenInspectorPreview.66F56946" = "0"
+	"currentGroup.66F56946" = null
 }
 providers = {
 	profilermarkers = {
@@ -54,6 +57,11 @@ providers = {
 	adb = {
 		active = false
 		priority = 2500
+		defaultAction = null
+	}
+	presets_provider = {
+		active = false
+		priority = -10
 		defaultAction = null
 	}
 }
