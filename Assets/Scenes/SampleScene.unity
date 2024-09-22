@@ -38,7 +38,6 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0, g: 0, b: 0, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -419,7 +418,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 1, y: 0.5}
-  m_AnchoredPosition: {x: -1.9572144, y: 566.1}
+  m_AnchoredPosition: {x: -1.9572754, y: 566.1}
   m_SizeDelta: {x: -37.055664, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &317559963
@@ -508,7 +507,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -0.00018310547, y: 50}
+  m_AnchoredPosition: {x: -0.00024414062, y: 50}
   m_SizeDelta: {x: 0.38000488, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &665227619
@@ -926,7 +925,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 1, y: 0.5}
-  m_AnchoredPosition: {x: -60.987976, y: 0.000040412}
+  m_AnchoredPosition: {x: -60.988037, y: 0.000040412}
   m_SizeDelta: {x: -288.7829, y: 86.152}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &735990436
@@ -1736,6 +1735,7 @@ MonoBehaviour:
   _ignoreCellLifeCycle: 0
   _tag: 0
   keepClickEvenIfBeginDrag: 0
+  _useNestedScrollRect: 0
   _clickableCell: {fileID: 952083237558582737, guid: f63765b6dadb145f8a2fa180f201cf54,
     type: 3}
   _scrollToCell: {fileID: 8395097826947521673, guid: ea70a421904f64df580308872df66ead,
@@ -2550,6 +2550,7 @@ MonoBehaviour:
   _ignoreCellLifeCycle: 0
   _tag: 0
   keepClickEvenIfBeginDrag: 0
+  _useNestedScrollRect: 0
   _gridCell: {fileID: 8669581284404242529, guid: 34756287df3954d08a084bfea8364c58,
     type: 3}
   _emptyCell: {fileID: 9128829208683471527, guid: 34b5a7c3dfb7e465b9e6299654072206,
@@ -2744,6 +2745,7 @@ GameObject:
   - component: {fileID: 1780625970}
   - component: {fileID: 1780625969}
   - component: {fileID: 1780625972}
+  - component: {fileID: 1780625973}
   m_Layer: 5
   m_Name: SampleTableView
   m_TagString: Untagged
@@ -2770,7 +2772,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0.025146484, y: 0.050109863}
+  m_AnchoredPosition: {x: 0.025146484, y: 0.0501709}
   m_SizeDelta: {x: 0, y: -300.05}
   m_Pivot: {x: 0.5, y: 0}
 --- !u!114 &1780625969
@@ -2820,7 +2822,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1780625966}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1aa08ab6e0800fa44ae55d278d1423e3, type: 3}
+  m_Script: {fileID: 11500000, guid: 3c0a720df4d734aa2997c4bd06c5e9c0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   m_Content: {fileID: 686237908}
@@ -2860,6 +2862,7 @@ MonoBehaviour:
   _ignoreCellLifeCycle: 0
   _tag: 0
   keepClickEvenIfBeginDrag: 0
+  _useNestedScrollRect: 1
   _imageCellPrefab: {fileID: 6296921478661641863, guid: 5a54b65bbf2034e0c90a804a1cfa9477,
     type: 3}
   _textCellPrefab: {fileID: 4096419684011045254, guid: 02911a5be46854bbbafe8c571686f8f7,
@@ -2868,6 +2871,22 @@ MonoBehaviour:
     type: 3}
   _chatCellPrefab: {fileID: 1994050357953850282, guid: 26fbf4e29086542479d6974264bb7cb5,
     type: 3}
+  _nestedScrollRectCellPrefab: {fileID: 6737104380962007161, guid: 261b2d4ab7f8e43369bcc3efa671eb17,
+    type: 3}
+--- !u!114 &1780625973
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1780625966}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d17e3c9c5e8f490bb3e553f11d779a6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _text: {fileID: 0}
+  _indexText: {fileID: 0}
 --- !u!1 &1815890945
 GameObject:
   m_ObjectHideFlags: 0

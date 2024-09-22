@@ -32,7 +32,7 @@ public class SampleClickableTableView : UITableView, IUITableViewDataSource, IUI
 
 	public void ReloadDataForGridView()
 	{
-		Reload(Title.TableOrGrid, Title.ReverseDirection, Title.Drag, Title.Delete, Title.Delete, Title.Delete, Title.Delete, Title.Delete);
+		Reload(Title.TableOrGrid, Title.ReverseDirection, Title.Drag, Title.Delete);
 		ReloadData(0);
 	}
 
@@ -92,7 +92,7 @@ public class SampleClickableTableView : UITableView, IUITableViewDataSource, IUI
 	public void TableViewOnPointerClickCellAt(UITableView tableView, int index, PointerEventData eventData)
 	{
 		Debug.Log($"{index} cell is clicked.");
-		return;
+
 		switch (_metaList[index].title) {
 			case Title.TableOrGrid:
 				this.onClickTableOrGridViewCell.Invoke();

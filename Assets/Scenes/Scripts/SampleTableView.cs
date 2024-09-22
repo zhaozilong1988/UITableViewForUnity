@@ -13,6 +13,7 @@ public class SampleTableView : UITableView, IUITableViewDataSource, IUITableView
 	[SerializeField] SampleTextCell _textCellPrefab;
 	[SerializeField] SampleTabCell _tabCellPrefab;
 	[SerializeField] SampleChatCell _chatCellPrefab;
+	[SerializeField] SampleNestedScrollRectCell _nestedScrollRectCellPrefab;
 
 	readonly List<SampleData> _tab1DataList = new List<SampleData>();
 	readonly List<SampleData> _tab2DataList = new List<SampleData>();
@@ -60,7 +61,12 @@ public class SampleTableView : UITableView, IUITableViewDataSource, IUITableView
 		for (var i = 0; i < count; i++)
 		{
 			var data = new SampleData();
-			if (Random.Range(i, count) % 2 == 0)
+			if (Random.Range(i, count) % 3 == 0)
+			{
+				data.sampleType = SampleData.SampleType.NestedScrollRect;
+				data.scalar = 300f;
+			}
+			else if (Random.Range(i, count) % 3 == 1)
 			{
 				data.sampleType = SampleData.SampleType.Text;
 				data.scalar = 75f + Random.Range(0f, 100f);
@@ -150,6 +156,8 @@ public class SampleTableView : UITableView, IUITableViewDataSource, IUITableView
 				return tableView.ReuseOrCreateCell(_tabCellPrefab, UITableViewCellLifeCycle.RecycleWhenReloaded);
 			case SampleData.SampleType.Chat:
 				return tableView.ReuseOrCreateCell(_chatCellPrefab);
+			case SampleData.SampleType.NestedScrollRect:
+				return tableView.ReuseOrCreateCell(_nestedScrollRectCellPrefab);
 			default:
 				throw new ArgumentOutOfRangeException();
 		}
@@ -194,11 +202,16 @@ public class SampleTableView : UITableView, IUITableViewDataSource, IUITableView
 				chatCell.UpdateData(index, data.text);
 				lifeCycle = chatCell.lifeCycle;
 				break;
+			case SampleData.SampleType.NestedScrollRect:
+				var nestedScrollRectCell = tableView.GetLoadedCell<SampleNestedScrollRectCell>(index);
+				nestedScrollRectCell.UpdateData(index);
+				lifeCycle = nestedScrollRectCell.lifeCycle;
+				break;
 			default:
 				throw new ArgumentOutOfRangeException();
 		}
 
-		// Debug.Log($"Cell at index:{index} is appeared. UITableViewLifeCycle is <color=green>{lifeCycle}</color>");
+		Debug.Log($"Cell at index:{index} is appeared. UITableViewLifeCycle is <color=green>{lifeCycle}</color>");
 	}
 
 	public void CellAtIndexInTableViewDidDisappear(UITableView tableView, int index)

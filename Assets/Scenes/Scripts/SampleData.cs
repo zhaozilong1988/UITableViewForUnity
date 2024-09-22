@@ -9,6 +9,7 @@ public class SampleData
 		Image,
 		Tab,
 		Chat,
+		NestedScrollRect,
 	}
 
 	public SampleType sampleType;
