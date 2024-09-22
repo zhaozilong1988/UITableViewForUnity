@@ -486,7 +486,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 5441309436927296931}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1aa08ab6e0800fa44ae55d278d1423e3, type: 3}
+  m_Script: {fileID: 11500000, guid: 3c0a720df4d734aa2997c4bd06c5e9c0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   m_Content: {fileID: 1059757314289299535}
@@ -523,10 +523,10 @@ MonoBehaviour:
   _viewport: {fileID: 6192049363672841380}
   _content: {fileID: 1059757314289299535}
   _direction: 3
+  _useNestedScrollRect: 1
   _ignoreCellLifeCycle: 0
   _tag: 0
-  keepClickEvenIfBeginDrag: 0
-  _useNestedScrollRect: 0
+  preserveClickEvenDragBegins: 0
 --- !u!1 &7341672648306247755
 GameObject:
   m_ObjectHideFlags: 0

@@ -1603,9 +1603,10 @@ MonoBehaviour:
   _viewport: {fileID: 935592391}
   _content: {fileID: 879252848}
   _direction: 3
+  _useNestedScrollRect: 0
   _ignoreCellLifeCycle: 0
   _tag: 0
-  keepClickEvenIfBeginDrag: 0
+  preserveClickEvenDragBegins: 0
   _clickableCell: {fileID: 952083237558582737, guid: f63765b6dadb145f8a2fa180f201cf54,
     type: 3}
   _scrollToCell: {fileID: 8395097826947521673, guid: ea70a421904f64df580308872df66ead,
@@ -2266,9 +2267,10 @@ MonoBehaviour:
   _viewport: {fileID: 1585095984}
   _content: {fileID: 2068181858}
   _direction: 0
+  _useNestedScrollRect: 0
   _ignoreCellLifeCycle: 0
   _tag: 0
-  keepClickEvenIfBeginDrag: 0
+  preserveClickEvenDragBegins: 0
   _imageCellPrefab: {fileID: 6296921478661641863, guid: 5a54b65bbf2034e0c90a804a1cfa9477,
     type: 3}
   _textCellPrefab: {fileID: 4096419684011045254, guid: 02911a5be46854bbbafe8c571686f8f7,
@@ -2556,9 +2558,10 @@ MonoBehaviour:
   _viewport: {fileID: 871036445}
   _content: {fileID: 1187111710}
   _direction: 2
+  _useNestedScrollRect: 0
   _ignoreCellLifeCycle: 0
   _tag: 0
-  keepClickEvenIfBeginDrag: 0
+  preserveClickEvenDragBegins: 0
   _gridCell: {fileID: 8669581284404242529, guid: 34756287df3954d08a084bfea8364c58,
     type: 3}
   _emptyCell: {fileID: 9128829208683471527, guid: 34b5a7c3dfb7e465b9e6299654072206,
@@ -2698,8 +2701,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: -17, y: 0}
+  m_AnchoredPosition: {x: 0, y: -100}
+  m_SizeDelta: {x: -17, y: -100}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &1585095985
 MonoBehaviour:
@@ -2988,7 +2991,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 300}
+  m_SizeDelta: {x: 0, y: 1034}
   m_Pivot: {x: 0, y: 1}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
