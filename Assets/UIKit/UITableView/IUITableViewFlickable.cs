@@ -1,20 +1,10 @@
 namespace UIKit
 {
 	/// <summary>
-	/// Implement this if you want receive events when table view is flicked.
+	/// Implement this if you want to receive events when table view is flicked.
 	/// </summary>
 	public interface IUITableViewFlickable : IUITableViewInteractable
 	{
-		/// <summary>
-		/// The flick will not be triggered if flicked distance outside of this range.
-		/// </summary>
-		/// <returns>Flick trigger range: units/sec</returns>
-		(float lower, float upper) FlickDistanceRangeOfTriggerFlickInTableView(UITableView tableView);
-		/// <summary>
-		/// The flick will not be triggered if flicked time outside of this range.
-		/// </summary>
-		/// <returns>Flick trigger time: sec</returns>
-		float FlickTimeOfTriggerFlickInTableView(UITableView tableView);
 		/// <summary>
 		/// The flick is triggered.
 		/// </summary>

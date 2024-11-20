@@ -5,23 +5,13 @@ namespace UIKit
 	/// <summary>
 	/// Implement this if you want a magnetic alignment when scrolling stops.
 	/// </summary>
-	public interface IUITableViewMagneticAlignment
+	public interface IUITableViewMagnetic
 	{
-		/// <summary>
-		/// When the scrolling speed is below this threshold, magnetic alignment will be triggered.
-		/// </summary>
-		/// <returns>Speed:n units/sec</returns>
-		float SpeedOfTriggerMagneticAlignmentInTableView(UITableView tableView);
-		/// <summary>
-		/// The speed used during magnetic alignment completion.
-		/// </summary>
-		/// <returns>Speed:n units/sec</returns>
-		float SpeedOfCompleteMagneticAlignmentInTableView(UITableView tableView);
 		/// <summary>
 		/// The calibration point for where the magnetic alignment will be aimed.
 		/// </summary>
 		/// <returns>Calibration point(Vector.zero: for top or rightmost ~ Vector.one: for bottom or leftmost)</returns>
-		Vector2 CalibrationPointOfMagneticAlignmentInTableView(UITableView tableView);
+		Vector2 MagneticCalibrationPointInTableView(UITableView tableView);
 		/// <summary>
 		/// Notify when magnetic alignment state changed.
 		/// </summary>

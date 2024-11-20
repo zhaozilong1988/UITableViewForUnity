@@ -15,11 +15,7 @@ namespace UIKit
 	public class UITableView : UIBehaviour, IPointerDownHandler, IPointerUpHandler, IPointerClickHandler, IBeginDragHandler, IEndDragHandler, IDragHandler
 	{
 		public const float DEFAULT_REACHABLE_EDGE_TOLERANCE = 0.1f;
-		public const float DEFAULT_SPEED_OF_TRIGGER_MAGNETIC_ALIGNMENT = 100f;
-		public const float DEFAULT_SPEED_OF_COMPLETE_MAGNETIC_ALIGNMENT = 10000f;
-		public const float DEFAULT_FLICK_TIME_OF_TRIGGER_FLICK = 1f;
-		public static readonly (float lower, float upper) DEFAULT_FLICK_DISTANCE_RANGE_OF_TRIGGER_FLICK = (40f, 100f);
-		
+
 		public ScrollRect scrollRect => _scrollRect;
 		public IUITableViewDataSource dataSource { get; set; }
 		public IUITableViewMargin marginDataSource { get; set; }
@@ -27,7 +23,7 @@ namespace UIKit
 		public IUITableViewReachable reachable { get; set; }
 		public IUITableViewClickable clickable { get; set; }
 		public IUITableViewDraggable draggable { get; set; }
-		public IUITableViewMagneticAlignment magneticAlignment { get; set; }
+		public IUITableViewMagnetic magnetic { get; set; }
 		public IUITableViewFlickable flickable { get; set; }
 
 		/// <summary> If selected, the UITableViewCellLifeCycle will be ignored, and all cells will be loaded at once.</summary>
@@ -115,15 +111,16 @@ namespace UIKit
 
 		void UpdateMagneticState(int? toIndexOfCellAt, float? overrideDuration, OnScrollingStopped overrideOnScrollingStopped)
 		{
-			if (magneticAlignment == null) return;
+			if (magnetic == null) return;
 			if (!toIndexOfCellAt.HasValue) {
 				if (_magneticInternalState != UITableViewMagneticInternalState.Scrolling) return;
 				var speed = _direction.IsVertical() ? Mathf.Abs(this.scrollRect.velocity.y) : Mathf.Abs(this.scrollRect.velocity.x);
-				if (speed > magneticAlignment.SpeedOfTriggerMagneticAlignmentInTableView(this)) return;
+				var triggerSpeed = (magnetic is IUITableViewMagneticExtra extra) ? extra.MagneticWillBeTriggeredWhenScrollingSpeedBelow(this) : 100f;
+				if (speed > triggerSpeed) return;
 			}
 
 			_magneticInternalState = UITableViewMagneticInternalState.Attracting;
-			var calibrationPoint = magneticAlignment.CalibrationPointOfMagneticAlignmentInTableView(this);
+			var calibrationPoint = magnetic.MagneticCalibrationPointInTableView(this);
 			var fromNp = _scrollRect.normalizedPosition;
 			var cellIndex = toIndexOfCellAt.HasValue ? toIndexOfCellAt.Value : FindIndexOfCellAtCalibrationPoint(calibrationPoint, fromNp);
 			var toNp = GetNormalizedPositionOfCellAt(cellIndex, calibrationPoint);
@@ -132,15 +129,16 @@ namespace UIKit
 				duration = overrideDuration.Value;
 			else {
 				var deltaDistance = (toNp - fromNp) * _content.rect.size;
-				duration = Mathf.Abs(_direction.IsVertical() ? deltaDistance.y : deltaDistance.x) / magneticAlignment.SpeedOfCompleteMagneticAlignmentInTableView(this);
+				var changedTo = (magnetic is IUITableViewMagneticExtra extra) ? extra.WhenMagneticIsTriggeredScrollingSpeedWillBeChangedTo(this) : 10000f;
+				duration = Mathf.Abs(_direction.IsVertical() ? deltaDistance.y : deltaDistance.x) / changedTo;
 			}
 
-			magneticAlignment.MagneticStateDidChangeInTableView(this, cellIndex, UITableViewMagneticState.Start);
+			magnetic.MagneticStateDidChangeInTableView(this, cellIndex, UITableViewMagneticState.Start);
 			ScrollToNormalizedPosition(fromNp, toNp, duration, onScrollingStopped: interrupted => {
 				_magneticInternalState = UITableViewMagneticInternalState.Stopped;
 				overrideOnScrollingStopped?.Invoke(interrupted);
 				var state = interrupted ? UITableViewMagneticState.Interrupted : UITableViewMagneticState.Completed;
-				magneticAlignment.MagneticStateDidChangeInTableView(this, cellIndex, state);
+				magnetic.MagneticStateDidChangeInTableView(this, cellIndex, state);
 			});
 		}
 
@@ -466,8 +464,8 @@ namespace UIKit
 			if (newCount == 0) return;
 
 			_onNormalizedPositionChangedCalled = false;
-			if (magneticAlignment != null) {
-				var calibrationPoint = magneticAlignment.CalibrationPointOfMagneticAlignmentInTableView(this);
+			if (magnetic != null) {
+				var calibrationPoint = magnetic.MagneticCalibrationPointInTableView(this);
 				var cellIndex = startLocation.HasValue
 					? startLocation.Value.index
 					: FindIndexOfCellAtCalibrationPoint(calibrationPoint, startNormalizedPosition.HasValue ? startNormalizedPosition.Value : _scrollRect.normalizedPosition);
@@ -720,7 +718,7 @@ namespace UIKit
 		public void ScrollToCellAt(int index, float duration, UITableViewAlignment alignment = UITableViewAlignment.RightOrTop, bool withMargin = false, float displacement = 0f, OnScrollingStopped onScrollingStopped = null)
 		{
 			if (index > _holders.Count - 1 || index < 0) throw new IndexOutOfRangeException("Index must be less than cells' number and more than zero.");
-			if (magneticAlignment == null)
+			if (magnetic == null)
 				ScrollToNormalizedPosition(_scrollRect.normalizedPosition, GetNormalizedPositionOfCellAt(index, alignment, withMargin, displacement), duration, onScrollingStopped);
 			else {
 				Debug.LogWarning("Table view with Magnetic will ignore alignment, withMargin and displacement.");
@@ -1015,14 +1013,14 @@ namespace UIKit
 		
 		void OnBeginDragIfMagnetic()
 		{
-			if (magneticAlignment == null) return;
+			if (magnetic == null) return;
 			StopScroll();
 		}
 		void OnBeginDragIfFlickable(PointerEventData eventData)
 		{
 			if (flickable == null) return;
 			_flickPositionAt = eventData.position;
-			_flickStartAt = Time.time;
+			_flickStartAt = Time.unscaledTime;
 		}
 		void OnBeginDragIfDraggable(PointerEventData eventData)
 		{
@@ -1057,16 +1055,19 @@ namespace UIKit
 		}
 		void OnEndDragIfMagnetic()
 		{
-			if (magneticAlignment == null) return;
+			if (magnetic == null) return;
 			_magneticInternalState = UITableViewMagneticInternalState.Scrolling;
 		}
 		void OnEndDragIfFlickable(PointerEventData eventData)
 		{
 			if (flickable == null) return;
-			if (Time.time - _flickStartAt > flickable.FlickTimeOfTriggerFlickInTableView(this)) return;
+			var extra = flickable as IUITableViewFlickableExtra;
+			var isExtra = extra != null;
+			var time = isExtra ? extra.FlickWillBeTriggeredIfFlickDurationBelowTime(this) : 1f;
+			if (Time.unscaledTime - _flickStartAt > time) return;
 			var cellIndex = TryFindClickedLoadedCell(eventData, this.flickable, out var flickedCell) ? flickedCell.index : null;
 			var flickedDelta = _direction.IsVertical() ? eventData.position.y - _flickPositionAt.y : eventData.position.x - _flickPositionAt.x;
-			var delta = flickable.FlickDistanceRangeOfTriggerFlickInTableView(this);
+			var delta = isExtra ? extra.FlickWillBeTriggeredIfFlickDistanceFallsWithinRange(this) : (lower: 40f, upper: 100f);
 			if (flickedDelta > delta.lower && flickedDelta < delta.upper)
 				flickable.TableViewOnDidFlick(this, cellIndex, _direction.IsVertical() ? UITableViewDirection.BottomToTop : UITableViewDirection.LeftToRight);
 			else if (flickedDelta < -delta.lower && flickedDelta > -delta.upper)
