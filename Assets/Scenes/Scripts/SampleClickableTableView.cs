@@ -4,7 +4,7 @@ using UIKit;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-public class SampleClickableTableView : UITableView, IUITableViewDataSource, IUITableViewDelegate, IUITableViewClickable, IUITableViewMargin, IUITableViewFlickable, IUITableViewMagneticAlignment
+public class SampleClickableTableView : UITableView, IUITableViewDataSource, IUITableViewDelegate, IUITableViewClickable, IUITableViewMargin, IUITableViewFlickable, IUITableViewMagnetic
 {
 	[SerializeField] SampleClickableCell _clickableCell;
 	[SerializeField] SampleScrollToCell _scrollToCell;
@@ -26,7 +26,7 @@ public class SampleClickableTableView : UITableView, IUITableViewDataSource, IUI
 		marginDataSource = this;
 		clickable = this;
 
-		magneticAlignment = this;
+		magnetic = this;
 		flickable = this;
 	}
 
@@ -165,16 +165,6 @@ public class SampleClickableTableView : UITableView, IUITableViewDataSource, IUI
 		}
 	}
 
-	public (float lower, float upper) FlickDistanceRangeOfTriggerFlickInTableView(UITableView tableView)
-	{
-		return DEFAULT_FLICK_DISTANCE_RANGE_OF_TRIGGER_FLICK;
-	}
-
-	public float FlickTimeOfTriggerFlickInTableView(UITableView tableView)
-	{
-		return DEFAULT_FLICK_TIME_OF_TRIGGER_FLICK;
-	}
-
 	public void TableViewOnDidFlick(UITableView tableView, int? indexOfFlickedCell, UITableViewDirection direction)
 	{
 		if (indexOfFlickedCell.HasValue) {
@@ -184,17 +174,7 @@ public class SampleClickableTableView : UITableView, IUITableViewDataSource, IUI
 		}
 	}
 
-	public float SpeedOfTriggerMagneticAlignmentInTableView(UITableView tableView)
-	{
-		return DEFAULT_SPEED_OF_TRIGGER_MAGNETIC_ALIGNMENT;
-	}
-
-	public float SpeedOfCompleteMagneticAlignmentInTableView(UITableView tableView)
-	{
-		return DEFAULT_SPEED_OF_COMPLETE_MAGNETIC_ALIGNMENT;
-	}
-
-	public Vector2 CalibrationPointOfMagneticAlignmentInTableView(UITableView tableView)
+	public Vector2 MagneticCalibrationPointInTableView(UITableView tableView)
 	{
 		// セルの基準点は中央なので、左寄せの場合、「セルの長さ * 0.5 / viewportの幅」はページングの照準点になる。
 		return new Vector2(LengthForCellInTableView(this, 0) * 0.5f / scrollRect.viewport.rect.width, 0.5f);
