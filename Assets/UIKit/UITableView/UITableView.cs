@@ -15,6 +15,10 @@ namespace UIKit
 	public class UITableView : UIBehaviour, IPointerDownHandler, IPointerUpHandler, IPointerClickHandler, IBeginDragHandler, IEndDragHandler, IDragHandler
 	{
 		public const float DEFAULT_REACHABLE_EDGE_TOLERANCE = 0.1f;
+		const float MAGNETIC_WILL_BE_TRIGGERED_WHEN_SCROLLING_SPEED_BELOW = 100f;
+		const float WHEN_MAGNETIC_IS_TRIGGERED_SCROLLING_SPEED_WILL_BE_CHANGED_TO = 10000f;
+		const float FLICK_WILL_BE_TRIGGERED_IF_FLICK_DURATION_BELOW_TIME = 1f;
+		static readonly (float lower, float upper) _flickWillBeTriggeredIfFlickDistanceFallsWithinRange = (40f, 100f);
 
 		public ScrollRect scrollRect => _scrollRect;
 		public IUITableViewDataSource dataSource { get; set; }
@@ -115,7 +119,9 @@ namespace UIKit
 			if (!toIndexOfCellAt.HasValue) {
 				if (_magneticInternalState != UITableViewMagneticInternalState.Scrolling) return;
 				var speed = _direction.IsVertical() ? Mathf.Abs(this.scrollRect.velocity.y) : Mathf.Abs(this.scrollRect.velocity.x);
-				var triggerSpeed = (magnetic is IUITableViewMagneticExtra extra) ? extra.MagneticWillBeTriggeredWhenScrollingSpeedBelow(this) : 100f;
+				var triggerSpeed = (magnetic is IUITableViewMagneticExtra extra) 
+					? extra.MagneticWillBeTriggeredWhenScrollingSpeedBelow(this) 
+					: MAGNETIC_WILL_BE_TRIGGERED_WHEN_SCROLLING_SPEED_BELOW;
 				if (speed > triggerSpeed) return;
 			}
 
@@ -129,7 +135,9 @@ namespace UIKit
 				duration = overrideDuration.Value;
 			else {
 				var deltaDistance = (toNp - fromNp) * _content.rect.size;
-				var changedTo = (magnetic is IUITableViewMagneticExtra extra) ? extra.WhenMagneticIsTriggeredScrollingSpeedWillBeChangedTo(this) : 10000f;
+				var changedTo = (magnetic is IUITableViewMagneticExtra extra) 
+					? extra.WhenMagneticIsTriggeredScrollingSpeedWillBeChangedTo(this) 
+					: WHEN_MAGNETIC_IS_TRIGGERED_SCROLLING_SPEED_WILL_BE_CHANGED_TO;
 				duration = Mathf.Abs(_direction.IsVertical() ? deltaDistance.y : deltaDistance.x) / changedTo;
 			}
 
@@ -1063,11 +1071,15 @@ namespace UIKit
 			if (flickable == null) return;
 			var extra = flickable as IUITableViewFlickableExtra;
 			var isExtra = extra != null;
-			var time = isExtra ? extra.FlickWillBeTriggeredIfFlickDurationBelowTime(this) : 1f;
+			var time = isExtra 
+				? extra.FlickWillBeTriggeredIfFlickDurationBelowTime(this) 
+				: FLICK_WILL_BE_TRIGGERED_IF_FLICK_DURATION_BELOW_TIME;
 			if (Time.unscaledTime - _flickStartAt > time) return;
 			var cellIndex = TryFindClickedLoadedCell(eventData, this.flickable, out var flickedCell) ? flickedCell.index : null;
 			var flickedDelta = _direction.IsVertical() ? eventData.position.y - _flickPositionAt.y : eventData.position.x - _flickPositionAt.x;
-			var delta = isExtra ? extra.FlickWillBeTriggeredIfFlickDistanceFallsWithinRange(this) : (lower: 40f, upper: 100f);
+			var delta = isExtra 
+				? extra.FlickWillBeTriggeredIfFlickDistanceFallsWithinRange(this) 
+				: _flickWillBeTriggeredIfFlickDistanceFallsWithinRange;
 			if (flickedDelta > delta.lower && flickedDelta < delta.upper)
 				flickable.TableViewOnDidFlick(this, cellIndex, _direction.IsVertical() ? UITableViewDirection.BottomToTop : UITableViewDirection.LeftToRight);
 			else if (flickedDelta < -delta.lower && flickedDelta > -delta.upper)
