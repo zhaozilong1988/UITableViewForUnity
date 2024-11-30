@@ -21,5 +21,8 @@ namespace UIKit
 
 		/// <summary> If the direction is Top ⇔ Bottom, the column is vertical direction, or horizontal direction in Right to Left. </summary>
 		public int columnIndex { get; set; }
+
+		/// <summary> Larger sibling orders correspond to older sibling indexes in the table view’s content. </summary>
+		public int siblingOrder { get; set; }
 	}
 }

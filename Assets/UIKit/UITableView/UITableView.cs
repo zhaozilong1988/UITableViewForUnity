@@ -29,6 +29,7 @@ namespace UIKit
 		public IUITableViewDraggable draggable { get; set; }
 		public IUITableViewMagnetic magnetic { get; set; }
 		public IUITableViewFlickable flickable { get; set; }
+		public IUITableViewSortable sortable { get; set; }
 
 		/// <summary> If selected, the UITableViewCellLifeCycle will be ignored, and all cells will be loaded at once.</summary>
 		public bool ignoreCellLifeCycle {
@@ -53,6 +54,7 @@ namespace UIKit
 		}
 
 		List<int> _columnPerRowInGrid;
+		List<UITableViewCellHolder> _sortedHolders; // for IUITableViewSortable.
 		readonly List<UITableViewCellHolder> _holders = new List<UITableViewCellHolder>(); // all holders
 		readonly Dictionary<string, Queue<UITableViewCell>> _reusableCellQueues = new Dictionary<string, Queue<UITableViewCell>>(); // for caching the cells which waiting for be reused.
 		readonly Dictionary<int, UITableViewCellHolder> _loadedHolders = new Dictionary<int, UITableViewCellHolder>(); // appearing cells and those whose UITableViewLifeCycle is set to RecycleWhenReloaded.
@@ -268,6 +270,7 @@ namespace UIKit
 					holder.length = maxLength;
 					Debug.Assert(maxLength > 0f, $"Length of cell can not be less than zero, index:{rowIndex}.");
 					holder.lowerMargin = maxLowerMargin;
+					holder.siblingOrder = this.sortable?.SiblingOrderAtIndexInTableView(this, rowIndex) ?? -1;
 					cellIndex++;
 				}
 
@@ -308,6 +311,16 @@ namespace UIKit
 			for (var i = range.x; i <= range.y; i++) {
 				_loadedHolders[i] = _holders[i];
 				LoadCell(i, alwaysRearrangeCell);
+			}
+			if (this.sortable != null) {
+				if (_sortedHolders == null) _sortedHolders = new List<UITableViewCellHolder>();
+				else _sortedHolders.Clear();
+				_sortedHolders.AddRange(_loadedHolders.Values);
+				_sortedHolders.OrderBySiblingOrder();
+				for (int i = 0; i < _sortedHolders.Count; i++) {
+					_sortedHolders[i].loadedCell.rectTransform.SetSiblingIndex(i);
+				}
+				_sortedHolders.Clear();
 			}
 		}
 
