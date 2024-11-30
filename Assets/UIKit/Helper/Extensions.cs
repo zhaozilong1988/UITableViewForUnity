@@ -1,8 +1,9 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace UIKit.Helper
 {
-	public static class RectTransformExtensions
+	public static class Extensions
 	{
 		/// <summary> Ref. https://www.appsloveworld.com/csharp/100/234/check-if-ui-elements-recttransform-are-overlapping</summary>
 		public static Rect WorldRect(this RectTransform rectTransform)
@@ -32,6 +33,35 @@ namespace UIKit.Helper
 			var area = width * height;
 			return area;
 		}
-	}
 
+		internal static void OrderBySiblingOrder(this List<UITableViewCellHolder> holders)
+		{
+			QuickSort(holders, 0, holders.Count - 1);
+		}
+
+		static void QuickSort(List<UITableViewCellHolder> holders, int left, int right)
+		{
+			if (left >= right) return;
+			var mid = Partition(holders, left, right);
+			QuickSort(holders, left, mid - 1);
+			QuickSort(holders, mid + 1, right);
+		}
+
+		static int Partition(List<UITableViewCellHolder> holders, int left, int right)
+		{
+			var tmp = holders[left];
+			while (left < right) {
+				while (left < right && holders[right].siblingOrder >= tmp.siblingOrder) {
+					right--;
+				}
+				holders[left] = holders[right];
+				while (left < right && holders[left].siblingOrder <= tmp.siblingOrder) {
+					left++;
+				}
+				holders[right] = holders[left];
+			}
+			holders[left] = tmp;
+			return left;
+		}
+	}
 }
