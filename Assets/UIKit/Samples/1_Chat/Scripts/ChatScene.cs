@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -29,8 +30,16 @@ namespace UIKit.Samples
 			// Tell the table view that this class will provide margin between cells
 			_tableView.marginDataSource = this;
 
+			var firsttMsg = "Hi! Type something and click send button.";
+			var size = CalculateTextSize(firsttMsg, FONT_SIZE);
+			_chats.Add(new Chat(false, firsttMsg, size.x, size.y));
+
 			// Reload the table view to refresh UI
 			_tableView.ReloadData();
+			
+			string pattern = @"^([1-9][0-9]{0,2}:[^: ]+\s){1,5}([1-9][0-9]{0,6})$";
+			Regex regex = new Regex(pattern);
+			var matched = regex.IsMatch("");
 		}
 
 		Vector2 CalculateTextSize(string text, int fontSize)
