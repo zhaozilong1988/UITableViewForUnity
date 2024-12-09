@@ -5,13 +5,11 @@ using UnityEngine.UI;
 
 namespace UIKit.Samples
 {
-	public class ChatScene : MonoBehaviour, IUITableViewDataSource, IUITableViewDelegate, IUITableViewMargin
+	public class SnsScene : MonoBehaviour, IUITableViewDataSource, IUITableViewDelegate, IUITableViewMargin, IUITableViewReachable
 	{
-		[SerializeField] InputField _chatInput;
 		[SerializeField] Text _textSizeCalculator;
 		[SerializeField] UITableView _tableView;
-		[SerializeField] UITableViewCell _myChatCellPrefab;
-		[SerializeField] UITableViewCell _othersChatCellPrefab;
+		[SerializeField] UITableViewCell _cellPrefab;
 
 		readonly List<Chat> _chats = new List<Chat>();
 		const int FONT_SIZE = 30;
@@ -29,10 +27,12 @@ namespace UIKit.Samples
 			_tableView.@delegate = this;
 			// Tell the table view that this class will provide margin between cells
 			_tableView.marginDataSource = this;
+			// _tableView.reachable = this;
 
 			var firsttMsg = "Hi! Type something and click send button.";
 			var size = CalculateTextSize(firsttMsg, FONT_SIZE);
 			_chats.Add(new Chat(false, firsttMsg, size.x, size.y));
+			_chats.Add(new Chat(false, _replies[Random.Range(0, _replies.Count-1)], size.x, size.y));
 
 			// Reload the table view to refresh UI
 			_tableView.ReloadData();
@@ -48,38 +48,9 @@ namespace UIKit.Samples
 			return new Vector2(Mathf.Min(size.x, _textSizeCalculator.preferredWidth), _textSizeCalculator.preferredHeight);
 		}
 
-		public void OnClickSend()
-		{
-			if (string.IsNullOrEmpty(_chatInput.text))
-				return;
-
-			var size = CalculateTextSize(_chatInput.text, FONT_SIZE);
-			_chats.Insert(0, new Chat(true, _chatInput.text, size.x, size.y));
-
-			string msg;
-			if (_chatInput.text.ToLower().Contains("hello") || _chatInput.text.ToLower().Contains("hi")) {
-				msg = "Hi! I'm here.";
-			} else {
-				msg = _replies[Random.Range(0, _replies.Count-1)];
-			}
-			size = CalculateTextSize(msg, FONT_SIZE);
-			_chats.Insert(0, new Chat(false, msg, size.x, size.y));
-
-			_chatInput.text = string.Empty;
-
-			// Tell the table view that the data has prepended to the list
-			_tableView.PrependData();
-			// Scroll to the latest message
-			_tableView.ScrollToCellAt(0, withMargin:true, duration:0.1f);
-		}
-
 		public UITableViewCell CellAtIndexInTableView(UITableView tableView, int index)
 		{
-			var chat = _chats[index];
-			var cell = chat.isMine // Specify which cell the table view should use.
-				? tableView.ReuseOrCreateCell(_myChatCellPrefab.name, _myChatCellPrefab) 
-				: tableView.ReuseOrCreateCell(_othersChatCellPrefab.name, _othersChatCellPrefab);
-			return cell;
+			return tableView.ReuseOrCreateCell(_cellPrefab);
 		}
 
 		public int NumberOfCellsInTableView(UITableView tableView)
@@ -95,37 +66,60 @@ namespace UIKit.Samples
 		public void CellAtIndexInTableViewWillAppear(UITableView tableView, int index)
 		{
 			var chat = _chats[index];
-			_tableView.GetLoadedCell<ChatCell>(index).UpdateData(chat.message, FONT_SIZE, chat.bubbleWidth, chat.bubbleHeight);
+			_tableView.GetLoadedCell<SnsCell>(index).UpdateData("name", chat.message, FONT_SIZE);
 		}
 
 		public void CellAtIndexInTableViewDidDisappear(UITableView tableView, int index)
 		{
-			_tableView.GetLoadedCell<ChatCell>(index).UnloadData();
+			_tableView.GetLoadedCell<SnsCell>(index).UnloadData();
 		}
 
 		public float LengthForUpperMarginInTableView(UITableView tableView, int rowIndex)
 		{
-			return 20f;
+			return 0f;
 		}
 
 		public float LengthForLowerMarginInTableView(UITableView tableView, int rowIndex)
 		{
-			return 20f;
+			return 0f;
+		}
+
+		public void TableViewReachedTopmostOrRightmost(UITableView tableView)
+		{
+			throw new System.NotImplementedException();
+		}
+
+		public void TableViewReachedBottommostOrLeftmost(UITableView tableView)
+		{
+			throw new System.NotImplementedException();
+		}
+
+		public void TableViewLeftTopmostOrRightmost(UITableView tableView)
+		{
+			throw new System.NotImplementedException();
+		}
+
+		public void TableViewLeftBottommostOrLeftmost(UITableView tableView)
+		{
+			throw new System.NotImplementedException();
+		}
+
+		public float TableViewReachableEdgeTolerance(UITableView tableView)
+		{
+			return UITableView.DEFAULT_REACHABLE_EDGE_TOLERANCE;
 		}
 
 		class Chat
 		{
-			public bool isMine;
 			public string message;
 			public float bubbleWidth;
 			public float bubbleHeight;
 
 			public Chat(bool isMine, string message, float textWidth, float textHeight)
 			{
-				this.isMine = isMine;
 				this.message = message;
 				bubbleWidth = textWidth + 70f; // padding of bubble background
-				bubbleHeight = textHeight + 40f; // 20f padding on each side of bubble background
+				bubbleHeight = textHeight + 450f; // 20f padding on each side of bubble background
 			}
 		}
 	}
