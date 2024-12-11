@@ -21,9 +21,5 @@ MonoBehaviour:
     IsFailFilter: 1
     IsInclusiveFilter: 1
     AppliesToSubCategories: 1
-    Filter:
-    - 3D
-    - Animation
-    - Essentials
-    - Templates
+    Filter: []
   TestScript: {fileID: 11500000, guid: 98f3ec209166855408eaf4abe5bff591, type: 3}

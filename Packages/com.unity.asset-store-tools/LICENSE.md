@@ -1,4 +1,4 @@
-Asset Store Tools v2 copyright © 2023 Unity Technologies
+Asset Store Tools v2 copyright © 2024 Unity Technologies
 
 Source code of the package is licensed under the Unity Companion License (see https://unity.com/legal/licenses/unity-companion-license); otherwise licensed under the Unity Package Distribution License (see https://unity.com/legal/licenses/unity-package-distribution-license )
 

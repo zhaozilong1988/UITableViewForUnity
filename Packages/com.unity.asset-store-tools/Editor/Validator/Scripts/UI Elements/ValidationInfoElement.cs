@@ -16,11 +16,14 @@ namespace AssetStoreTools.Validator.UIElements
         private void ConstructInformationElement()
         {
             AddToClassList("validation-info-box");
-            
+
+            var descriptionFoldout = new Foldout() { value = true, text = "Validate your package to ensure your content follows the chosen submission guidelines." };
+            descriptionFoldout.AddToClassList("validation-info-foldout");
+            descriptionFoldout.viewDataKey = "description-foldout";
+
             var validatorDescription = new Label
             {
-                text = "Validate your package to ensure your content follows the chosen submission guidelines. " +
-                "The validations below do not cover all of the content standards, and passing all validations does not " +
+                text = "The validations below do not cover all of the content standards, and passing all validations does not " +
                 "guarantee that your package will be accepted to the Asset Store.\n\n" +
                 "The tests are not obligatory for submitting your assets, but they can help avoid instant rejection by the " +
                 "automated vetting system, or clarify reasons of rejection communicated by the vetting team.\n\n" +
@@ -44,9 +47,10 @@ namespace AssetStoreTools.Validator.UIElements
             
             supportTicketButton.AddToClassList("hyperlink-button");
 
-            Add(validatorDescription);
-            Add(submissionGuidelinesButton);
-            Add(supportTicketButton);
+            descriptionFoldout.Add(validatorDescription);
+            descriptionFoldout.Add(submissionGuidelinesButton);
+            descriptionFoldout.Add(supportTicketButton);
+            Add(descriptionFoldout);
         }
 
         private void OpenURL(string url)

@@ -6,9 +6,15 @@ using UnityEngine.UIElements;
 
 namespace AssetStoreTools.Uploader.UIElements
 {
-    internal class UploadWindow : VisualElement
+#if UNITY_6000_0_OR_NEWER
+    [UxmlElement]
+#endif
+    internal partial class UploadWindow : VisualElement
     {
+
+#if !UNITY_6000_0_OR_NEWER
         public new class UxmlFactory : UxmlFactory<UploadWindow> { }
+#endif
 
         // Views
         private AllPackageView _allPackageView;
@@ -26,7 +32,7 @@ namespace AssetStoreTools.Uploader.UIElements
 
         public void SetupWindows(Action onLogout, Action<ASError> onPackageDownloadFail)
         {
-            _allPackageView = this.Q<AllPackageView>("AllPackageView");            
+            _allPackageView = this.Q<AllPackageView>("AllPackageView");
             SetupBottomToolbar(onLogout, onPackageDownloadFail);
         }
 

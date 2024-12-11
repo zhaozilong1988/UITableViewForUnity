@@ -1,6 +1,20 @@
 # Changelog
 All notable changes to this package will be documented in this file.
 
+## [11.4.4] - 2024-11-29
+
+### Validator Changes
+- The validator UI window description section can now be expanded or shrunk to take up less screen space
+- Updated severity of the Model Importer Logs validation test
+
+### Exporter Changes
+- Updated exporter to always exclude hidden files and folders beginning with the dot symbol (e.g.: .hiddenFolder/ or .hiddenfile.txt)
+- Updated exporter to explicitly exclude extended attribute files when exporting packages on macOS systems
+
+### Other
+- Moved the Asset Store Tools toolbar items into the Tools section
+- Fixed several window-related compilation warnings when using Unity 6 versions of the Editor
+
 ## [11.4.3] - 2024-08-01
 
 ### Validator Changes

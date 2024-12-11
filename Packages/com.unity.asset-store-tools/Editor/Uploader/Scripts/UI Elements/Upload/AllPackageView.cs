@@ -12,10 +12,15 @@ using UnityEngine.UIElements;
 
 namespace AssetStoreTools.Uploader.UIElements
 {
-    internal class AllPackageView : VisualElement
+#if UNITY_6000_0_OR_NEWER
+    [UxmlElement]
+#endif
+    internal partial class AllPackageView : VisualElement
     {
-        public new class UxmlFactory : UxmlFactory<AllPackageView> { }
 
+#if !UNITY_6000_0_OR_NEWER
+        public new class UxmlFactory : UxmlFactory<AllPackageView> { }
+#endif
         private enum PackageSorting
         {
             Name,
@@ -94,7 +99,7 @@ namespace AssetStoreTools.Uploader.UIElements
             topToolsRow.Add(searchField);
             topToolsRow.Add(sortMenu);
             Add(topToolsRow);
-            
+
             // Add Callbacks and click events
             searchField.RegisterCallback<ChangeEvent<string>>(evt =>
             {
@@ -277,9 +282,9 @@ namespace AssetStoreTools.Uploader.UIElements
         {
             foreach (var package in _allPackages)
             {
-                if (!AssetStoreCache.GetCachedTexture(package.PackageId, out Texture2D texture)) 
+                if (!AssetStoreCache.GetCachedTexture(package.PackageId, out Texture2D texture))
                     continue;
-                
+
                 var packageImage = package.Q<Image>();
                 packageImage.style.backgroundImage = texture;
             }
@@ -347,7 +352,7 @@ namespace AssetStoreTools.Uploader.UIElements
 
             Repaint();
         }
-        
+
         private void PlayModeStateChanged(PlayModeStateChange playModeState)
         {
             if (playModeState == PlayModeStateChange.EnteredEditMode)
@@ -362,29 +367,29 @@ namespace AssetStoreTools.Uploader.UIElements
 
         private void SetupSpinner()
         {
-            _spinnerBox = new VisualElement {name = "SpinnerBox"};
+            _spinnerBox = new VisualElement { name = "SpinnerBox" };
             _spinnerBox.AddToClassList("spinner-box");
 
-            _loadingSpinner = new Image {name = "SpinnerImage"};
+            _loadingSpinner = new Image { name = "SpinnerImage" };
             _loadingSpinner.AddToClassList("spinner-image");
-            
+
             _spinnerBox.Add(_loadingSpinner);
             Add(_spinnerBox);
         }
-        
+
         private void UpdateSpinner()
         {
             if (_loadingSpinner == null)
                 return;
-            
-            if (_spinTimer + _spinThreshold > EditorApplication.timeSinceStartup) 
+
+            if (_spinTimer + _spinThreshold > EditorApplication.timeSinceStartup)
                 return;
-            
+
             _spinTimer = EditorApplication.timeSinceStartup;
             _loadingSpinner.image = EditorGUIUtility.IconContent($"WaitSpin{_spinIndex:00}").image;
-                
+
             _spinIndex += 1;
-                
+
             if (_spinIndex > 11)
                 _spinIndex = 0;
         }

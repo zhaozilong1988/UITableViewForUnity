@@ -73,12 +73,16 @@ namespace AssetStoreTools.Exporter
         protected string GetAssetGuid(string assetPath, bool generateForPlugin, bool hiddenSearch)
         {
             // Skip meta files as they do not have guids
-            if (assetPath.EndsWith(".meta"))
+            if (assetPath.EndsWith(".meta", StringComparison.OrdinalIgnoreCase))
                 return string.Empty;
 
             // Skip hidden assets. They normally do not have meta files, but
             // have been observed to retain them in the past due to a Unity bug
             if (assetPath.EndsWith("~"))
+                return string.Empty;
+
+            var assetName = assetPath.Split('/').Last();
+            if (assetName.StartsWith("."))
                 return string.Empty;
 
             // Skip ProjectVersion.txt file specifically as it may introduce

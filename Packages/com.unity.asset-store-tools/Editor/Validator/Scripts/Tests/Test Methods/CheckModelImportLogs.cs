@@ -31,13 +31,13 @@ namespace AssetStoreTools.Validator.TestMethods
             {
                 if (warningModels.Count > 0)
                 {
-                    result.Result = TestResult.ResultStatus.VariableSeverityIssue;
+                    result.Result = TestResult.ResultStatus.Warning;
                     result.AddMessage("The following models contain import warnings:", null, warningModels.ToArray());
                 }
 
                 if (errorModels.Count > 0)
                 {
-                    result.Result = TestResult.ResultStatus.Fail;
+                    result.Result = TestResult.ResultStatus.Warning;
                     result.AddMessage("The following models contain import errors:", null, errorModels.ToArray());
                 }
             }

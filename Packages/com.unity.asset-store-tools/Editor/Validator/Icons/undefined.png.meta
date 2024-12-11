@@ -130,6 +130,6 @@ AssetOrigin:
   serializedVersion: 1
   productId: 115
   packageName: Asset Store Publishing Tools
-  packageVersion: 11.4.3
+  packageVersion: 11.4.4
   assetPath: Packages/com.unity.asset-store-tools/Editor/Validator/Icons/undefined.png
-  uploadId: 681981
+  uploadId: 712972

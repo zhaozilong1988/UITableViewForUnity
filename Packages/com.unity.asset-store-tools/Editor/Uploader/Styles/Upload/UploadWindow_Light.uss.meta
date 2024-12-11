@@ -13,6 +13,6 @@ AssetOrigin:
   serializedVersion: 1
   productId: 115
   packageName: Asset Store Publishing Tools
-  packageVersion: 11.4.3
+  packageVersion: 11.4.4
   assetPath: Packages/com.unity.asset-store-tools/Editor/Uploader/Styles/Upload/UploadWindow_Light.uss
-  uploadId: 681981
+  uploadId: 712972

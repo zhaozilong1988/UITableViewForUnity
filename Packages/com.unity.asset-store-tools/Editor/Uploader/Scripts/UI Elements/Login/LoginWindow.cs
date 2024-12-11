@@ -7,11 +7,19 @@ using UnityEngine.UIElements;
 
 namespace AssetStoreTools.Uploader.UIElements
 {
-    internal class LoginWindow : VisualElement
+#if UNITY_6000_0_OR_NEWER
+    [UxmlElement]
+#endif
+    internal partial class LoginWindow : VisualElement
     {
+
+#if !UNITY_6000_0_OR_NEWER
+        public new class UxmlFactory : UxmlFactory<LoginWindow> { }
+#endif
+
         private readonly string REGISTER_URL = "https://publisher.unity.com/access";
         private readonly string FORGOT_PASSWORD_URL = "https://id.unity.com/password/new";
-        
+
         private Button _cloudLoginButton;
         private Button _credentialsLoginButton;
 
@@ -26,8 +34,6 @@ namespace AssetStoreTools.Uploader.UIElements
         private double _cloudLoginRefreshTime = 1d;
         private double _lastRefreshTime;
 
-        public new class UxmlFactory : UxmlFactory<LoginWindow> { }
-
         public LoginWindow()
         {
             styleSheets.Add(StyleSelector.UploaderWindow.LoginWindowStyle);
@@ -39,9 +45,9 @@ namespace AssetStoreTools.Uploader.UIElements
         public void SetupLoginElements(Action<JsonValue> onSuccess, Action<ASError> onFail)
         {
             this.SetEnabled(true);
-            
+
             _cloudLoginLabel = _cloudLoginButton.Q<Label>(className: "login-description");
-            
+
             _cloudLoginLabel.text = "Cloud login unavailable.";
             _cloudLoginButton.SetEnabled(false);
 
@@ -60,7 +66,7 @@ namespace AssetStoreTools.Uploader.UIElements
             _credentialsLoginButton.clicked += async () =>
             {
                 EnableErrorBox(false);
-                
+
                 var validatedFields = ValidateLoginFields(_emailField.text, _passwordField.value);
                 this.SetEnabled(!validatedFields);
 
@@ -75,7 +81,7 @@ namespace AssetStoreTools.Uploader.UIElements
             };
         }
 
-        public void EnableErrorBox(bool enable, string message=null)
+        public void EnableErrorBox(bool enable, string message = null)
         {
             var displayStyle = enable ? DisplayStyle.Flex : DisplayStyle.None;
             _errorBox.style.display = displayStyle;
@@ -89,7 +95,7 @@ namespace AssetStoreTools.Uploader.UIElements
             _emailField.value = String.Empty;
             _passwordField.value = String.Empty;
         }
-        
+
         private bool ValidateLoginFields(string email, string password)
         {
             if (string.IsNullOrEmpty(email))
@@ -106,32 +112,32 @@ namespace AssetStoreTools.Uploader.UIElements
 
             return true;
         }
-        
+
         private void ConstructLoginWindow()
         {
             // Asset Store logo
-            Image assetStoreLogo = new Image {name = "AssetStoreLogo"};
+            Image assetStoreLogo = new Image { name = "AssetStoreLogo" };
             assetStoreLogo.AddToClassList("asset-store-logo");
-            
+
             Add(assetStoreLogo);
 
             // Cloud login
-            VisualElement cloudLogin = new VisualElement {name = "CloudLogin"};
-            
-            _cloudLoginButton = new Button {name = "LoginButtonCloud"};
+            VisualElement cloudLogin = new VisualElement { name = "CloudLogin" };
+
+            _cloudLoginButton = new Button { name = "LoginButtonCloud" };
             _cloudLoginButton.AddToClassList("login-button-cloud");
 
-            Label loginDescription = new Label {text = "Cloud login unavailable"};
+            Label loginDescription = new Label { text = "Cloud login unavailable" };
             loginDescription.AddToClassList("login-description");
-            
-            Label orLabel = new Label {text = "or"};
+
+            Label orLabel = new Label { text = "or" };
             orLabel.AddToClassList("or-label");
 
             _cloudLoginButton.Add(loginDescription);
-            
+
             cloudLogin.Add(_cloudLoginButton);
             cloudLogin.Add(orLabel);
-            
+
             Add(cloudLogin);
 
             _errorBox = new Box() { name = "LoginErrorBox" };
@@ -145,61 +151,61 @@ namespace AssetStoreTools.Uploader.UIElements
 
             Add(_errorBox);
             EnableErrorBox(false);
-            
+
             // Manual login
-            VisualElement manualLoginBox = new VisualElement {name = "ManualLoginBox"};
+            VisualElement manualLoginBox = new VisualElement { name = "ManualLoginBox" };
             manualLoginBox.AddToClassList("manual-login-box");
-            
+
             // Email input box
             VisualElement inputBoxEmail = new VisualElement();
             inputBoxEmail.AddToClassList("input-box-login");
 
-            Label emailTitle = new Label {text = "Email"};
+            Label emailTitle = new Label { text = "Email" };
             _emailField = new TextField();
-            
+
             inputBoxEmail.Add(emailTitle);
             inputBoxEmail.Add(_emailField);
-            
+
             manualLoginBox.Add(inputBoxEmail);
 
             // Password input box
             VisualElement inputBoxPassword = new VisualElement();
             inputBoxPassword.AddToClassList("input-box-login");
 
-            Label passwordTitle = new Label {text = "Password"};
-            _passwordField = new TextField {isPasswordField = true};
-            
+            Label passwordTitle = new Label { text = "Password" };
+            _passwordField = new TextField { isPasswordField = true };
+
             inputBoxPassword.Add(passwordTitle);
             inputBoxPassword.Add(_passwordField);
-            
+
             manualLoginBox.Add(inputBoxPassword);
 
             // Login button
-            _credentialsLoginButton = new Button {name = "LoginButtonCredentials"};
+            _credentialsLoginButton = new Button { name = "LoginButtonCredentials" };
             _credentialsLoginButton.AddToClassList("login-button-cred");
-            
-            Label loginDescriptionCredentials = new Label {text = "Login"};
+
+            Label loginDescriptionCredentials = new Label { text = "Login" };
             loginDescriptionCredentials.AddToClassList("login-description");
-            
+
             _credentialsLoginButton.Add(loginDescriptionCredentials);
-            
+
             manualLoginBox.Add(_credentialsLoginButton);
-            
+
             Add(manualLoginBox);
-            
+
             // Helper buttons
-            VisualElement helperBox = new VisualElement {name = "HelperBox"};
+            VisualElement helperBox = new VisualElement { name = "HelperBox" };
             helperBox.AddToClassList("helper-button-box");
-            
-            Button createAccountButton = new Button {name = "CreateAccountButton", text = "Create Publisher ID"};
-            Button forgotPasswordButton = new Button {name = "ForgotPasswordButton", text = "Reset Password"};
-            
+
+            Button createAccountButton = new Button { name = "CreateAccountButton", text = "Create Publisher ID" };
+            Button forgotPasswordButton = new Button { name = "ForgotPasswordButton", text = "Reset Password" };
+
             createAccountButton.AddToClassList("hyperlink-button");
             forgotPasswordButton.AddToClassList("hyperlink-button");
 
             createAccountButton.clicked += () => Application.OpenURL(REGISTER_URL);
             forgotPasswordButton.clicked += () => Application.OpenURL(FORGOT_PASSWORD_URL);
-            
+
             helperBox.Add(createAccountButton);
             helperBox.Add(forgotPasswordButton);
 
@@ -215,7 +221,7 @@ namespace AssetStoreTools.Uploader.UIElements
                 return;
 
             _lastRefreshTime = EditorApplication.timeSinceStartup;
-            
+
             // Cloud login
             if (AssetStoreAPI.IsCloudUserAvailable)
             {
@@ -228,6 +234,5 @@ namespace AssetStoreTools.Uploader.UIElements
                 _cloudLoginButton.SetEnabled(false);
             }
         }
-        
     }
 }

@@ -302,6 +302,11 @@ namespace AssetStoreTools.Exporter
                 UseShellExecute = false
             };
 
+#if UNITY_EDITOR_OSX
+            // Prevent OSX-specific archive pollution
+            info.EnvironmentVariables.Add("COPYFILE_DISABLE", "1");
+#endif
+
             using (Process process = Process.Start(info))
             {
                 process.WaitForExit();

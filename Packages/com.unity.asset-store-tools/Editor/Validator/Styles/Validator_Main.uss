@@ -7,6 +7,32 @@
     padding: 2px 4px;
 }
 
+.validation-info-foldout
+{
+    margin-left: -4px;
+}
+
+.validation-info-foldout > Toggle > VisualElement
+{
+    flex-shrink: 1;
+}
+
+.validation-info-foldout > Toggle > VisualElement > VisualElement
+{
+    align-self: flex-start;
+}
+
+.validation-info-foldout > Toggle > VisualElement > Label
+{
+    flex-shrink: 1;
+    white-space: normal;
+}
+
+.validation-info-foldout > VisualElement {
+    margin-left: 18px;
+    padding-top: 12px;
+}
+
 .hyperlink-button
 {
     margin: 0;
