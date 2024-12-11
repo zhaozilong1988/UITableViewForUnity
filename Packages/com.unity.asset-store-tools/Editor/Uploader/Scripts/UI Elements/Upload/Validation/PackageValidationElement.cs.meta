@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 33a72e7596565c749a495b4213579a67
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115
+  packageName: Asset Store Publishing Tools
+  packageVersion: 11.4.4
+  assetPath: Packages/com.unity.asset-store-tools/Editor/Uploader/Scripts/UI Elements/Upload/Validation/PackageValidationElement.cs
+  uploadId: 712972

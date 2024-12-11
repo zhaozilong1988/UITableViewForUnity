@@ -1,0 +1,10 @@
+﻿fileFormatVersion: 2
+guid: b5472a1f8e8745779ee82d18b63ec19c
+timeCreated: 1654112492
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115
+  packageName: Asset Store Publishing Tools
+  packageVersion: 11.4.4
+  assetPath: Packages/com.unity.asset-store-tools/Editor/Uploader/Scripts/UI Elements/Upload/Workflows/HybridPackageUploadWorkflowView.cs
+  uploadId: 712972

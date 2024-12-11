@@ -1,0 +1,9 @@
+fileFormatVersion: 1
+guid: 0a7878c3076bf174ea5c0a1cf7bd3a39
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115
+  packageName: Asset Store Publishing Tools
+  packageVersion: 11.4.4
+  assetPath: Packages/com.unity.asset-store-tools/Editor/Utility/Json.cs
+  uploadId: 712972

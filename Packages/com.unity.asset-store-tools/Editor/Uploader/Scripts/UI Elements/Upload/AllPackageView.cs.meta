@@ -1,0 +1,10 @@
+﻿fileFormatVersion: 2
+guid: 607cf9e3fb4a49839f2e6a82e0d8d535
+timeCreated: 1651220955
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115
+  packageName: Asset Store Publishing Tools
+  packageVersion: 11.4.4
+  assetPath: Packages/com.unity.asset-store-tools/Editor/Uploader/Scripts/UI Elements/Upload/AllPackageView.cs
+  uploadId: 712972

@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: 073f1dacf3da34d4783140ae9d485d5f
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115
+  packageName: Asset Store Publishing Tools
+  packageVersion: 11.4.4
+  assetPath: Packages/com.unity.asset-store-tools/Editor/Validator/Scripts/Tests/Test
+    Methods/CheckTextureDimensions.cs
+  uploadId: 712972

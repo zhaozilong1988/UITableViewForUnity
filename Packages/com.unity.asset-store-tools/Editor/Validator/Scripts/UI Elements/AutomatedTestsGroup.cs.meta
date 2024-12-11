@@ -1,0 +1,10 @@
+﻿fileFormatVersion: 2
+guid: 1c2c433eb91b4ca3b7113d88ba3cfb96
+timeCreated: 1653382235
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115
+  packageName: Asset Store Publishing Tools
+  packageVersion: 11.4.4
+  assetPath: Packages/com.unity.asset-store-tools/Editor/Validator/Scripts/UI Elements/AutomatedTestsGroup.cs
+  uploadId: 712972
