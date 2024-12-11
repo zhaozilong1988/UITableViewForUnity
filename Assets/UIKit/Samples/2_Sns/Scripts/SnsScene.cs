@@ -1,7 +1,8 @@
+using System;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.UI;
+using Random = UnityEngine.Random;
 
 namespace UIKit.Samples
 {
@@ -9,12 +10,15 @@ namespace UIKit.Samples
 	{
 		[SerializeField] Text _textSizeCalculator;
 		[SerializeField] UITableView _tableView;
-		[SerializeField] UITableViewCell _cellPrefab;
+		[SerializeField] SnsCell _cellPrefab;
+		[SerializeField] Image _indicator;
 
-		readonly List<Chat> _chats = new List<Chat>();
+		bool _indicatorVisible;
+		readonly List<CellData> _chats = new List<CellData>();
 		const int FONT_SIZE = 30;
+		const float MSG_TEXT_WIDTH = 520f;
 		readonly IReadOnlyList<string> _replies = new List<string>() {
-			"What are you talking about? I'm not an AI, I don't know what are you talking about!",
+			"What are you talking about? I'm not an AI, I don't know what are you talking about! What are you talking about? I'm not an AI, I don't know what are you talking about! What are you talking about? I'm not an AI, I don't know what are you talking about!",
 			"Sorry, I'm not a human, I'm a stupid computer program.",
 			"Please don't ask me anything, I'm just a stupid computer program.",
 		};
@@ -27,22 +31,50 @@ namespace UIKit.Samples
 			_tableView.@delegate = this;
 			// Tell the table view that this class will provide margin between cells
 			_tableView.marginDataSource = this;
-			// _tableView.reachable = this;
+			_tableView.reachable = this;
 
-			var firsttMsg = "Hi! Type something and click send button.";
-			var size = CalculateTextSize(firsttMsg, FONT_SIZE);
-			_chats.Add(new Chat(false, firsttMsg, size.x, size.y));
-			_chats.Add(new Chat(false, _replies[Random.Range(0, _replies.Count-1)], size.x, size.y));
+			var msg = "Hi! Type something and click send button.";
+			var size = CalculateTextSize(msg, FONT_SIZE);
+			_chats.Add(new CellData(msg, MSG_TEXT_WIDTH, size.y));
+			
+			msg = _replies[Random.Range(0, _replies.Count)];
+			size = CalculateTextSize(msg, FONT_SIZE);
+			_chats.Add(new CellData(msg, MSG_TEXT_WIDTH, size.y));
+			
+			msg = _replies[Random.Range(0, _replies.Count)];
+			size = CalculateTextSize(msg, FONT_SIZE);
+			_chats.Add(new CellData(msg, MSG_TEXT_WIDTH, size.y));
+			
+			msg = _replies[Random.Range(0, _replies.Count)];
+			size = CalculateTextSize(msg, FONT_SIZE);
+			_chats.Add(new CellData(msg, MSG_TEXT_WIDTH, size.y));
 
+			_tableView.scrollRect.onValueChanged.AddListener(OnNormalizedPositionChanged);
 			// Reload the table view to refresh UI
 			_tableView.ReloadData();
+		}
+
+		void OnDestroy()
+		{
+			_tableView.scrollRect.onValueChanged.RemoveListener(OnNormalizedPositionChanged);
+		}
+
+		void OnNormalizedPositionChanged(Vector2 normalizedPos)
+		{
+			if (!_indicatorVisible && normalizedPos.y < 0f) {
+				_indicatorVisible = true;
+			} else if (_indicatorVisible && normalizedPos.y >= 0f) {
+				_indicatorVisible = false;
+			}
+
+			_indicator.enabled = _indicatorVisible;
 		}
 
 		Vector2 CalculateTextSize(string text, int fontSize)
 		{
 			_textSizeCalculator.fontSize = fontSize;
 			var size = _textSizeCalculator.rectTransform.sizeDelta;
-			size.x = ((RectTransform)(_tableView.scrollRect.transform)).rect.width * 2f / 3f;
+			size.x = MSG_TEXT_WIDTH;
 			_textSizeCalculator.rectTransform.sizeDelta = size;
 			_textSizeCalculator.text = text;
 			return new Vector2(Mathf.Min(size.x, _textSizeCalculator.preferredWidth), _textSizeCalculator.preferredHeight);
@@ -60,13 +92,13 @@ namespace UIKit.Samples
 
 		public float LengthForCellInTableView(UITableView tableView, int index)
 		{
-			return _chats[index].bubbleHeight;
+			return _chats[index].cellHeight;
 		}
 
 		public void CellAtIndexInTableViewWillAppear(UITableView tableView, int index)
 		{
 			var chat = _chats[index];
-			_tableView.GetLoadedCell<SnsCell>(index).UpdateData("name", chat.message, FONT_SIZE);
+			_tableView.GetLoadedCell<SnsCell>(index).UpdateData("name", chat.size, chat.message, FONT_SIZE);
 		}
 
 		public void CellAtIndexInTableViewDidDisappear(UITableView tableView, int index)
@@ -86,40 +118,46 @@ namespace UIKit.Samples
 
 		public void TableViewReachedTopmostOrRightmost(UITableView tableView)
 		{
-			throw new System.NotImplementedException();
+			
 		}
 
 		public void TableViewReachedBottommostOrLeftmost(UITableView tableView)
 		{
-			throw new System.NotImplementedException();
+			
+			Debug.Log("TableViewReachedBottommostOrLeftmost" + tableView.scrollRect.normalizedPosition);
+			
 		}
 
 		public void TableViewLeftTopmostOrRightmost(UITableView tableView)
 		{
-			throw new System.NotImplementedException();
+			
 		}
 
 		public void TableViewLeftBottommostOrLeftmost(UITableView tableView)
 		{
-			throw new System.NotImplementedException();
+			var msg = _replies[Random.Range(0, _replies.Count)];
+			var size = CalculateTextSize(msg, FONT_SIZE);
+			_chats.Add(new CellData(msg, MSG_TEXT_WIDTH, size.y));
+			_tableView.AppendData();
+			_tableView.ScrollToCellAt(_chats.Count - 2, alignment: UITableViewAlignment.LeftOrBottom, withMargin:true);
 		}
 
 		public float TableViewReachableEdgeTolerance(UITableView tableView)
 		{
-			return UITableView.DEFAULT_REACHABLE_EDGE_TOLERANCE;
+			return -100f;//UITableView.DEFAULT_REACHABLE_EDGE_TOLERANCE;
 		}
 
-		class Chat
+		class CellData
 		{
 			public string message;
-			public float bubbleWidth;
-			public float bubbleHeight;
+			public float cellHeight;
+			public Vector2 size;
 
-			public Chat(bool isMine, string message, float textWidth, float textHeight)
+			public CellData(string message, float textWidth, float textHeight)
 			{
 				this.message = message;
-				bubbleWidth = textWidth + 70f; // padding of bubble background
-				bubbleHeight = textHeight + 450f; // 20f padding on each side of bubble background
+				cellHeight = textHeight + 450f; // 20f padding on each side of bubble background
+				size = new Vector2(textWidth, cellHeight);
 			}
 		}
 	}

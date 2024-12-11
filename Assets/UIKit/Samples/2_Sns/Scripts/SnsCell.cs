@@ -9,9 +9,21 @@ namespace UIKit.Samples
 		[SerializeField] Text _name;
 		[SerializeField] Text _msg;
 
-		public void UpdateData(string username, string msg, int msgFontSize)
+		public float upperMsgMargin = 65f;
+		public float lowerMsgMargin = 385f;
+
+		public void UpdateData(string username, Vector2 textSize, string msg, int msgFontSize)
 		{
 			_name.text = username;
+			var offsetMax = _msg.rectTransform.offsetMax;
+			var offsetMin = _msg.rectTransform.offsetMin;
+			offsetMax.y = -upperMsgMargin;
+			offsetMin.y = lowerMsgMargin;
+			_msg.rectTransform.offsetMax = offsetMax;
+			_msg.rectTransform.offsetMin = offsetMin;
+			var size = _msg.rectTransform.sizeDelta;
+			size.x = textSize.x;
+			_msg.rectTransform.sizeDelta = size;
 			_msg.fontSize = msgFontSize;
 			_msg.text = msg;
 		}
