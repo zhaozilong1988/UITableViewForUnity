@@ -1,0 +1,10 @@
+﻿fileFormatVersion: 2
+guid: 1095145789a64767a6add837eea19786
+timeCreated: 1658832954
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115
+  packageName: Asset Store Publishing Tools
+  packageVersion: 11.4.4
+  assetPath: Packages/com.unity.asset-store-tools/Editor/Uploader/Scripts/Data/ASAnalytics.cs
+  uploadId: 712972

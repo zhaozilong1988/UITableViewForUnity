@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 08790ea0ed0fd274fb1df75ccc32d415
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115
+  packageName: Asset Store Publishing Tools
+  packageVersion: 11.4.4
+  assetPath: Packages/com.unity.asset-store-tools/Editor/Validator/Scripts/Tests/Check
+    Empty Prefabs.asset
+  uploadId: 712972
