@@ -5,6 +5,7 @@ namespace UIKit.Samples
 {
 	public class SnsCell : UITableViewCell
 	{
+		[SerializeField] Image _userIcon;
 		[SerializeField] Image _photo;
 		[SerializeField] Text _name;
 		[SerializeField] Text _msg;
@@ -12,9 +13,12 @@ namespace UIKit.Samples
 		public float upperMsgMargin = 65f;
 		public float lowerMsgMargin = 385f;
 
-		public void UpdateData(string username, Vector2 textSize, string msg, int msgFontSize)
+		public void UpdateData(Sprite userIcon, Sprite photo, string username, string msg, Vector2 textSize, int msgFontSize)
 		{
+			_userIcon.sprite = userIcon;
+			_photo.sprite = photo;
 			_name.text = username;
+			_msg.text = msg;
 			var offsetMax = _msg.rectTransform.offsetMax;
 			var offsetMin = _msg.rectTransform.offsetMin;
 			offsetMax.y = -upperMsgMargin;
@@ -25,7 +29,6 @@ namespace UIKit.Samples
 			size.x = textSize.x;
 			_msg.rectTransform.sizeDelta = size;
 			_msg.fontSize = msgFontSize;
-			_msg.text = msg;
 		}
 
 		public void UnloadData()

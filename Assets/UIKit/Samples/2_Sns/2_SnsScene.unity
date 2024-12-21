@@ -899,6 +899,12 @@ MonoBehaviour:
   _cellPrefab: {fileID: 2564083304504027427, guid: 91cac4f789ffc4ec195b6fea4628a98f,
     type: 3}
   _indicator: {fileID: 1601770254}
+  _postedPhotos:
+  - {fileID: 21300000, guid: baf0f3a296b6c46968d45e7df7b50c44, type: 3}
+  - {fileID: 21300000, guid: 6fc52b2833d784d0ebb8f5bae8cc65d9, type: 3}
+  - {fileID: 21300000, guid: 17adeaae40d7b489fa4b5a8132d07d32, type: 3}
+  _userIcons:
+  - {fileID: -4268459230832778112, guid: d62272b6a95d74eb2a1ce0bb7ba370eb, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
