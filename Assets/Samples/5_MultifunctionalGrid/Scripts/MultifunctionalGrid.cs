@@ -12,7 +12,8 @@ namespace UIKit.Samples
 		[SerializeField] UITableViewCell _gridCell;
 		[SerializeField] UITableViewCell _emptyCell;
 		[SerializeField] Slider _slider;
-		[SerializeField] Text _label;
+		[SerializeField] Text _sliderLabel;
+		[SerializeField] Text _buttonLabel;
 
 		readonly List<int> _dataList = new List<int>();
 		int _columnNumber;
@@ -30,7 +31,7 @@ namespace UIKit.Samples
 			_table.dataSource = this;
 			_table.@delegate = this;
 			_table.clickable = this;
-			// _table.ReloadData();
+			_buttonLabel.text = "Normal Grid";
 		}
 
 		void Update()
@@ -39,24 +40,36 @@ namespace UIKit.Samples
 			if (newColumnNumber == _columnNumber)
 				return;
 			_columnNumber = newColumnNumber;
-			_label.text = $"Even line: {Mathf.Max(_columnNumber / 2, 1)}, Odd line:{_columnNumber}";
+			_sliderLabel.text = $"Even line: {Mathf.Max(_columnNumber / 2, 1)}, Odd line:{_columnNumber}";
 			_table.ReloadData();
 		}
 
-		public void SwitchDragMode()
+		public void OnButtonClicked()
 		{
-			_mode = _mode != Mode.Draggable ? Mode.Draggable : Mode.Normal;
-			var undraggable = _mode != Mode.Draggable;
-			_table.scrollRect.vertical = undraggable;
-			_table.draggable = undraggable ? null : this;
-			_table.ReloadData();
-		}
-
-		public void SwitchDeleteMode()
-		{
-			_mode = _mode != Mode.Deletable ? Mode.Deletable : Mode.Normal;
-			_table.scrollRect.vertical = true;
-			_table.ReloadData();
+			switch (_mode) {
+				case Mode.Normal:
+					_mode = Mode.Deletable;
+					_table.scrollRect.vertical = true;
+					_table.draggable = null;
+					_table.ReloadData();
+					_buttonLabel.text = "Deletable Grid";
+					break;
+				case Mode.Draggable:
+					_mode = Mode.Normal;
+					_table.scrollRect.vertical = true;
+					_table.draggable = null;
+					_table.ReloadData();
+					_buttonLabel.text = "Normal Grid";
+					break;
+				case Mode.Deletable:
+					_mode = Mode.Draggable;
+					_table.scrollRect.vertical = false;
+					_table.draggable = this;
+					_table.ReloadData();
+					_buttonLabel.text = "Draggable Grid";
+					break;
+				
+			}
 		}
 
 		public UITableViewCell CellAtIndexInTableView(UITableView tableView, int index)
