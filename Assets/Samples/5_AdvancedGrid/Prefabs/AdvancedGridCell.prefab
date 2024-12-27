@@ -198,7 +198,7 @@ GameObject:
   - component: {fileID: 5077326324520198755}
   - component: {fileID: 8669581284404242529}
   m_Layer: 5
-  m_Name: MultifunctionalGridCell
+  m_Name: AdvancedGridCell
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

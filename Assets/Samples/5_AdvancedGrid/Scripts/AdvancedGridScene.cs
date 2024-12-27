@@ -6,7 +6,7 @@ using Slider = UnityEngine.UI.Slider;
 
 namespace UIKit.Samples
 {
-	public class MultifunctionalGrid : MonoBehaviour, IUIGridViewDataSource, IUITableViewDelegate, IUITableViewDraggable, IUITableViewClickable
+	public class AdvancedGridScene : MonoBehaviour, IUIGridViewDataSource, IUITableViewDelegate, IUITableViewDraggable, IUITableViewClickable
 	{
 		[SerializeField] UITableView _table;
 		[SerializeField] UITableViewCell _gridCell;
@@ -103,7 +103,7 @@ namespace UIKit.Samples
 		public void CellAtIndexInTableViewWillAppear(UITableView tableView, int index)
 		{
 			if (_dataList[index] >= 0) {
-				tableView.GetLoadedCell<MultifunctionalGridCell>(index).UpdateData(_dataList[index], _mode);
+				tableView.GetLoadedCell<AdvancedGridCell>(index).UpdateData(_dataList[index], _mode);
 			}
 		}
 
@@ -133,10 +133,10 @@ namespace UIKit.Samples
 		{
 			if (!draggedIndex.HasValue)
 				return;
-			foreach (var cell in _table.GetAllLoadedCells<MultifunctionalGridCell>())
+			foreach (var cell in _table.GetAllLoadedCells<AdvancedGridCell>())
 				cell.SetMergeable(false);
-			if (tableView.TryFindMostIntersectedCell<MultifunctionalGridCell>(draggedIndex.Value, out var mostIntersectedCellIndex, out var maxArea) && maxArea > 150f)
-				tableView.GetLoadedCell<MultifunctionalGridCell>(mostIntersectedCellIndex).SetMergeable(true);
+			if (tableView.TryFindMostIntersectedCell<AdvancedGridCell>(draggedIndex.Value, out var mostIntersectedCellIndex, out var maxArea) && maxArea > 150f)
+				tableView.GetLoadedCell<AdvancedGridCell>(mostIntersectedCellIndex).SetMergeable(true);
 		}
 
 		public void TableViewOnEndDrag(UITableView tableView, int? draggedIndex, PointerEventData eventData)
@@ -144,10 +144,10 @@ namespace UIKit.Samples
 			if (!draggedIndex.HasValue) {
 				return;
 			}
-			foreach (var cell in _table.GetAllLoadedCells<MultifunctionalGridCell>()) {
+			foreach (var cell in _table.GetAllLoadedCells<AdvancedGridCell>()) {
 				cell.SetMergeable(false);
 			}
-			if (tableView.TryFindMostIntersectedCell<MultifunctionalGridCell>(draggedIndex.Value, out var mostIntersectedCellIndex, out var maxArea) && maxArea > 150f) {
+			if (tableView.TryFindMostIntersectedCell<AdvancedGridCell>(draggedIndex.Value, out var mostIntersectedCellIndex, out var maxArea) && maxArea > 150f) {
 				var swap = _dataList[mostIntersectedCellIndex];
 				_dataList[mostIntersectedCellIndex] = _dataList[draggedIndex.Value];
 				_dataList[draggedIndex.Value] = swap;

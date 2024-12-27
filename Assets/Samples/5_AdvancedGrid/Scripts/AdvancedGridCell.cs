@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 namespace UIKit.Samples
 {
-	public class MultifunctionalGridCell : UITableViewCell
+	public class AdvancedGridCell : UITableViewCell
 	{
 		[SerializeField] Text _indexText;
 		[SerializeField] Image _bgImage;
@@ -25,20 +25,20 @@ namespace UIKit.Samples
 			_initialColor = _bgImage.color;
 		}
 
-		public void UpdateData(int cellIndex, MultifunctionalGrid.Mode mode)
+		public void UpdateData(int cellIndex, AdvancedGridScene.Mode mode)
 		{
-			_editIcon.enabled = mode != MultifunctionalGrid.Mode.Normal;
+			_editIcon.enabled = mode != AdvancedGridScene.Mode.Normal;
 			_indexText.text = cellIndex.ToString();
 			var sprite = _monsterSprites[cellIndex % _monsterSprites.Length];
 			_icon.sprite = sprite;
 		
 			switch (mode) {
-				case MultifunctionalGrid.Mode.Normal:
+				case AdvancedGridScene.Mode.Normal:
 					break;
-				case MultifunctionalGrid.Mode.Draggable:
+				case AdvancedGridScene.Mode.Draggable:
 					_editIcon.sprite = _draggableSprite;
 					break;
-				case MultifunctionalGrid.Mode.Deletable:
+				case AdvancedGridScene.Mode.Deletable:
 					_editIcon.sprite = _deletableSprite;
 					break;
 				default:

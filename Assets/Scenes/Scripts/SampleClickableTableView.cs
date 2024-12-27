@@ -17,6 +17,12 @@ public class SampleClickableTableView : UITableView, IUITableViewDataSource, IUI
 	public Action onClickDragCell;
 	public Action onClickDeleteCell;
 	public Action onClickReverseDirection;
+	
+	// b: 545,600
+	// 8 ~ 12: 2, 795, 000
+	// 1~7: 3, 848, 000
+	// c: 160, 000
+	// total: 6, 403, 600
 
 	protected override void Awake()
 	{

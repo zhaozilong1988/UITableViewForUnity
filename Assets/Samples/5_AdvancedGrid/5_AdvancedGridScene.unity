@@ -194,7 +194,7 @@ GameObject:
   - component: {fileID: 31148724}
   - component: {fileID: 31148725}
   m_Layer: 0
-  m_Name: MultifunctionalGrid
+  m_Name: AdvancedGridScene
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1038,7 +1038,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: -0.000098370896}
+  m_AnchoredPosition: {x: 0, y: 0.000061012142}
   m_SizeDelta: {x: 0, y: 1050.5}
   m_Pivot: {x: 0, y: 1}
 --- !u!1 &1257669866
