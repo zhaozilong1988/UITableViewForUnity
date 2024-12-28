@@ -1,10 +1,9 @@
-﻿using UIKit;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 
 namespace UIKit.Samples
 {
-	public class SampleTextCell : UITableViewCell
+	public class AdvancedTextCell : UITableViewCell
 	{
 		[SerializeField] Text _text;
 		[SerializeField] Text _indexText;

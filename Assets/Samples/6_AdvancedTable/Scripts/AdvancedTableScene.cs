@@ -2,54 +2,46 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
 namespace UIKit.Samples
 {
-	public class AdvancedTableScene : UITableView, IUITableViewDataSource, IUITableViewDelegate, IUITableViewMargin
+	public class AdvancedTableScene : MonoBehaviour, IUITableViewDataSource, IUITableViewDelegate, IUITableViewMargin
 	{
-		[SerializeField] SampleImageCell _imageCellPrefab;
-		[SerializeField] SampleTextCell _textCellPrefab;
-		[SerializeField] SampleTabCell _tabCellPrefab;
+		[SerializeField] UITableView _tableView;
+		[SerializeField] AdvancedMonsterCell _monsterCellPrefab;
+		[SerializeField] AdvancedTextCell _textCellPrefab;
 
-		readonly List<SampleData> _dataList = new List<SampleData>();
+		readonly List<AdvancedCellData> _dataList = new List<AdvancedCellData>();
 
-		protected override void Awake()
+		void Start()
 		{
-			base.Awake();
 			// Prepare for data source
-			_dataList.Add(CreateSampleForTab());
 			_dataList.AddRange(CreateSamples(10));
 
 			// Setup table view
-			dataSource = this;
-			marginDataSource = this;
-			@delegate = this;
+			_tableView.dataSource = this;
+			_tableView.marginDataSource = this;
+			_tableView.@delegate = this;
+
+			_tableView.ReloadData();
 		}
 
-		static SampleData CreateSampleForTab()
-		{
-			var data = new SampleData {
-				sampleType = SampleData.SampleType.Tab,
-				scalar = 120f
-			};
-			return data;
-		}
-
-		IEnumerable<SampleData> CreateSamples(int count)
+		IEnumerable<AdvancedCellData> CreateSamples(int count)
 		{
 			for (var i = 0; i < count; i++) {
-				var data = new SampleData();
+				var data = new AdvancedCellData();
 				if (Random.Range(i, count) % 3 == 1) {
-					data.sampleType = SampleData.SampleType.Text;
+					data.cellType = AdvancedCellData.CellType.Text;
 					data.scalar = 75f + Random.Range(0f, 100f);
 					data.text = "https://www.freepik.com/free-photos-vectors/character";
 				}
 				else {
-					data.sampleType = SampleData.SampleType.Image;
+					data.cellType = AdvancedCellData.CellType.Monster;
 					data.scalar = 200f;
 					data.rarity = Random.Range(1, 5);
-					data.spriteIndex = Random.Range(0, 8);
+					data.spriteIndex = Random.Range(0, 4);
 					data.scalarBeforeExpand = data.scalar;
 					data.scalarAfterExpand = data.scalar + 300;
 					data.onExpand = Expand;
@@ -77,8 +69,8 @@ namespace UIKit.Samples
 				dataList[index].scalar = sampleData.isExpanded
 					? Mathf.Lerp(sampleData.scalarBeforeExpand, sampleData.scalarAfterExpand, progress)
 					: Mathf.Lerp(sampleData.scalarAfterExpand, sampleData.scalarBeforeExpand, progress);
-				RearrangeData();
-				ScrollToCellAt(index, withMargin: false);
+				_tableView.RearrangeData();
+				_tableView.ScrollToCellAt(index, withMargin: false);
 			}
 		}
 
@@ -87,13 +79,11 @@ namespace UIKit.Samples
 		public UITableViewCell CellAtIndexInTableView(UITableView tableView, int index)
 		{
 			var data = _dataList[index];
-			switch (data.sampleType) {
-				case SampleData.SampleType.Text:
+			switch (data.cellType) {
+				case AdvancedCellData.CellType.Text:
 					return tableView.ReuseOrCreateCell(_textCellPrefab);
-				case SampleData.SampleType.Image:
-					return tableView.ReuseOrCreateCell(_imageCellPrefab);
-				case SampleData.SampleType.Tab:
-					return tableView.ReuseOrCreateCell(_tabCellPrefab, UITableViewCellLifeCycle.RecycleWhenReloaded);
+				case AdvancedCellData.CellType.Monster:
+					return tableView.ReuseOrCreateCell(_monsterCellPrefab);
 				default:
 					throw new ArgumentOutOfRangeException();
 			}
@@ -117,14 +107,14 @@ namespace UIKit.Samples
 		{
 			UITableViewCellLifeCycle lifeCycle;
 			var data = _dataList[index];
-			switch (data.sampleType) {
-				case SampleData.SampleType.Text:
-					var textCell = tableView.GetLoadedCell<SampleTextCell>(index);
+			switch (data.cellType) {
+				case AdvancedCellData.CellType.Text:
+					var textCell = tableView.GetLoadedCell<AdvancedTextCell>(index);
 					textCell.UpdateData(index, data.text);
 					lifeCycle = textCell.lifeCycle;
 					break;
-				case SampleData.SampleType.Image:
-					var imageCell = tableView.GetLoadedCell<SampleImageCell>(index);
+				case AdvancedCellData.CellType.Monster:
+					var imageCell = tableView.GetLoadedCell<AdvancedMonsterCell>(index);
 					imageCell.UpdateData(index, data);
 					lifeCycle = imageCell.lifeCycle;
 					break;
@@ -138,8 +128,8 @@ namespace UIKit.Samples
 		public void CellAtIndexInTableViewDidDisappear(UITableView tableView, int index)
 		{
 			var data = _dataList[index];
-			if (data.sampleType == SampleData.SampleType.Image) {
-				var imageCell = tableView.GetLoadedCell<SampleImageCell>(index);
+			if (data.cellType == AdvancedCellData.CellType.Monster) {
+				var imageCell = tableView.GetLoadedCell<AdvancedMonsterCell>(index);
 				imageCell.ClearUp();
 			}
 

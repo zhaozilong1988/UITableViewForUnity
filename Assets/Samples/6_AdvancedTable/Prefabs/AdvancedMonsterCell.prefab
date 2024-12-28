@@ -1186,7 +1186,7 @@ GameObject:
   - component: {fileID: 5077326324520198755}
   - component: {fileID: 6296921478661641863}
   m_Layer: 5
-  m_Name: SampleImageCell
+  m_Name: AdvancedMonsterCell
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1244,10 +1244,6 @@ MonoBehaviour:
   _paleRed: {r: 0.882353, g: 0.32156864, b: 0.2627451, a: 1}
   _frameImage: {fileID: 3485888021158892890}
   _monsterSprites:
-  - {fileID: 21300000, guid: 5436ffa35601a4b2bb478f7d68e1d512, type: 3}
-  - {fileID: 21300000, guid: 25a792a840137466cb9ff7ab0e1ff687, type: 3}
-  - {fileID: 21300000, guid: bae9fa5308514492d8ab2d2430aa5392, type: 3}
-  - {fileID: 21300000, guid: 0afe0b3ed7e7e49d9a45d5dd2129fc50, type: 3}
   - {fileID: 21300000, guid: 07d7efab2878b4e9795e32f7924f0e36, type: 3}
   - {fileID: 21300000, guid: 4d34ff45c11f04f2dbd16543bcd7103b, type: 3}
   - {fileID: 21300000, guid: 955956c3ab805432593be50aa579114c, type: 3}
