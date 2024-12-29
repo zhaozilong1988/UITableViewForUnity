@@ -133,8 +133,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: f78717e105e374e9ea2e77710c30dd67, type: 3}
+  m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -209,8 +209,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: f78717e105e374e9ea2e77710c30dd67, type: 3}
+  m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -270,8 +270,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: -136, y: -100.00002}
-  m_SizeDelta: {x: 135.5, y: 178.20001}
+  m_AnchoredPosition: {x: -136, y: -97.448}
+  m_SizeDelta: {x: 135.5, y: 183.31}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2763538822171688849
 CanvasRenderer:
@@ -301,8 +301,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: f78717e105e374e9ea2e77710c30dd67, type: 3}
+  m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -612,7 +612,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+  m_Sprite: {fileID: 21300000, guid: f78717e105e374e9ea2e77710c30dd67, type: 3}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -745,7 +745,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+  m_Sprite: {fileID: 21300000, guid: f78717e105e374e9ea2e77710c30dd67, type: 3}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -942,8 +942,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: 121.2, y: -66.425}
-  m_SizeDelta: {x: 357.9, y: 110.3}
+  m_AnchoredPosition: {x: 121.2, y: -63.682987}
+  m_SizeDelta: {x: 357.9, y: 115.78}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2679849940625923446
 CanvasRenderer:
@@ -967,14 +967,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
   m_Color: {r: 0.45098042, g: 0.6117647, b: 0.28235295, a: 1}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: f78717e105e374e9ea2e77710c30dd67, type: 3}
+  m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -1238,17 +1238,15 @@ MonoBehaviour:
   - {fileID: 7930847446228824234}
   _deepGreen: {r: 0.45098042, g: 0.6117647, b: 0.28235295, a: 1}
   _paleGreen: {r: 0.58431375, g: 0.7490196, b: 0.36078432, a: 1}
-  _deepOrange: {r: 0.89019614, g: 0.5058824, b: 0.18823531, a: 1}
-  _paleOrange: {r: 0.94117653, g: 0.6117647, b: 0.21960786, a: 1}
   _deepRed: {r: 0.7568628, g: 0.24705884, b: 0.21960786, a: 1}
   _paleRed: {r: 0.882353, g: 0.32156864, b: 0.2627451, a: 1}
   _frameImage: {fileID: 3485888021158892890}
   _monsterSprites:
-  - {fileID: 21300000, guid: 07d7efab2878b4e9795e32f7924f0e36, type: 3}
-  - {fileID: 21300000, guid: 4d34ff45c11f04f2dbd16543bcd7103b, type: 3}
-  - {fileID: 21300000, guid: 955956c3ab805432593be50aa579114c, type: 3}
-  - {fileID: 21300000, guid: 07cf037c650264b798d91ddc91707cdf, type: 3}
-  - {fileID: 21300000, guid: 4b379b7dbd24444a29bf2e191a10927f, type: 3}
+  - {fileID: 21300000, guid: 892e3acf5646f4d2faca7b0673c15fc6, type: 3}
+  - {fileID: 21300000, guid: 27060f675601c4fc8af7b0c733ed7fcc, type: 3}
+  - {fileID: 21300000, guid: 35e3cdfa4fda6425aa5980bfbef9c388, type: 3}
+  - {fileID: 21300000, guid: 58426fb57125a46b6a065606f2b77040, type: 3}
+  - {fileID: 21300000, guid: aaed2ad82ea144742bd2786f2ab9d4a1, type: 3}
   _rarityImages:
   - {fileID: 3977042046989506536}
   - {fileID: 204851109934426103}
