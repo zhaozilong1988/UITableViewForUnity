@@ -89,5 +89,8 @@ namespace UIKit.Samples
 		{
 			return 50000f;
 		}
+		
+		// https://github.com/zhaozilong1988/UITableViewForUnity.git?path=Assets/UIKit
+		// https://github.com/quartorz/FlexibleTextMesh.git?path=Assets/FlexibleTextMesh
 	}
 }
