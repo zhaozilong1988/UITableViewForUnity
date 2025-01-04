@@ -3,13 +3,13 @@
 UITableViewForUnityは、アプリ開発中によくあるリスト系のUI(2D)仕様を、楽に実現できるUnityエンジンのコンポーネントです。
 
 例
-| チャット式 | ジャバラ式 | Appendable List | 
+| Chat | Expandable List | Appendable List
 | --- | --- | --- |
 | ![](sample_chat.gif) | ![](sample_expend.gif) | ![](sample_append.gif)
-| グリッド式 | Draggable Grid | Deletable Grid |
+| Grid | Draggable Grid | Deletable Grid |
 ![](sample_grid.gif) | ![](sample_grid_drag.gif) | ![](sample_grid_del.gif) |
-| Nested Scrolling |
-![](sample_nested_scrollrect.gif) |
+| Nested Scrolling | Snapping
+![](sample_nested_scrollrect.gif) | ![](sample_snapping.gif)
 
 # なぜ必要?
 
@@ -54,10 +54,15 @@ Cellの高さを自由(0不可)に調整できるので、ジャバラ式みた�
 
 フレンドリストなど、データをページ式で少しずつAPIで取る形なら、TableViewの先頭と後尾からCellをアペンドすることもできます。
 
+# インストール
 
-# どう使う?
+- Unity Package Manager を開きます。
+- 「Add package from git URL」を選択します。
+- 次の URL を入力します：https://github.com/zhaozilong1988/UITableViewForUnity.git?path=Assets/UIKit.
 
-[SampleScene.unity](https://github.com/zhaozilong1988/UITableViewForUnity/blob/master/Assets/Scenes/SampleScene.unity)と[SampleScene.cs](https://github.com/zhaozilong1988/UITableViewForUnity/blob/master/Assets/Scenes/Scripts/SampleScene.cs)の実装をご参考ください。
+# 使い方
+
+[Assets/UIKit/Samples](https://github.com/zhaozilong1988/UITableViewForUnity/tree/master/Assets/UIKit/Samples)フォルダー内のサンプル、または Unity Package Manager の「Samples」タブをご確認ください。
 
 # 設計について
 

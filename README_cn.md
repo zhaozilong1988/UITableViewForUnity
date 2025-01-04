@@ -3,13 +3,13 @@
 UITableViewForUnity是一个可以方便实现各种列表式UI需求的Unity引擎的组件。<br>
 
 比如
-| 消息列表 | 可展开式列表 | 可追加式列表 |
+| Chat | Expandable List | Appendable List
 | --- | --- | --- |
 | ![](sample_chat.gif) | ![](sample_expend.gif) | ![](sample_append.gif)
-| 网格 | 可拖拽 | 可编辑 |
+| Grid | Draggable Grid | Deletable Grid |
 ![](sample_grid.gif) | ![](sample_grid_drag.gif) | ![](sample_grid_del.gif) |
-| Nested Scrolling |
-![](sample_nested_scrollrect.gif) |
+| Nested Scrolling | Snapping
+![](sample_nested_scrollrect.gif) | ![](sample_snapping.gif)
 
 # 为什么需要?
 
@@ -53,9 +53,15 @@ Cell的高度可以被任意调整（除了0），所以像上边提到的可展
 
 朋友列表等，需要通过API分页取得数据的情况，在TableView的表头表尾可以随意增加新加载的数据。<br>
 
-# 怎么使用?
+# 安装
 
-请参考[SampleScene.unity](https://github.com/zhaozilong1988/UITableViewForUnity/blob/master/Assets/Scenes/SampleScene.unity)和[SampleScene.cs](https://github.com/zhaozilong1988/UITableViewForUnity/blob/master/Assets/Scenes/Scripts/SampleScene.cs)。
+1. 打开 Unity Package Manager。
+2. 选择 "Add package from git URL".
+3. 输入以下 URL：https://github.com/zhaozilong1988/UITableViewForUnity.git?path=Assets/UIKit.
+
+# 使用方法
+
+请查看 [Assets/UIKit/Samples](https://github.com/zhaozilong1988/UITableViewForUnity/tree/master/Assets/UIKit/Samples) 文件夹中的示例，或者在 Unity Package Manager 的 “Samples” 选项卡中查看示例。
 
 # 关于设计
 
