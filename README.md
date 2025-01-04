@@ -27,6 +27,7 @@ UITableViewForUnity will help you to develop various of list views effectively w
 # How to use?
 
 Check the samples in the [Assets/UIKit/Samples](https://github.com/zhaozilong1988/UITableViewForUnity/tree/master/Assets/UIKit/Samples) folder or in the Unity Package Manager’s Samples tab
+![](samples_tab.png)
 
 # The concept of design
 

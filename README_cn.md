@@ -62,6 +62,7 @@ Cell的高度可以被任意调整（除了0），所以像上边提到的可展
 # 使用方法
 
 请查看 [Assets/UIKit/Samples](https://github.com/zhaozilong1988/UITableViewForUnity/tree/master/Assets/UIKit/Samples) 文件夹中的示例，或者在 Unity Package Manager 的 “Samples” 选项卡中查看示例。
+![](samples_tab.png)
 
 # 关于设计
 

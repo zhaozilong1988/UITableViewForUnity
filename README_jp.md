@@ -63,6 +63,7 @@ Cellの高さを自由(0不可)に調整できるので、ジャバラ式みた�
 # 使い方
 
 [Assets/UIKit/Samples](https://github.com/zhaozilong1988/UITableViewForUnity/tree/master/Assets/UIKit/Samples)フォルダー内のサンプル、または Unity Package Manager の「Samples」タブをご確認ください。
+![](samples_tab.png)
 
 # 設計について
 
