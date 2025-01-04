@@ -5,11 +5,11 @@ UITableViewForUnity是一个可以方便实现各种列表式UI需求的Unity引
 比如
 | Chat | Expandable List | Appendable List
 | --- | --- | --- |
-| ![](sample_chat.gif) | ![](sample_expend.gif) | ![](sample_append.gif)
+| ![](sample_chat_list.gif) | ![](sample_expend.gif) | ![](sample_append.gif)
 | Grid | Draggable Grid | Deletable Grid |
 ![](sample_grid.gif) | ![](sample_grid_drag.gif) | ![](sample_grid_del.gif) |
 | Nested Scrolling | Snapping
-![](sample_nested_scrollrect.gif) | ![](sample_snapping.gif)
+![](sample_netflix_like.gif) | ![](sample_snapping.gif)
 
 # 为什么需要?
 

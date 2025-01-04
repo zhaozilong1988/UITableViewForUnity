@@ -5,11 +5,11 @@ UITableViewForUnityは、アプリ開発中によくあるリスト系のUI(2D)�
 例
 | Chat | Expandable List | Appendable List
 | --- | --- | --- |
-| ![](sample_chat.gif) | ![](sample_expend.gif) | ![](sample_append.gif)
+| ![](sample_chat_list.gif) | ![](sample_expend.gif) | ![](sample_append.gif)
 | Grid | Draggable Grid | Deletable Grid |
 ![](sample_grid.gif) | ![](sample_grid_drag.gif) | ![](sample_grid_del.gif) |
 | Nested Scrolling | Snapping
-![](sample_nested_scrollrect.gif) | ![](sample_snapping.gif)
+![](sample_netflix_like.gif) | ![](sample_snapping.gif)
 
 # なぜ必要?
 
