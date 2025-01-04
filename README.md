@@ -5,13 +5,13 @@
 UITableViewForUnity is a componet which can be used for implementing various of list UI views with Unity engine.
 
 For example
-| Chat | Expandable List | Appendable List
+| Chat | Nested Scrolling | Appendable List
 | --- | --- | --- |
-| ![](sample_chat_list.gif) | ![](sample_expend.gif) | ![](sample_append.gif)
-| Grid | Draggable Grid | Deletable Grid |
-![](sample_grid.gif) | ![](sample_grid_drag.gif) | ![](sample_grid_del.gif) |
-| Nested Scrolling | Snapping
-![](sample_netflix_like.gif) | ![](sample_snapping.gif)
+| ![](sample_chat_list.gif) | ![](sample_netflix_like.gif) | ![](sample_sns.gif) |
+| Snapping | Expandable List | Grid |
+![](sample_snapping.gif) | ![](sample_expend.gif) | ![](sample_endless_grid.gif) |
+| Changeable Grid | Draggable Grid | Deletable Grid |
+![](sample_changeable_grid.gif) | ![](sample_grid_drag.gif) | ![](sample_grid_del.gif) |
 
 
 # Why I need this?
