@@ -12,42 +12,42 @@
         {
             "displayName": "0_SimpleTable",
             "description": "Simple table.",
-            "path": "Samples~/0_SimpleTable"
+            "path": "Samples/0_SimpleTable"
         },
         {
             "displayName": "1_Chat",
             "description": "Chat list.",
-            "path": "Samples~/1_Chat"
+            "path": "Samples/1_Chat"
         },
         {
             "displayName": "2_Sns",
             "description": "Sns list.",
-            "path": "Samples~/2_Sns"
+            "path": "Samples/2_Sns"
         },
         {
             "displayName": "3_SimpleGrid",
             "description": "Simple grid.",
-            "path": "Samples~/3_SimpleGrid"
+            "path": "Samples/3_SimpleGrid"
         },
         {
             "displayName": "4_NetflixLike",
             "description": "Netflix like list.",
-            "path": "Samples~/4_NetflixLike"
+            "path": "Samples/4_NetflixLike"
         },
         {
             "displayName": "5_AdvancedGrid",
             "description": "Advanced grid.",
-            "path": "Samples~/5_AdvancedGrid"
+            "path": "Samples/5_AdvancedGrid"
         },
         {
             "displayName": "6_AdvancedTable",
             "description": "Advanced table.",
-            "path": "Samples~/6_AdvancedTable"
+            "path": "Samples/6_AdvancedTable"
         },
         {
             "displayName": "7_SnappingTable",
             "description": "7_Snapping table.",
-            "path": "Samples~/7_SnappingTable"
+            "path": "Samples/7_SnappingTable"
         }
     ]
 }
