@@ -967,7 +967,7 @@ MonoBehaviour:
   _scrollRect: {fileID: 1413112497}
   _viewport: {fileID: 1615867753}
   _content: {fileID: 1437777802}
-  _direction: 0
+  _direction: 2
   _useNestedScrollRect: 0
   _ignoreCellLifeCycle: 0
   _tag: 0
