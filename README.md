@@ -20,9 +20,13 @@ UITableViewForUnity will help you to develop various of list views effectively w
 
 # Installation
 
+## UMP
 1. Open the Unity Package Manager.
 2. Select "Add package from git URL".
 3. Enter https://github.com/zhaozilong1988/UITableViewForUnity.git?path=Assets/UIKit.
+
+## .unitypackge
+Download the unitypackge from the [Releases](https://github.com/zhaozilong1988/UITableViewForUnity/releases), then import it to your project.
 
 # How to use?
 
