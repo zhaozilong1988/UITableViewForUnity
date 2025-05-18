@@ -200,8 +200,8 @@ namespace UIKit
 			var contentSize = _content.rect.size;
 			var viewportSize = _ignoreCellLifeCycle ? contentSize : _viewport.rect.size;
 			var startPosition = normalizedPosition * (contentSize - viewportSize);
-			var startIndex = FindIndexOfCellAtPosition(startPosition);
-			var endIndex = FindIndexOfCellAtPosition(startPosition + viewportSize);
+			var startIndex = FindIndexOfCellAtPosition(startPosition, 0, _holders.Count);
+			var endIndex = FindIndexOfCellAtPosition(startPosition + viewportSize, startIndex, _holders.Count);
 			if (_columnPerRowInGrid != null) {
 				startIndex -= _holders[startIndex].columnIndex;
 				var e = _holders[endIndex];
@@ -211,10 +211,6 @@ namespace UIKit
 			return new Vector2Int(startIndex, endIndex);
 		}
 
-		int FindIndexOfCellAtPosition(Vector2 position)
-		{
-			return FindIndexOfCellAtPosition(position, 0, _holders.Count);
-		}
 		int FindIndexOfCellAtPosition(Vector2 position, int startIndex, int length)
 		{
 			var positionXY = _direction.IsVertical() ? position.y : position.x;
@@ -232,7 +228,7 @@ namespace UIKit
 		{
 			var np = _direction.IsTopToBottomOrRightToLeft() ? Vector2.one - normalizedPosition : normalizedPosition;
 			var tvPos = np * _content.rect.size - _viewport.rect.size * (np - calibrationPoint);
-			return FindIndexOfCellAtPosition(tvPos);
+			return FindIndexOfCellAtPosition(tvPos, 0, _holders.Count);
 		}
 
 		void ResizeContent(int numberOfCells)
@@ -881,6 +877,7 @@ namespace UIKit
 			}
 		}
 
+		/// <summary> Returns all UITableViewCells that intersect with the specified cell at index `withCellIndex`. This excludes the cell at `withCellIndex` itself. </summary>
 		public IEnumerable<UITableViewCell> GetAllIntersectedCells(int withCellIndex)
 		{
 			var withCell = GetLoadedCell(withCellIndex);
@@ -919,6 +916,7 @@ namespace UIKit
 			return mostIntersectedCellIndex >= 0;
 		}
 
+		/// <summary> Attempts to find the cell that has the largest intersection area with the specified reference cell. </summary>
 		public bool TryFindMostIntersectedCell<T>(int withCellIndex, out int mostIntersectedCellIndex, out float maxAreaOfIntersection)
 			where T : UITableViewCell
 		{
