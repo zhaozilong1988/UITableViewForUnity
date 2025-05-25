@@ -4,6 +4,8 @@ namespace UIKit
 	{
 		public UITableViewCell loadedCell { get; set; }
 
+		public float width { get; set; } = -1;
+
 		/// <summary> Height or width of the cell. </summary>
 		public float length { get; set; }
 
@@ -14,7 +16,9 @@ namespace UIKit
 		public float lowerMargin { get; set; }
 
 		/// <summary> The position relative to scroll view's content without considering anchor. </summary>
-		public float position { get; set; }
+		public float positionForLength { get; set; }
+
+		public float positionForWidth { get; set; }
 
 		/// <summary> If the direction is Top ⇔ Bottom, the row is horizontal direction, or vertical direction in Right to Left. </summary>
 		public int rowIndex { get; set; }
