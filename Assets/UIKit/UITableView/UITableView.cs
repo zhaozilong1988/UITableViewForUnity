@@ -419,7 +419,7 @@ namespace UIKit
 			if (_direction.IsVertical()) {
 				switch (alignment) {
 					case UITableViewAlignment.LeftOrBottom: anchoredPosition.x = (pivot.x * holder.width) + holder.positionForWidth; break;
-					case UITableViewAlignment.Center: anchoredPosition.x = (0.5f - pivot.x) * (holder.positionForWidth + holder.width) + (0.5f - anchorMin.x) * contentSize.x;  break;
+					case UITableViewAlignment.Center: anchoredPosition.x = (0.5f - pivot.x) * (holder.positionForWidth + holder.width) + (0.5f - anchorMin.x) * contentSize.x;  break; // TODO:
 					case UITableViewAlignment.RightOrTop: anchoredPosition.x = (pivot.x * holder.width) + (contentSize.x - holder.positionForWidth - holder.width); break;
 					default: throw new ArgumentOutOfRangeException();
 				}
@@ -434,7 +434,7 @@ namespace UIKit
 					: (pivot.x * holder.length + holder.positionForLength);
 				switch (alignment) {
 					case UITableViewAlignment.LeftOrBottom: anchoredPosition.y = (pivot.y * holder.width) + holder.positionForWidth; break;
-					case UITableViewAlignment.Center: anchoredPosition.y = (0.5f - pivot.y) * (holder.positionForWidth + holder.width) + (0.5f - anchorMin.y) * contentSize.y;  break;
+					case UITableViewAlignment.Center: anchoredPosition.y = (0.5f - pivot.y) * (holder.positionForWidth + holder.width) + (0.5f - anchorMin.y) * contentSize.y;  break; // TODO:
 					case UITableViewAlignment.RightOrTop: anchoredPosition.y = (pivot.y * holder.width) + (contentSize.y - holder.positionForWidth - holder.width); break;
 					default: throw new ArgumentOutOfRangeException();
 				}
