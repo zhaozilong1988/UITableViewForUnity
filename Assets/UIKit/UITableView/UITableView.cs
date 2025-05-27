@@ -215,7 +215,7 @@ namespace UIKit
 			var positionXY = _direction.IsVertical() ? position.y : position.x;
 			while (startIndex < length) {
 				var midIndex = (startIndex + length) / 2;
-				if (_holders[midIndex].positionForLength > positionXY) {
+				if (_holders[midIndex].columnPosition > positionXY) {
 					length = midIndex;
 					continue;
 				}
@@ -259,10 +259,13 @@ namespace UIKit
 				for (var columnIndex = 0; columnIndex < columnNumber && cellIndex < numberOfCells; columnIndex++) {
 					var holder = _holders[cellIndex];
 					holder.upperMargin = maxUpperMargin;
-					holder.positionForLength = cumulativeLength + lastMaxLowerMargin + maxUpperMargin;
+					holder.columnPosition = cumulativeLength + lastMaxLowerMargin + maxUpperMargin;
 					holder.rowIndex = rowIndex;
 					holder.columnIndex = columnIndex;
-					holder.length = maxLength;
+					holder.columnLength = maxLength;
+					holder.rowPosition = 0f;
+					holder.rowLength = -1f;
+					holder.rowAlignment = UITableViewAlignment.Center;
 					Debug.Assert(maxLength > 0f, $"Length of cell can not be less than zero, index:{rowIndex}.");
 					holder.lowerMargin = maxLowerMargin;
 					holder.siblingOrder = this.sortable?.SiblingOrderAtIndexInTableView(this, rowIndex) ?? -1;
@@ -327,21 +330,57 @@ namespace UIKit
 				return;
 			}
 
-			if (holder.width < 0f) {
+			if (holder.rowLength < 0f) {
 				if (dataSource is IUIGridViewDataSource grid) {
 					var columnNumber = _columnPerRowInGrid[holder.rowIndex];
-					var averageWidth = (_direction.IsVertical() ? _content.rect.width : _content.rect.height) / columnNumber;
-					var cumulativeWidth = 0f;
+					var totalRowWidth = (_direction.IsVertical() ? _content.rect.width : _content.rect.height) ;
+					var averageWidth = totalRowWidth/ columnNumber;
 					var firstIndexAtRow = index - holder.columnIndex;
-					for (int columnIndex = 0; columnIndex < columnNumber; columnIndex++) {
-						var width = grid.WidthForCellAtRowInGridView(this, holder.rowIndex, columnIndex, averageWidth);
-						if (width < 0f) throw new Exception("Width of cell can not be less than zero.");
-						var holderAtColumn = _holders[firstIndexAtRow + columnIndex];
-						holderAtColumn.width = width;
-						holderAtColumn.positionForWidth = cumulativeWidth;
-						cumulativeWidth += width;
+					var rowAlignment = grid.AlignmentOfCellsAtRowInGridView(this, holder.rowIndex);
+					var rowPosition = 0f;
+					switch (rowAlignment) {
+						case UITableViewAlignment.RightOrTop:
+							for (var columnIndex = columnNumber-1; columnIndex >= 0; columnIndex--) {
+								var rowLength = grid.WidthForCellAtRowInGridView(this, holder.rowIndex, columnIndex, averageWidth);
+								if (rowLength < 0f) throw new Exception("Width of cell can not be less than zero.");
+								var holderAtColumn = _holders[firstIndexAtRow + columnIndex];
+								holderAtColumn.rowLength = rowLength;
+								holderAtColumn.rowPosition = rowPosition;
+								holderAtColumn.rowAlignment = rowAlignment;
+								rowPosition += rowLength;
+							}
+							break;
+						case UITableViewAlignment.Center:
+							for (var columnIndex = 0; columnIndex < columnNumber; columnIndex++) {
+								var rowLength = grid.WidthForCellAtRowInGridView(this, holder.rowIndex, columnIndex, averageWidth);
+								if (rowLength < 0f) throw new Exception("Width of cell can not be less than zero.");
+								var holderAtColumn = _holders[firstIndexAtRow + columnIndex];
+								holderAtColumn.rowLength = rowLength;
+								holderAtColumn.rowPosition = rowPosition;
+								holderAtColumn.rowAlignment = rowAlignment;
+								rowPosition += rowLength;
+							}
+							var offset = (totalRowWidth - rowPosition) / 2f;
+							for (var columnIndex = 0; columnIndex < columnNumber; columnIndex++) {
+								_holders[firstIndexAtRow + columnIndex].rowPosition += offset;
+							}
+							break;
+						case UITableViewAlignment.LeftOrBottom:
+							for (var columnIndex = 0; columnIndex < columnNumber; columnIndex++) {
+								var rowLength = grid.WidthForCellAtRowInGridView(this, holder.rowIndex, columnIndex, averageWidth);
+								if (rowLength < 0f) throw new Exception("Width of cell can not be less than zero.");
+								var holderAtColumn = _holders[firstIndexAtRow + columnIndex];
+								holderAtColumn.rowLength = rowLength;
+								holderAtColumn.rowPosition = (totalRowWidth - rowPosition - rowLength);
+								holderAtColumn.rowAlignment = rowAlignment;
+								rowPosition += rowLength;
+							}
+							break;
+						default:
+							throw new ArgumentOutOfRangeException();
 					}
-				} else holder.width = _direction.IsVertical() ? _content.rect.width : _content.rect.height;
+					
+				} else holder.rowLength = _direction.IsVertical() ? _content.rect.width : _content.rect.height;
 			}
 			holder.loadedCell = dataSource.CellAtIndexInTableView(this, index);
 			holder.loadedCell.rectTransform.SetParent(_content);
@@ -412,34 +451,17 @@ namespace UIKit
 		void RearrangeCell(int index)
 		{
 			var holder = _holders[index];
-			var alignment = (dataSource as IUIGridViewDataSource)?.AlignmentOfCellsAtRowInGridView(this, holder.rowIndex) ?? UITableViewAlignment.LeftOrBottom;
-			var cellRectTransform = holder.loadedCell.rectTransform;
-			Vector2 anchoredPosition, cellSize, contentSize = _content.rect.size;
-			Vector2 anchorMax = cellRectTransform.anchorMax, anchorMin = cellRectTransform.anchorMin, pivot = cellRectTransform.pivot;
+			Vector2 anchoredPosition, cellSize, contentSize = _content.rect.size, pivot = holder.loadedCell.rectTransform.pivot;
 			if (_direction.IsVertical()) {
-				switch (alignment) {
-					case UITableViewAlignment.LeftOrBottom: anchoredPosition.x = (pivot.x * holder.width) + holder.positionForWidth; break;
-					case UITableViewAlignment.Center: anchoredPosition.x = (0.5f - pivot.x) * (holder.positionForWidth + holder.width) + (0.5f - anchorMin.x) * contentSize.x;  break; // TODO:
-					case UITableViewAlignment.RightOrTop: anchoredPosition.x = (pivot.x * holder.width) + (contentSize.x - holder.positionForWidth - holder.width); break;
-					default: throw new ArgumentOutOfRangeException();
-				}
-				anchoredPosition.y = _direction.IsTopToBottomOrRightToLeft()
-					? (-(anchorMin.y - pivot.y) * holder.length - holder.positionForLength)
-					: (pivot.y * holder.length + holder.positionForLength);
-				cellSize.x = holder.width;
-				cellSize.y = holder.length;
+				anchoredPosition.x = (pivot.x * holder.rowLength) + holder.rowPosition;
+				anchoredPosition.y = (pivot.y * holder.columnLength + holder.columnPosition) * (_direction.IsTopToBottomOrRightToLeft() ? -1f : 1f);
+				cellSize.x = holder.rowLength;
+				cellSize.y = holder.columnLength;
 			} else {
-				anchoredPosition.x = _direction.IsTopToBottomOrRightToLeft()
-					? (-(anchorMin.x - pivot.x) * holder.length - holder.positionForLength)
-					: (pivot.x * holder.length + holder.positionForLength);
-				switch (alignment) {
-					case UITableViewAlignment.LeftOrBottom: anchoredPosition.y = (pivot.y * holder.width) + holder.positionForWidth; break;
-					case UITableViewAlignment.Center: anchoredPosition.y = (0.5f - pivot.y) * (holder.positionForWidth + holder.width) + (0.5f - anchorMin.y) * contentSize.y;  break; // TODO:
-					case UITableViewAlignment.RightOrTop: anchoredPosition.y = (pivot.y * holder.width) + (contentSize.y - holder.positionForWidth - holder.width); break;
-					default: throw new ArgumentOutOfRangeException();
-				}
-				cellSize.x = holder.length;
-				cellSize.y = holder.width;
+				anchoredPosition.y = -(pivot.y * holder.rowLength) - holder.rowPosition;
+				anchoredPosition.x = (pivot.x * holder.columnLength + holder.columnPosition) * (_direction.IsTopToBottomOrRightToLeft() ? -1f : 1f);
+				cellSize.x = holder.columnLength;
+				cellSize.y = holder.rowLength;
 			}
 
 			var t = holder.loadedCell.rectTransform;
@@ -781,19 +803,19 @@ namespace UIKit
 		public Vector2 GetNormalizedPositionOfCellAt(int index, UITableViewAlignment alignment, bool withMargin, float displacement)
 		{
 			var holder = _holders[index];
-			var position = holder.positionForLength;
+			var position = holder.columnPosition;
 			var viewportLength = _direction.IsVertical() ? _viewport.rect.height : _viewport.rect.width;
 			switch (alignment) {
 				case UITableViewAlignment.RightOrTop:
 					position -= (withMargin ? holder.upperMargin : 0f);
 					break;
 				case UITableViewAlignment.LeftOrBottom:
-					position -= (viewportLength - holder.length);
+					position -= (viewportLength - holder.columnLength);
 					position += (withMargin ? holder.lowerMargin : 0f);
 					break;
 				case UITableViewAlignment.Center:
 					var cellMargin = holder.lowerMargin - holder.upperMargin;
-					var cellLength = holder.length + (withMargin ? cellMargin : 0f);
+					var cellLength = holder.columnLength + (withMargin ? cellMargin : 0f);
 					position -= (viewportLength - cellLength) / 2f;
 					break;
 				default: throw new ArgumentOutOfRangeException();
