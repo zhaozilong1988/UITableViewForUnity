@@ -85,17 +85,17 @@ namespace UIKit.Samples
 			return _dataList.Count;
 		}
 
-		public float LengthForCellInTableView(UITableView tableView, int index)
+		public float LengthOfCellAtIndexInTableView(UITableView tableView, int index)
 		{
 			return 200f;
 		}
 
-		public int NumberOfColumnAtRowInGridView(UITableView tableView, int rowIndex)
+		public int NumberOfCellsAtRowInGridView(UITableView tableView, int rowIndex)
 		{
 			return rowIndex % 2 == 0 ? Mathf.Max(_columnNumber / 2, 1) : _columnNumber;
 		}
 
-		public UITableViewAlignment AlignmentOfCellsAtRowInGridView(UITableView grid, int rowIndex)
+		public UITableViewAlignment AlignmentOfCellsAtRowInGridView(UITableView gridView, int rowIndex)
 		{
 			return UITableViewAlignment.Center;
 		}
@@ -180,7 +180,7 @@ namespace UIKit.Samples
 			Deletable,
 		}
 
-		public float WidthForCellAtRowInGridView(UITableView gridView, int rowIndex, int columnIndex, float averageWidthAtRow)
+		public float WidthOfCellAtRowInGridView(UITableView gridView, int rowIndex, int columnIndex, float averageWidthAtRow)
 		{
 			return averageWidthAtRow;
 		}

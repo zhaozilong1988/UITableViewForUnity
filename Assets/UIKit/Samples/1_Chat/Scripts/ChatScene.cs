@@ -87,7 +87,7 @@ namespace UIKit.Samples
 			return _chats.Count;
 		}
 
-		public float LengthForCellInTableView(UITableView tableView, int index)
+		public float LengthOfCellAtIndexInTableView(UITableView tableView, int index)
 		{
 			return _chats[index].bubbleHeight;
 		}

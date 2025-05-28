@@ -48,7 +48,7 @@ namespace UIKit.Samples
 			return _nestedCellCount;
 		}
 
-		public float LengthForCellInTableView(UITableView tableView, int nestedCellIndex)
+		public float LengthOfCellAtIndexInTableView(UITableView tableView, int nestedCellIndex)
 		{
 			return _cellLength;
 		}

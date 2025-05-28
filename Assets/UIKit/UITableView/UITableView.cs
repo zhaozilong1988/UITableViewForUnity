@@ -53,7 +53,7 @@ namespace UIKit
 			}
 		}
 
-		List<int> _columnPerRowInGrid;
+		List<int> _numberOfCellsAtRowInGrid;
 		List<UITableViewCellHolder> _sortedHolders; // for IUITableViewSortable.
 		readonly List<UITableViewCellHolder> _holders = new List<UITableViewCellHolder>(); // all holders
 		readonly Dictionary<string, Queue<UITableViewCell>> _reusableCellQueues = new Dictionary<string, Queue<UITableViewCell>>(); // for caching the cells which waiting for be reused.
@@ -201,10 +201,10 @@ namespace UIKit
 			var startPosition = normalizedPosition * (contentSize - viewportSize);
 			var startIndex = FindIndexOfCellAtPosition(startPosition, 0, _holders.Count);
 			var endIndex = FindIndexOfCellAtPosition(startPosition + viewportSize, startIndex, _holders.Count);
-			if (_columnPerRowInGrid != null) {
+			if (_numberOfCellsAtRowInGrid != null) {
 				startIndex -= _holders[startIndex].columnIndex;
 				var e = _holders[endIndex];
-				endIndex += _columnPerRowInGrid[e.rowIndex] - e.columnIndex - 1;
+				endIndex += _numberOfCellsAtRowInGrid[e.rowIndex] - e.columnIndex - 1;
 				endIndex = Mathf.Min(endIndex, _holders.Count - 1);
 			}
 			return new Vector2Int(startIndex, endIndex);
@@ -235,7 +235,7 @@ namespace UIKit
 			var lastMaxLowerMargin = 0f;
 			var cumulativeLength = 0f;
 			var cellIndex = 0;
-			var rowNumber = _columnPerRowInGrid?.Count ?? numberOfCells;
+			var rowNumber = _numberOfCellsAtRowInGrid?.Count ?? numberOfCells;
 			for (var rowIndex = 0; rowIndex < rowNumber; rowIndex++) {
 				// find max margin, length at row
 				float maxUpperMargin = 0f, maxLowerMargin = 0f, maxLength = 0f;
@@ -248,10 +248,10 @@ namespace UIKit
 					: (marginDataSource?.LengthForUpperMarginInTableView(this, rowIndex) ?? 0f);
 				maxLowerMargin = Mathf.Max(maxLowerMargin, lowerMargin);
 
-				var columnNumber = _columnPerRowInGrid?[rowIndex] ?? 1;
+				var columnNumber = _numberOfCellsAtRowInGrid?[rowIndex] ?? 1;
 				var cellIndexForCalculateMaxLength = cellIndex;
 				for (var columnIndex = 0; columnIndex < columnNumber && cellIndexForCalculateMaxLength < numberOfCells; columnIndex++) {
-					var length = dataSource.LengthForCellInTableView(this, cellIndexForCalculateMaxLength);
+					var length = dataSource.LengthOfCellAtIndexInTableView(this, cellIndexForCalculateMaxLength);
 					maxLength = Mathf.Max(maxLength, length);
 					cellIndexForCalculateMaxLength++;
 				}
@@ -334,7 +334,7 @@ namespace UIKit
 
 			if (holder.rowWidth < 0f) {
 				if (dataSource is IUIGridViewDataSource grid) {
-					var columnNumber = _columnPerRowInGrid[holder.rowIndex];
+					var columnNumber = _numberOfCellsAtRowInGrid[holder.rowIndex];
 					var totalRowWidth = (_direction.IsVertical() ? _content.rect.width : _content.rect.height) ;
 					var averageWidth = totalRowWidth/ columnNumber;
 					var firstIndexAtRow = index - holder.columnIndex;
@@ -343,7 +343,7 @@ namespace UIKit
 					switch (rowAlignment) {
 						case UITableViewAlignment.RightOrTop:
 							for (var columnIndex = columnNumber-1; columnIndex >= 0; columnIndex--) {
-								var rowLength = grid.WidthForCellAtRowInGridView(this, holder.rowIndex, columnIndex, averageWidth);
+								var rowLength = grid.WidthOfCellAtRowInGridView(this, holder.rowIndex, columnIndex, averageWidth);
 								if (rowLength < 0f) throw new Exception("Width of cell can not be less than zero.");
 								var holderAtColumn = _holders[firstIndexAtRow + columnIndex];
 								holderAtColumn.rowWidth = rowLength;
@@ -354,7 +354,7 @@ namespace UIKit
 							break;
 						case UITableViewAlignment.Center:
 							for (var columnIndex = 0; columnIndex < columnNumber; columnIndex++) {
-								var rowLength = grid.WidthForCellAtRowInGridView(this, holder.rowIndex, columnIndex, averageWidth);
+								var rowLength = grid.WidthOfCellAtRowInGridView(this, holder.rowIndex, columnIndex, averageWidth);
 								if (rowLength < 0f) throw new Exception("Width of cell can not be less than zero.");
 								var holderAtColumn = _holders[firstIndexAtRow + columnIndex];
 								holderAtColumn.rowWidth = rowLength;
@@ -369,7 +369,7 @@ namespace UIKit
 							break;
 						case UITableViewAlignment.LeftOrBottom:
 							for (var columnIndex = 0; columnIndex < columnNumber; columnIndex++) {
-								var rowLength = grid.WidthForCellAtRowInGridView(this, holder.rowIndex, columnIndex, averageWidth);
+								var rowLength = grid.WidthOfCellAtRowInGridView(this, holder.rowIndex, columnIndex, averageWidth);
 								if (rowLength < 0f) throw new Exception("Width of cell can not be less than zero.");
 								var holderAtColumn = _holders[firstIndexAtRow + columnIndex];
 								holderAtColumn.rowWidth = rowLength;
@@ -481,17 +481,17 @@ namespace UIKit
 			if (startLocation?.index < 0) throw new IndexOutOfRangeException("Start index must be more than zero.");
 			var newCount = dataSource.NumberOfCellsInTableView(this);
 			if (dataSource is IUIGridViewDataSource gridDataSource) {
-				_columnPerRowInGrid ??= new List<int>();
-				_columnPerRowInGrid.Clear();
+				_numberOfCellsAtRowInGrid ??= new List<int>();
+				_numberOfCellsAtRowInGrid.Clear();
 				int numberOfCellsAtRow, rowIndex = 0;
 				for (var i = 0; i < newCount; i += numberOfCellsAtRow) {
-					numberOfCellsAtRow = gridDataSource.NumberOfColumnAtRowInGridView(this, rowIndex);
+					numberOfCellsAtRow = gridDataSource.NumberOfCellsAtRowInGridView(this, rowIndex);
 					if (numberOfCellsAtRow < 1) throw new Exception("Number of cells at row can not be less than 1!");
-					_columnPerRowInGrid.Add(numberOfCellsAtRow);
+					_numberOfCellsAtRowInGrid.Add(numberOfCellsAtRow);
 					rowIndex++;
 				}
 			}
-			else _columnPerRowInGrid = null;
+			else _numberOfCellsAtRowInGrid = null;
 
 			UnloadAllCells();
 			var oldCount = _holders.Count;
@@ -999,10 +999,10 @@ namespace UIKit
 				calibrationPoint = Vector2.one - calibrationPoint;
 			var cellIndex = FindIndexOfCellAtCalibrationPoint(calibrationPoint, _scrollRect.normalizedPosition);
 			int startIndex = cellIndex, endIndex = cellIndex;
-			if (_columnPerRowInGrid != null) {
+			if (_numberOfCellsAtRowInGrid != null) {
 				var e = _holders[cellIndex];
 				startIndex -= e.columnIndex;
-				endIndex += _columnPerRowInGrid[e.rowIndex] - e.columnIndex - 1;
+				endIndex += _numberOfCellsAtRowInGrid[e.rowIndex] - e.columnIndex - 1;
 				endIndex = Mathf.Min(endIndex, _holders.Count - 1);
 			}
 			for (var i = startIndex; i <= endIndex; i++) {
