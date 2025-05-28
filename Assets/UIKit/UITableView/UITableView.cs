@@ -230,7 +230,7 @@ namespace UIKit
 			return FindIndexOfCellAtPosition(tvPos, 0, _holders.Count);
 		}
 
-		void ResizeContent(int numberOfCells)
+		void ResizeContent(int numberOfCells, bool resetRowWidth = true)
 		{
 			var lastMaxLowerMargin = 0f;
 			var cumulativeLength = 0f;
@@ -263,8 +263,10 @@ namespace UIKit
 					holder.rowIndex = rowIndex;
 					holder.columnIndex = columnIndex;
 					holder.columnLength = maxLength;
-					holder.rowPosition = 0f;
-					holder.rowLength = -1f;
+					if (resetRowWidth) {
+						holder.rowPosition = 0f;
+						holder.rowWidth = -1f;
+					}
 					holder.rowAlignment = UITableViewAlignment.Center;
 					Debug.Assert(maxLength > 0f, $"Length of cell can not be less than zero, index:{rowIndex}.");
 					holder.lowerMargin = maxLowerMargin;
@@ -330,7 +332,7 @@ namespace UIKit
 				return;
 			}
 
-			if (holder.rowLength < 0f) {
+			if (holder.rowWidth < 0f) {
 				if (dataSource is IUIGridViewDataSource grid) {
 					var columnNumber = _columnPerRowInGrid[holder.rowIndex];
 					var totalRowWidth = (_direction.IsVertical() ? _content.rect.width : _content.rect.height) ;
@@ -344,7 +346,7 @@ namespace UIKit
 								var rowLength = grid.WidthForCellAtRowInGridView(this, holder.rowIndex, columnIndex, averageWidth);
 								if (rowLength < 0f) throw new Exception("Width of cell can not be less than zero.");
 								var holderAtColumn = _holders[firstIndexAtRow + columnIndex];
-								holderAtColumn.rowLength = rowLength;
+								holderAtColumn.rowWidth = rowLength;
 								holderAtColumn.rowPosition = rowPosition;
 								holderAtColumn.rowAlignment = rowAlignment;
 								rowPosition += rowLength;
@@ -355,7 +357,7 @@ namespace UIKit
 								var rowLength = grid.WidthForCellAtRowInGridView(this, holder.rowIndex, columnIndex, averageWidth);
 								if (rowLength < 0f) throw new Exception("Width of cell can not be less than zero.");
 								var holderAtColumn = _holders[firstIndexAtRow + columnIndex];
-								holderAtColumn.rowLength = rowLength;
+								holderAtColumn.rowWidth = rowLength;
 								holderAtColumn.rowPosition = rowPosition;
 								holderAtColumn.rowAlignment = rowAlignment;
 								rowPosition += rowLength;
@@ -370,7 +372,7 @@ namespace UIKit
 								var rowLength = grid.WidthForCellAtRowInGridView(this, holder.rowIndex, columnIndex, averageWidth);
 								if (rowLength < 0f) throw new Exception("Width of cell can not be less than zero.");
 								var holderAtColumn = _holders[firstIndexAtRow + columnIndex];
-								holderAtColumn.rowLength = rowLength;
+								holderAtColumn.rowWidth = rowLength;
 								holderAtColumn.rowPosition = (totalRowWidth - rowPosition - rowLength);
 								holderAtColumn.rowAlignment = rowAlignment;
 								rowPosition += rowLength;
@@ -380,7 +382,7 @@ namespace UIKit
 							throw new ArgumentOutOfRangeException();
 					}
 					
-				} else holder.rowLength = _direction.IsVertical() ? _content.rect.width : _content.rect.height;
+				} else holder.rowWidth = _direction.IsVertical() ? _content.rect.width : _content.rect.height;
 			}
 			holder.loadedCell = dataSource.CellAtIndexInTableView(this, index);
 			holder.loadedCell.rectTransform.SetParent(_content);
@@ -451,17 +453,17 @@ namespace UIKit
 		void RearrangeCell(int index)
 		{
 			var holder = _holders[index];
-			Vector2 anchoredPosition, cellSize, contentSize = _content.rect.size, pivot = holder.loadedCell.rectTransform.pivot;
+			Vector2 anchoredPosition, cellSize, pivot = holder.loadedCell.rectTransform.pivot;
 			if (_direction.IsVertical()) {
-				anchoredPosition.x = (pivot.x * holder.rowLength) + holder.rowPosition;
+				anchoredPosition.x = (pivot.x * holder.rowWidth) + holder.rowPosition;
 				anchoredPosition.y = (pivot.y * holder.columnLength + holder.columnPosition) * (_direction.IsTopToBottomOrRightToLeft() ? -1f : 1f);
-				cellSize.x = holder.rowLength;
+				cellSize.x = holder.rowWidth;
 				cellSize.y = holder.columnLength;
 			} else {
-				anchoredPosition.y = -(pivot.y * holder.rowLength) - holder.rowPosition;
+				anchoredPosition.y = -(pivot.y * holder.rowWidth) - holder.rowPosition;
 				anchoredPosition.x = (pivot.x * holder.columnLength + holder.columnPosition) * (_direction.IsTopToBottomOrRightToLeft() ? -1f : 1f);
 				cellSize.x = holder.columnLength;
-				cellSize.y = holder.rowLength;
+				cellSize.y = holder.rowWidth;
 			}
 
 			var t = holder.loadedCell.rectTransform;
@@ -575,7 +577,7 @@ namespace UIKit
 			var oldCount = _holders.Count;
 			var newCount = dataSource.NumberOfCellsInTableView(this);
 			if (oldCount != newCount) throw new Exception("Rearrange can not be called if count is changed");
-			ResizeContent(newCount);
+			ResizeContent(newCount, false);
 			ReloadCells(_scrollRect.normalizedPosition, true);
 		}
 
@@ -590,7 +592,7 @@ namespace UIKit
 		}
 
 		/// <summary> Replace the current cell at row with a new cell.  </summary>
-		public void ReloadDataAt(int index)
+		public void ReloadDataAt(int index) 
 		{
 			RearrangeData();
 			foreach (var cell in GetAllLoadedCells()) {

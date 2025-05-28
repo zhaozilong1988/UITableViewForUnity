@@ -6,7 +6,7 @@ namespace UIKit
 
 		public UITableViewAlignment rowAlignment { get; set; } = UITableViewAlignment.LeftOrBottom;
 
-		public float rowLength { get; set; } = -1;
+		public float rowWidth { get; set; } = -1;
 
 		/// <summary> Height or width of the cell. </summary>
 		public float columnLength { get; set; }
