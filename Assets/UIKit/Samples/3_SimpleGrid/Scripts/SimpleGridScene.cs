@@ -27,12 +27,12 @@ namespace UIKit.Samples
 			return 500;
 		}
 
-		public float LengthForCellInTableView(UITableView tableView, int index)
+		public float LengthOfCellAtIndexInTableView(UITableView tableView, int index)
 		{
 			return 300f;
 		}
 
-		public int NumberOfColumnAtRowInGridView(UITableView gridView, int rowIndex)
+		public int NumberOfCellsAtRowInGridView(UITableView gridView, int rowIndex)
 		{
 			if (rowIndex % 2 == 0) {
 				return 4 ;
@@ -40,12 +40,12 @@ namespace UIKit.Samples
 			return 5;
 		}
 
-		public UITableViewAlignment AlignmentOfCellsAtRowInGridView(UITableView grid, int rowIndex)
+		public UITableViewAlignment AlignmentOfCellsAtRowInGridView(UITableView gridView, int rowIndex)
 		{
-			return UITableViewAlignment.LeftOrBottom;
+			return UITableViewAlignment.Center;
 		}
 
-		public float WidthForCellAtRowInGridView(UITableView gridView, int rowIndex, int columnIndex, float averageWidthAtRow)
+		public float WidthOfCellAtRowInGridView(UITableView gridView, int rowIndex, int columnIndex, float averageWidthAtRow)
 		{
 			if (rowIndex % 3 == 0) {
 				return averageWidthAtRow;
