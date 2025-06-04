@@ -6,21 +6,21 @@ namespace UIKit
 
 		public UITableViewAlignment rowAlignment { get; set; } = UITableViewAlignment.LeftOrBottom;
 
-		public float rowWidth { get; set; } = -1;
+		public float columnWidth { get; set; } = -1;
 
 		/// <summary> Height or width of the cell. </summary>
-		public float columnLength { get; set; }
+		public float rowLength { get; set; }
 
 		/// <summary> Upper margin (top or right) for cell. </summary>
-		public float upperMargin { get; set; }
+		public float upperRowMargin { get; set; }
 
 		/// <summary> Lower margin (bottom or left) for cell. </summary>
-		public float lowerMargin { get; set; }
+		public float lowerRowMargin { get; set; }
 
-		public float rowPosition { get; set; }
+		public float columnPosition { get; set; }
 
 		/// <summary> The position relative to scroll view's content without considering anchor. </summary>
-		public float columnPosition { get; set; }
+		public float rowPosition { get; set; }
 
 		/// <summary> If the direction is Top ⇔ Bottom, the row is horizontal direction, or vertical direction in Right to Left. </summary>
 		public int rowIndex { get; set; }
