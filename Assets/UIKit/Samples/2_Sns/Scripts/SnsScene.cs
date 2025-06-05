@@ -46,7 +46,7 @@ namespace UIKit.Samples
 			// Tell the table view that this class will respond to its delegate methods
 			_tableView.@delegate = this;
 			// Tell the table view that this class will provide margin between cells
-			_tableView.marginDataSource = this;
+			_tableView.margin = this;
 			_tableView.reachable = this;
 
 			for (int i = 0; i < 5; i++) {
