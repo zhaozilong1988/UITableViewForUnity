@@ -16,7 +16,7 @@ namespace UIKit.Samples
 			_cellWidth = ((RectTransform)_tableView.scrollRect.transform).rect.width;
 			_tableView.dataSource = this;
 			_tableView.@delegate = this;
-			_tableView.margin = this;
+			_tableView.marginDataSource = this;
 			_tableView.magnetic = this;
 			_tableView.flickable = this;
 			_tableView.ReloadData();

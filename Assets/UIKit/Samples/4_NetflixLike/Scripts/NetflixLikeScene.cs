@@ -14,7 +14,7 @@ namespace UIKit.Samples
 		void Start()
 		{
 			_tableView.dataSource = this;
-			_tableView.margin = this;
+			_tableView.marginDataSource = this;
 			_tableView.@delegate = this;
 			_tableView.ReloadData();
 		}

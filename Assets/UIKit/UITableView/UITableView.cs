@@ -22,7 +22,7 @@ namespace UIKit
 
 		public ScrollRect scrollRect => _scrollRect;
 		public IUITableViewDataSource dataSource { get; set; }
-		public IUITableViewMargin margin { get; set; }
+		public IUITableViewMargin marginDataSource { get; set; }
 		public IUITableViewDelegate @delegate { get; set; }
 		public IUITableViewReachable reachable { get; set; }
 		public IUITableViewClickable clickable { get; set; }
@@ -268,12 +268,12 @@ namespace UIKit
 				// find max margin, length at row
 				float maxUpperRowMargin = 0f, maxLowerRowMargin = 0f, maxRowLength = 0f;
 				var upperRowMargin = _direction.IsTopToBottomOrRightToLeft()
-					? (margin?.LengthForUpperMarginInTableView(this, rowIndex) ?? 0f)
-					: (margin?.LengthForLowerMarginInTableView(this, rowIndex) ?? 0f);
+					? (marginDataSource?.LengthForUpperMarginInTableView(this, rowIndex) ?? 0f)
+					: (marginDataSource?.LengthForLowerMarginInTableView(this, rowIndex) ?? 0f);
 				maxUpperRowMargin = Mathf.Max(maxUpperRowMargin, upperRowMargin);
 				var lowerRowMargin = _direction.IsTopToBottomOrRightToLeft()
-					? (margin?.LengthForLowerMarginInTableView(this, rowIndex) ?? 0f)
-					: (margin?.LengthForUpperMarginInTableView(this, rowIndex) ?? 0f);
+					? (marginDataSource?.LengthForLowerMarginInTableView(this, rowIndex) ?? 0f)
+					: (marginDataSource?.LengthForUpperMarginInTableView(this, rowIndex) ?? 0f);
 				maxLowerRowMargin = Mathf.Max(maxLowerRowMargin, lowerRowMargin);
 
 				var columnNumber = _columnAtRowInGrid?[rowIndex] ?? 1;

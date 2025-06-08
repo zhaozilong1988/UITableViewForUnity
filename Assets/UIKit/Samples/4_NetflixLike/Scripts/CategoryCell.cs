@@ -28,7 +28,7 @@ namespace UIKit.Samples
 			// Check useNestedScrollRect of UITableView component in the inspector to enable nested scrolling.
 			_nestedTable.dataSource = this;
 			_nestedTable.@delegate = this;
-			_nestedTable.margin = this;
+			_nestedTable.marginDataSource = this;
 			_nestedTable.ReloadData(normalizedPos);
 		}
 
