@@ -228,7 +228,7 @@ namespace UIKit
 				return hintIndex - 1;
 			}
 
-			// 2) Fallback: full binary search (inclusive low/high)
+			// 2) Fallback: full binary search
 			return FindIndexOfCellAtPosition(targetPositionXY, searchFromIndex, length);
 		}
 
