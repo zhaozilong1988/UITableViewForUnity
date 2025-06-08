@@ -4,9 +4,10 @@ namespace UIKit
 	{
 		public UITableViewCell loadedCell { get; set; }
 
+		/// <summary> The width of the cell in the column of its row. </summary>
 		public float columnWidth { get; set; }
 
-		/// <summary> Height or width of the cell. </summary>
+		/// <summary> The length of the cell in the scrolling direction. </summary>
 		public float rowLength { get; set; }
 
 		/// <summary> Upper margin (top or right) for cell. </summary>
@@ -18,6 +19,7 @@ namespace UIKit
 		/// <summary> The position relative to scroll view's content without considering anchor. </summary>
 		public float rowPosition { get; set; }
 
+		/// <summary> The position of the cell in the column of its row. </summary>
 		public float columnPosition { get; set; }
 
 		/// <summary> If the direction is Top ⇔ Bottom, the row is horizontal direction, or vertical direction in Right to Left. </summary>
