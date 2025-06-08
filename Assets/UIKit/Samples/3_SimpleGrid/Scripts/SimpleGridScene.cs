@@ -54,7 +54,7 @@ namespace UIKit.Samples
 		{
 			switch (rowIndex % 3) {
 				case 0: return averageWidthAtRow;
-				case 1: return columnIndex % 2 == 0 ? averageWidthAtRow * 2f / 3f : averageWidthAtRow;
+				case 1: return columnIndex % 2 == 0 ? averageWidthAtRow / 2f : averageWidthAtRow;
 				default: return averageWidthAtRow * 2f / 3f;
 			}
 		}
