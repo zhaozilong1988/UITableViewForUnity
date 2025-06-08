@@ -473,7 +473,7 @@ namespace UIKit
 				_columnAtRowInGrid ??= new List<int>();
 				_columnAtRowInGrid.Clear();
 				for (int cellIndex = 0, rowIndex = 0, columnAtRow; cellIndex < newCount; cellIndex += columnAtRow, rowIndex++) {
-					columnAtRow = gridDataSource.NumberOfCellsAtRowInGridView(this, rowIndex);
+					columnAtRow = gridDataSource.NumberOfColumnsAtRowInGridView(this, rowIndex);
 					if (columnAtRow < 1) throw new Exception("Number of cells at row can not be less than 1!");
 					_columnAtRowInGrid.Add(columnAtRow);
 				}
@@ -626,7 +626,7 @@ namespace UIKit
 				_holders.Add(new UITableViewCellHolder());
 			if (dataSource is IUIGridViewDataSource grid) {
 				for (int cellIndex = oldCount, rowIndex = _columnAtRowInGrid.Count-1, columnAtRow; cellIndex < newCount; cellIndex += columnAtRow, rowIndex++) {
-					columnAtRow = grid.NumberOfCellsAtRowInGridView(this, rowIndex);
+					columnAtRow = grid.NumberOfColumnsAtRowInGridView(this, rowIndex);
 					if (columnAtRow < 1) throw new Exception("Number of cells at row can not be less than 1!");
 					_columnAtRowInGrid.Add(columnAtRow);
 				}
@@ -653,7 +653,7 @@ namespace UIKit
 				_holders.Insert(0, new UITableViewCellHolder());
 			if (dataSource is IUIGridViewDataSource grid) {
 				for (int cellIndex = 0, rowIndex = 0, columnAtRow; cellIndex < newCount; cellIndex += columnAtRow, rowIndex++) {
-					columnAtRow = grid.NumberOfCellsAtRowInGridView(this, rowIndex);
+					columnAtRow = grid.NumberOfColumnsAtRowInGridView(this, rowIndex);
 					if (columnAtRow < 1) throw new Exception("Number of cells at row can not be less than 1!");
 					_columnAtRowInGrid.Insert(rowIndex, columnAtRow);
 				}
