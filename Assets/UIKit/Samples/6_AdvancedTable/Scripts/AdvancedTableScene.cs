@@ -93,7 +93,7 @@ namespace UIKit.Samples
 			return _dataList.Count;
 		}
 
-		public float LengthOfCellAtIndexInTableView(UITableView tableView, int index)
+		public float LengthForCellInTableView(UITableView tableView, int index)
 		{
 			return _dataList[index].scalar;
 		}

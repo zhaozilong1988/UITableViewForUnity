@@ -30,7 +30,7 @@ namespace UIKit.Samples
 			return 50;
 		}
 
-		public float LengthOfCellAtIndexInTableView(UITableView tableView, int index)
+		public float LengthForCellInTableView(UITableView tableView, int index)
 		{
 			if (index == 0)
 				return 265f;

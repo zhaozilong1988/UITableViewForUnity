@@ -32,7 +32,7 @@ namespace UIKit.Samples
 			return CELL_COUNT;
 		}
 
-		public float LengthOfCellAtIndexInTableView(UITableView tableView, int index)
+		public float LengthForCellInTableView(UITableView tableView, int index)
 		{
 			return _cellWidth;
 		}

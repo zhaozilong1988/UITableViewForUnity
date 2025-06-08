@@ -282,7 +282,7 @@ namespace UIKit
 				if (emptyColumnAtLastRow > 0) columnNumber -= emptyColumnAtLastRow; // if the last row has empty columns, reduce column number.
 				var substituteCellIndex = cellIndex;
 				for (var columnIndex = 0; columnIndex < columnNumber; columnIndex++) {
-					var rowLength = dataSource.LengthOfCellAtIndexInTableView(this, substituteCellIndex);
+					var rowLength = dataSource.LengthForCellInTableView(this, substituteCellIndex);
 					maxRowLength = Mathf.Max(maxRowLength, rowLength);
 					var columnWidth = gridDataSource?.WidthOfCellAtRowInGridView(this, rowIndex, columnIndex, averageColumnWidth) ?? averageColumnWidth;
 					Debug.Assert(columnWidth > 0f, $"Width of cell can not be less than zero, rowIndex:{rowIndex}, columnIndex:{columnIndex}.");

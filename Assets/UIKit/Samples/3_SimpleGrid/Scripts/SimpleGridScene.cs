@@ -27,7 +27,7 @@ namespace UIKit.Samples
 			return 500;
 		}
 
-		public float LengthOfCellAtIndexInTableView(UITableView tableView, int index)
+		public float LengthForCellInTableView(UITableView tableView, int index)
 		{
 			return 300f;
 		}

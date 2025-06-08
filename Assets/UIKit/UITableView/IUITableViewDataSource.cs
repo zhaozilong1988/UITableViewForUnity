@@ -23,6 +23,6 @@
 		/// <param name="tableView"></param>
 		/// <param name="index"></param>
 		/// <returns></returns>
-		float LengthOfCellAtIndexInTableView(UITableView tableView, int index);
+		float LengthForCellInTableView(UITableView tableView, int index);
 	}
 }
