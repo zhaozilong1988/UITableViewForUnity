@@ -29,7 +29,7 @@ namespace UIKit.Samples
 
 		public int NumberOfCellsInTableView(UITableView tableView)
 		{
-			return 5000;
+			return 200;
 		}
 
 		public float LengthForCellInTableView(UITableView tableView, int index)
