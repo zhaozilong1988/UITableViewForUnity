@@ -53,6 +53,7 @@ namespace UIKit
 			}
 		}
 
+		int _foundStartIndex, _foundEndIndex;
 		List<int> _columnPerRowInGrid;
 		List<UITableViewCellHolder> _sortedHolders; // for IUITableViewSortable.
 		readonly List<UITableViewCellHolder> _holders = new List<UITableViewCellHolder>(); // all holders
@@ -200,35 +201,55 @@ namespace UIKit
 			var contentSize = _content.rect.size;
 			var viewportSize = _ignoreCellLifeCycle ? contentSize : _viewport.rect.size;
 			var startPosition = normalizedPosition * (contentSize - viewportSize);
-			var startIndex = FindIndexOfCellAtPosition(startPosition, 0, _holders.Count);
-			var endIndex = FindIndexOfCellAtPosition(startPosition + viewportSize, startIndex, _holders.Count);
+			_foundStartIndex = FindIndexOfCellAtPosition(startPosition, 0, _foundStartIndex);
+			_foundEndIndex = FindIndexOfCellAtPosition(startPosition + viewportSize, _foundStartIndex, _foundEndIndex);
 			if (_columnPerRowInGrid != null) {
-				startIndex -= _holders[startIndex].columnIndex;
-				var e = _holders[endIndex];
-				endIndex += _columnPerRowInGrid[e.rowIndex] - e.columnIndex - 1;
-				endIndex = Mathf.Min(endIndex, _holders.Count - 1);
+				_foundStartIndex -= _holders[_foundStartIndex].columnIndex;
+				var e = _holders[_foundEndIndex];
+				_foundEndIndex += _columnPerRowInGrid[e.rowIndex] - e.columnIndex - 1;
+				_foundEndIndex = Mathf.Min(_foundEndIndex, _holders.Count - 1);
 			}
-			return new Vector2Int(startIndex, endIndex);
+			return new Vector2Int(_foundStartIndex, _foundEndIndex);
 		}
 
-		int FindIndexOfCellAtPosition(Vector2 position, int startIndex, int length)
+		int FindIndexOfCellAtPosition(Vector2 targetPosition, int searchFromIndex, int lastFoundIndex)
 		{
-			var positionXY = _direction.IsVertical() ? position.y : position.x;
-			while (startIndex < length) {
-				var midIndex = (startIndex + length) / 2;
-				if (_holders[midIndex].position > positionXY) {
+			var length = _holders.Count;
+			var isVertical = _direction.IsVertical();
+			var targetPositionXY = isVertical ? targetPosition.y : targetPosition.x;
+			var hintIndex = Mathf.Clamp(lastFoundIndex, 0, length - 1); // Clamp hint to valid range:
+
+			// 1) Quick check around the hint (±1), in case scrolling is incremental:
+			if (_holders[hintIndex].position <= targetPositionXY) { // scroll up
+				if (hintIndex == length - 1 || _holders[hintIndex + 1].position > targetPositionXY) {
+					return hintIndex;
+				} 
+			} else if (hintIndex > 0 && _holders[hintIndex - 1].position <= targetPositionXY) {
+				return hintIndex - 1;
+			}
+
+			// 2) Fallback: full binary search (inclusive low/high)
+			return FindIndexOfCellAtPosition(targetPositionXY, searchFromIndex, length);
+		}
+
+		int FindIndexOfCellAtPosition(float targetPositionXY, int searchFromIndex, int length)
+		{
+			while (searchFromIndex < length) {
+				var midIndex = (searchFromIndex + length) >> 1;
+				if (_holders[midIndex].position > targetPositionXY) {
 					length = midIndex;
 					continue;
 				}
-				startIndex = midIndex + 1;
+				searchFromIndex = midIndex + 1;
 			}
-			return Math.Max(0, startIndex - 1);
+			return Math.Max(0, searchFromIndex - 1);
 		}
+
 		int FindIndexOfCellAtCalibrationPoint(Vector2 calibrationPoint, Vector2 normalizedPosition)
 		{
 			var np = _direction.IsTopToBottomOrRightToLeft() ? Vector2.one - normalizedPosition : normalizedPosition;
 			var tvPos = np * _content.rect.size - _viewport.rect.size * (np - calibrationPoint);
-			return FindIndexOfCellAtPosition(tvPos, 0, _holders.Count);
+			return FindIndexOfCellAtPosition(_direction.IsVertical() ? tvPos.y : tvPos.x, 0, _holders.Count);
 		}
 
 		void ResizeContent(int numberOfCells)
