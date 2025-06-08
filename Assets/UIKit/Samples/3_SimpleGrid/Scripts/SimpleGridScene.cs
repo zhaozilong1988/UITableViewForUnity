@@ -32,25 +32,31 @@ namespace UIKit.Samples
 			return 300f;
 		}
 
-		public int NumberOfCellsAtRowInGridView(UITableView gridView, int rowIndex)
+		public int NumberOfColumnsAtRowInGridView(UITableView gridView, int rowIndex)
 		{
-			if (rowIndex % 2 == 0) {
-				return 4 ;
+			switch (rowIndex % 3) {
+				case 0: return 3;
+				case 1: return 4;
+				default: return 5;
 			}
-			return 5;
 		}
 
 		public UITableViewAlignment AlignmentOfCellsAtRowInGridView(UITableView gridView, int rowIndex)
 		{
-			return UITableViewAlignment.Center;
+			switch (rowIndex % 3) {
+				case 0: return UITableViewAlignment.Center;
+				case 1: return UITableViewAlignment.LeftOrBottom;
+				default: return UITableViewAlignment.RightOrTop;
+			}
 		}
 
 		public float WidthOfCellAtRowInGridView(UITableView gridView, int rowIndex, int columnIndex, float averageWidthAtRow)
 		{
-			if (rowIndex % 3 == 0) {
-				return averageWidthAtRow;
+			switch (rowIndex % 3) {
+				case 0: return averageWidthAtRow;
+				case 1: return columnIndex % 2 == 0 ? averageWidthAtRow * 2f / 3f : averageWidthAtRow;
+				default: return averageWidthAtRow * 2f / 3f;
 			}
-			return columnIndex % 2 == 0 ? 100f : 200f;
 		}
 
 		public void CellAtIndexInTableViewWillAppear(UITableView tableView, int index)

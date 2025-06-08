@@ -90,7 +90,7 @@ namespace UIKit.Samples
 			return 200f;
 		}
 
-		public int NumberOfCellsAtRowInGridView(UITableView tableView, int rowIndex)
+		public int NumberOfColumnsAtRowInGridView(UITableView tableView, int rowIndex)
 		{
 			return rowIndex % 2 == 0 ? Mathf.Max(_columnNumber / 2, 1) : _columnNumber;
 		}

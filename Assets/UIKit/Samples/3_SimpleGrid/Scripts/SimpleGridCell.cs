@@ -15,7 +15,6 @@ namespace UIKit.Samples
 			_index.text = cellIndex.ToString();
 			var sprite = _monsterSprites[cellIndex % _monsterSprites.Length];
 			_icon.sprite = sprite;
-			_icon.SetNativeSize();
 			_bgImage.color = cellIndex % 2 == 0 ? Color.yellow : Color.green;
 		}
 	}
