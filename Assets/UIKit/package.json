@@ -1,7 +1,8 @@
 {
     "name": "com.zzl.uitableviewforunity",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "A component that can be used to implement various types of list UI views.",
+    "releaseNotes": "## [1.1.0] - 2025-06-10\n- You can now set a custom width for a cell in a specific row\n- Optimize performance for cell lookup",
     "displayName": "UITableViewForUnity",
     "unity": "2019.4",
     "author": {
