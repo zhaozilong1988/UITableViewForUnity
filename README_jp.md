@@ -56,12 +56,12 @@ Cellの高さを自由(0不可)に調整できるので、ジャバラ式みた�
 
 # インストール
 
-## UMP
+## UPM
 1. Unity Package Manager を開きます。
 2. 「Add package from git URL」を選択します。
 3. 次の URL を入力します：https://github.com/zhaozilong1988/UITableViewForUnity.git?path=Assets/UIKit.
 
-## .unitypackge
+## .unitypackage
 [Releases](https://github.com/zhaozilong1988/UITableViewForUnity/releases)からunitypackageファイルをダウンロードして、プロジェクトにインポートします。
 
 # 使い方

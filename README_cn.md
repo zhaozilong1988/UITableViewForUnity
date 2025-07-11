@@ -55,12 +55,12 @@ Cell的高度可以被任意调整（除了0），所以像上边提到的可展
 
 # 安装
 
-## UMP
+## UPM
 1. 打开 Unity Package Manager。
 2. 选择 "Add package from git URL".
 3. 输入以下 URL：https://github.com/zhaozilong1988/UITableViewForUnity.git?path=Assets/UIKit.
 
-## .unitypackge
+## .unitypackage
 在[Releases](https://github.com/zhaozilong1988/UITableViewForUnity/releases)页面下载unitypackage文件并导入到Unity项目中。
 
 # 使用方法
