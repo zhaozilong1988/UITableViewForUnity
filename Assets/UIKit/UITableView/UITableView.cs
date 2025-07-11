@@ -84,8 +84,16 @@ namespace UIKit
 		public int _tag;
 		/// <summary> If selected, the click events will be preserved even after dragging begins. </summary>
 		[Header("If selected, \nthe click events will be preserved \neven after dragging begins.")]
-		public bool preserveClickEvenDragBegins;
-		public delegate void OnScrollingStopped(bool interrupted);
+                public bool preserveClickEvenDragBegins;
+               [Header("If selected, the table view will loop when reaching the boundary.")]
+               [SerializeField] bool _loop;
+               bool _skipLoopNormalizedPositionChange;
+               /// <summary> Enable or disable looping behavior. </summary>
+               public bool loop {
+                       get => _loop;
+                       set => _loop = value;
+               }
+               public delegate void OnScrollingStopped(bool interrupted);
 
 		protected override void Awake()
 		{
@@ -327,13 +335,43 @@ namespace UIKit
 				: new Vector2(cumulativeRowLength, _content.sizeDelta.y);
 		}
 
-		void OnNormalizedPositionChanged(Vector2 normalizedPosition)
-		{
-			_onNormalizedPositionChangedCalled = true;
-			if (_holders.Count <= 0) return;
-			ReloadCells(normalizedPosition, false);
-			DetectAndNotifyReachableStatus();
-		}
+                void OnNormalizedPositionChanged(Vector2 normalizedPosition)
+                {
+                       if (_skipLoopNormalizedPositionChange) {
+                               _skipLoopNormalizedPositionChange = false;
+                               return;
+                       }
+                       if (_loop) {
+                               var newPos = normalizedPosition;
+                               var changed = false;
+                               if (_direction.IsVertical()) {
+                                       if (normalizedPosition.y > 1f) {
+                                               newPos.y = 0f;
+                                               changed = true;
+                                       } else if (normalizedPosition.y < 0f) {
+                                               newPos.y = 1f;
+                                               changed = true;
+                                       }
+                               } else {
+                                       if (normalizedPosition.x > 1f) {
+                                               newPos.x = 0f;
+                                               changed = true;
+                                       } else if (normalizedPosition.x < 0f) {
+                                               newPos.x = 1f;
+                                               changed = true;
+                                       }
+                               }
+                               if (changed) {
+                                       _skipLoopNormalizedPositionChange = true;
+                                       _scrollRect.normalizedPosition = newPos;
+                                       normalizedPosition = newPos;
+                               }
+                       }
+                       _onNormalizedPositionChangedCalled = true;
+                       if (_holders.Count <= 0) return;
+                       ReloadCells(normalizedPosition, false);
+                       DetectAndNotifyReachableStatus();
+                }
 
 		void ReloadCells(Vector2 normalizedPosition, bool alwaysRearrangeCell)
 		{
