@@ -35,7 +35,7 @@ Check the samples in the [Assets/UIKit/Samples](https://github.com/zhaozilong198
 
 ### Loop scrolling
 
-Enable the `loop` property of `UITableView` to make the scroll view wrap to the opposite end when reaching its boundary.
+Enable the `loop` property of `UITableView` to make the scroll view wrap to the opposite end when reaching its boundary. When looping, set the `ScrollRect`'s **Movement Type** to **Unrestricted** for the smoothest effect.
 
 # The concept of design
 

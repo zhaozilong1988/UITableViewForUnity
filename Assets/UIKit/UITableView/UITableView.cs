@@ -88,20 +88,52 @@ namespace UIKit
                [Header("If selected, the table view will loop when reaching the boundary.")]
                [SerializeField] bool _loop;
                bool _skipLoopNormalizedPositionChange;
-               /// <summary> Enable or disable looping behavior. </summary>
+               ScrollRect.MovementType _originalMovementType;
+               /// <summary> Enable or disable looping behavior. Changing this will update ScrollRect.movementType.</summary>
                public bool loop {
                        get => _loop;
-                       set => _loop = value;
+                       set {
+                               if (_loop == value) return;
+                               _loop = value;
+                               ApplyLoopMovementType();
+                       }
                }
                public delegate void OnScrollingStopped(bool interrupted);
 
-		protected override void Awake()
-		{
-			base.Awake();
-			InitializeScrollRect();
-			InitializeCellsPool();
-			_scrollRect.onValueChanged.AddListener(OnNormalizedPositionChanged);
-		}
+                protected override void Awake()
+                {
+                        base.Awake();
+                        InitializeScrollRect();
+                        InitializeCellsPool();
+                        _scrollRect.onValueChanged.AddListener(OnNormalizedPositionChanged);
+                        _originalMovementType = _scrollRect.movementType;
+                }
+
+               protected override void OnEnable()
+               {
+                       base.OnEnable();
+                       ApplyLoopMovementType();
+               }
+
+               protected override void OnDisable()
+               {
+                       if (_scrollRect != null)
+                               _scrollRect.movementType = _originalMovementType;
+                       base.OnDisable();
+               }
+
+               void ApplyLoopMovementType()
+               {
+                       if (_scrollRect == null) return;
+                       if (_loop) {
+                               if (_scrollRect.movementType != ScrollRect.MovementType.Unrestricted)
+                                       _originalMovementType = _scrollRect.movementType;
+                               _scrollRect.movementType = ScrollRect.MovementType.Unrestricted;
+                       }
+                       else {
+                               _scrollRect.movementType = _originalMovementType;
+                       }
+               }
 
 		protected override void OnDestroy()
 		{
@@ -161,12 +193,13 @@ namespace UIKit
 		}
 
 #if UNITY_EDITOR
-		protected override void OnValidate()
-		{
-			InitializeScrollRect();
-			Validate();
+                protected override void OnValidate()
+                {
+                        InitializeScrollRect();
+                        Validate();
+                        ApplyLoopMovementType();
 
-			EditorApplication.update += () => {
+                        EditorApplication.update += () => {
 				if (_useNestedScrollRect == _wasUseNestedScrollRect) return;
 				_wasUseNestedScrollRect = _useNestedScrollRect;
 				if (_scrollRect as NestedScrollRect != null == _useNestedScrollRect) return;
