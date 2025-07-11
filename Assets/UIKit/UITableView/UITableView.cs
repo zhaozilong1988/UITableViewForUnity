@@ -345,25 +345,21 @@ namespace UIKit
                                var newPos = normalizedPosition;
                                var changed = false;
                                if (_direction.IsVertical()) {
-                                       if (normalizedPosition.y > 1f) {
-                                               newPos.y = 0f;
-                                               changed = true;
-                                       } else if (normalizedPosition.y < 0f) {
-                                               newPos.y = 1f;
+                                       if (newPos.y > 1f || newPos.y < 0f) {
+                                               newPos.y = Mathf.Repeat(newPos.y, 1f);
                                                changed = true;
                                        }
                                } else {
-                                       if (normalizedPosition.x > 1f) {
-                                               newPos.x = 0f;
-                                               changed = true;
-                                       } else if (normalizedPosition.x < 0f) {
-                                               newPos.x = 1f;
+                                       if (newPos.x > 1f || newPos.x < 0f) {
+                                               newPos.x = Mathf.Repeat(newPos.x, 1f);
                                                changed = true;
                                        }
                                }
                                if (changed) {
+                                       var velocity = _scrollRect.velocity;
                                        _skipLoopNormalizedPositionChange = true;
                                        _scrollRect.normalizedPosition = newPos;
+                                       _scrollRect.velocity = velocity;
                                        normalizedPosition = newPos;
                                }
                        }
