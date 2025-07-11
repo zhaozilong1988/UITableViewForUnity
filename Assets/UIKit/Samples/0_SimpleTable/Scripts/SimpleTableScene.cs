@@ -2,8 +2,8 @@ using UnityEngine;
 
 namespace UIKit.Samples
 {
-	public class SimpleTableScene : MonoBehaviour, IUITableViewDataSource, IUITableViewDelegate
-	{
+       public class SimpleTableScene : MonoBehaviour, IUITableViewLoopDataSource, IUITableViewDelegate
+       {
 		[SerializeField] UITableView _tableView;
 		[SerializeField] SimpleCell _cellPrefab;
 
@@ -21,22 +21,36 @@ namespace UIKit.Samples
 			_tableView.ReloadData();
 		}
 
-		#region IUITableViewDataSource
-		public UITableViewCell CellAtIndexInTableView(UITableView tableView, int index)
-		{
-			return _tableView.ReuseOrCreateCell(_cellPrefab);
-		}
+               #region IUITableViewDataSource
+               public UITableViewCell CellAtIndexInTableView(UITableView tableView, int index)
+               {
+                       return _tableView.ReuseOrCreateCell(_cellPrefab);
+               }
 
-		public int NumberOfCellsInTableView(UITableView tableView)
-		{
-			return 200;
-		}
+               public int NumberOfCellsInTableView(UITableView tableView)
+               {
+                       return 200;
+               }
 
-		public float LengthForCellInTableView(UITableView tableView, int index)
-		{
-			return index % 2 == 0 ? 150 : 200;
-		}
-		#endregion
+               public float LengthForCellInTableView(UITableView tableView, int index)
+               {
+                       return index % 2 == 0 ? 150 : 200;
+               }
+               #endregion
+
+               #region IUITableViewLoopDataSource
+               public int NumberOfLoopCells(UITableView tableView)
+               {
+                       // Show 1000 cells by repeating our 200 items
+                       return 1000;
+               }
+
+               public int MapLoopIndex(UITableView tableView, int loopIndex)
+               {
+                       // Map the visible index back to our 200 item data set
+                       return loopIndex % NumberOfCellsInTableView(tableView);
+               }
+               #endregion
 
 		#region IUITableViewDelegate
 		public void CellAtIndexInTableViewWillAppear(UITableView tableView, int index)
