@@ -33,6 +33,10 @@ Download the unitypackge from the [Releases](https://github.com/zhaozilong1988/U
 Check the samples in the [Assets/UIKit/Samples](https://github.com/zhaozilong1988/UITableViewForUnity/tree/master/Assets/UIKit/Samples) folder or in the Unity Package Manager’s Samples tab
 ![](samples_tab.png)
 
+### Loop scrolling
+
+Implement `IUITableViewLoopDataSource` on your data source when you need endless scrolling. The table view will ask `NumberOfLoopCells` for the total count and use `MapLoopIndex` to convert visible indices back to your own data.
+
 # The concept of design
 
 The design of UITableViewForUnity referred to the [UITableView](https://developer.apple.com/documentation/uikit/uitableview) of [UIKit](https://developer.apple.com/documentation/uikit) framework on iOS.

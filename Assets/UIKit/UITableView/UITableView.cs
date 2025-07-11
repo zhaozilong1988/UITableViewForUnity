@@ -66,8 +66,8 @@ namespace UIKit
 		float _flickStartAt;
 		bool _onNormalizedPositionChangedCalled;
 		bool _isReachingBottommostOrLeftmost, _isReachingTopmostOrRightmost; // for detecting boundary when IUITableViewReachable is assigned.
-		int? _dragCellIndex, _clickCellIndex;
-		UITableViewMagneticInternalState _magneticInternalState = UITableViewMagneticInternalState.Stopped;
+                int? _dragCellIndex, _clickCellIndex;
+                UITableViewMagneticInternalState _magneticInternalState = UITableViewMagneticInternalState.Stopped;
 		[SerializeField] ScrollRect _scrollRect;
 		[SerializeField] RectTransform _viewport;
 		[SerializeField] RectTransform _content;
@@ -75,25 +75,48 @@ namespace UIKit
 #if UNITY_EDITOR
 		bool _wasUseNestedScrollRect;
 		[SerializeField, Header("Select if this is a nested ScrollRect \nthat needs to scroll or handle other interactions.")]
-		bool _useNestedScrollRect;
+                bool _useNestedScrollRect;
 #endif
-		[Header("If selected, \nthe UITableViewCellLifeCycle will be ignored, \nand all cells will be loaded at once.")]
-		[SerializeField] bool _ignoreCellLifeCycle;
+                [Header("If selected, \nthe UITableViewCellLifeCycle will be ignored, \nand all cells will be loaded at once.")]
+                [SerializeField] bool _ignoreCellLifeCycle;
+               IUITableViewLoopDataSource LoopSource => dataSource as IUITableViewLoopDataSource;
+
+               int MapLoopIndex(int index)
+               {
+                       var loop = LoopSource;
+                       return loop != null ? loop.MapLoopIndex(this, index) : index;
+               }
+
+               int NumberOfCells()
+               {
+                       var loop = LoopSource;
+                       return loop != null ? loop.NumberOfLoopCells(this) : dataSource.NumberOfCellsInTableView(this);
+               }
 		/// <summary> For distinguishing between table views. For example, using two table views with a single datasource. </summary>
 		[Header("For distinguishing between table views. \nFor example, using two table views \nwith a single datasource.")]
 		public int _tag;
 		/// <summary> If selected, the click events will be preserved even after dragging begins. </summary>
 		[Header("If selected, \nthe click events will be preserved \neven after dragging begins.")]
-		public bool preserveClickEvenDragBegins;
-		public delegate void OnScrollingStopped(bool interrupted);
+               public bool preserveClickEvenDragBegins;
+               public delegate void OnScrollingStopped(bool interrupted);
 
-		protected override void Awake()
-		{
-			base.Awake();
-			InitializeScrollRect();
-			InitializeCellsPool();
-			_scrollRect.onValueChanged.AddListener(OnNormalizedPositionChanged);
-		}
+                protected override void Awake()
+                {
+                        base.Awake();
+                        InitializeScrollRect();
+                        InitializeCellsPool();
+                        _scrollRect.onValueChanged.AddListener(OnNormalizedPositionChanged);
+                }
+
+               protected override void OnEnable()
+               {
+                       base.OnEnable();
+               }
+
+               protected override void OnDisable()
+               {
+                       base.OnDisable();
+               }
 
 		protected override void OnDestroy()
 		{
@@ -153,12 +176,12 @@ namespace UIKit
 		}
 
 #if UNITY_EDITOR
-		protected override void OnValidate()
-		{
-			InitializeScrollRect();
-			Validate();
+                protected override void OnValidate()
+                {
+                        InitializeScrollRect();
+                        Validate();
 
-			EditorApplication.update += () => {
+                        EditorApplication.update += () => {
 				if (_useNestedScrollRect == _wasUseNestedScrollRect) return;
 				_wasUseNestedScrollRect = _useNestedScrollRect;
 				if (_scrollRect as NestedScrollRect != null == _useNestedScrollRect) return;
@@ -280,10 +303,10 @@ namespace UIKit
 				float cumulativeColumnWidth = 0f, averageColumnWidth = contentColumnWidth / columnNumber;
 				var emptyColumnAtLastRow = cellIndex + columnNumber - numberOfCells;
 				if (emptyColumnAtLastRow > 0) columnNumber -= emptyColumnAtLastRow; // if the last row has empty columns, reduce column number.
-				var substituteCellIndex = cellIndex;
-				for (var columnIndex = 0; columnIndex < columnNumber; columnIndex++) {
-					var rowLength = dataSource.LengthForCellInTableView(this, substituteCellIndex);
-					maxRowLength = Mathf.Max(maxRowLength, rowLength);
+                                var substituteCellIndex = cellIndex;
+                                for (var columnIndex = 0; columnIndex < columnNumber; columnIndex++) {
+                                        var rowLength = dataSource.LengthForCellInTableView(this, MapLoopIndex(substituteCellIndex));
+                                        maxRowLength = Mathf.Max(maxRowLength, rowLength);
 					var columnWidth = gridDataSource?.WidthOfCellAtRowInGridView(this, rowIndex, columnIndex, averageColumnWidth) ?? averageColumnWidth;
 					Debug.Assert(columnWidth > 0f, $"Width of cell can not be less than zero, rowIndex:{rowIndex}, columnIndex:{columnIndex}.");
 
@@ -295,7 +318,7 @@ namespace UIKit
 					holder.rowPosition = cumulativeRowLength + lastMaxLowerRowMargin + maxUpperRowMargin;
 					holder.columnPosition = cumulativeColumnWidth;
 					holder.columnWidth = columnWidth;
-					holder.siblingOrder = this.sortable?.SiblingOrderAtIndexInTableView(this, rowIndex) ?? -1;
+                                        holder.siblingOrder = this.sortable?.SiblingOrderAtIndexInTableView(this, MapLoopIndex(substituteCellIndex)) ?? -1;
 
 					cumulativeColumnWidth += columnWidth;
 					substituteCellIndex++;
@@ -327,13 +350,13 @@ namespace UIKit
 				: new Vector2(cumulativeRowLength, _content.sizeDelta.y);
 		}
 
-		void OnNormalizedPositionChanged(Vector2 normalizedPosition)
-		{
-			_onNormalizedPositionChangedCalled = true;
-			if (_holders.Count <= 0) return;
-			ReloadCells(normalizedPosition, false);
-			DetectAndNotifyReachableStatus();
-		}
+               void OnNormalizedPositionChanged(Vector2 normalizedPosition)
+               {
+                       _onNormalizedPositionChangedCalled = true;
+                       if (_holders.Count <= 0) return;
+                       ReloadCells(normalizedPosition, false);
+                       DetectAndNotifyReachableStatus();
+               }
 
 		void ReloadCells(Vector2 normalizedPosition, bool alwaysRearrangeCell)
 		{
@@ -373,14 +396,15 @@ namespace UIKit
 				if (alwaysRearrangeCell) RearrangeCell(index);
 				return;
 			}
-			holder.loadedCell = dataSource.CellAtIndexInTableView(this, index);
+                        var dataIndex = MapLoopIndex(index);
+                        holder.loadedCell = dataSource.CellAtIndexInTableView(this, dataIndex);
 			holder.loadedCell.rectTransform.SetParent(_content);
 			holder.loadedCell.rectTransform.localScale = Vector3.one;
 			holder.loadedCell.rectTransform.localRotation = Quaternion.identity;
 			RearrangeCell(index);
 			holder.loadedCell.gameObject.SetActive(true);
-			holder.loadedCell.index = index;
-			@delegate?.CellAtIndexInTableViewWillAppear(this, index);
+                        holder.loadedCell.index = dataIndex;
+                        @delegate?.CellAtIndexInTableViewWillAppear(this, dataIndex);
 #if UNITY_EDITOR
 			_cellsPool.name = $"ReusableCells({_cellsPool.childCount})";
 			holder.loadedCell.gameObject.name = $"{index}_{holder.loadedCell.reuseIdentifier}";
@@ -413,9 +437,10 @@ namespace UIKit
 
 		void UnloadCell(int index)
 		{
-			var holder = _holders[index];
-			var cell = holder.loadedCell;
-			@delegate?.CellAtIndexInTableViewDidDisappear(this, index);
+                        var holder = _holders[index];
+                        var cell = holder.loadedCell;
+                        var dataIndex = MapLoopIndex(index);
+                        @delegate?.CellAtIndexInTableViewDidDisappear(this, dataIndex);
 			cell.index = null;
 			switch (cell.lifeCycle) {
 				case UITableViewCellLifeCycle.RecycleWhenDisappeared:
@@ -468,7 +493,7 @@ namespace UIKit
 			if (dataSource == null) throw new Exception("DataSource can not be null!");
 			if (startLocation.HasValue && startNormalizedPosition.HasValue) throw new IndexOutOfRangeException("You can only choose one between startLocation and startNormalizedPosition.");
 			if (startLocation?.index < 0) throw new IndexOutOfRangeException("Start index must be more than zero.");
-			var newCount = dataSource.NumberOfCellsInTableView(this);
+                        var newCount = NumberOfCells();
 			if (dataSource is IUIGridViewDataSource gridDataSource) {
 				_columnAtRowInGrid ??= new List<int>();
 				_columnAtRowInGrid.Clear();
@@ -558,8 +583,8 @@ namespace UIKit
 		public void RearrangeData()
 		{
 			if (dataSource == null) throw new Exception("DataSource can not be null!");
-			var oldCount = _holders.Count;
-			var newCount = dataSource.NumberOfCellsInTableView(this);
+                        var oldCount = _holders.Count;
+                        var newCount = NumberOfCells();
 			if (oldCount != newCount) throw new Exception("Rearrange can not be called if count is changed");
 			ResizeContent(newCount, false);
 			ReloadCells(_scrollRect.normalizedPosition, true);
@@ -619,8 +644,8 @@ namespace UIKit
 		public void AppendData()
 		{
 			if (dataSource == null) throw new Exception("DataSource can not be null!");
-			var oldCount = _holders.Count;
-			var newCount = dataSource.NumberOfCellsInTableView(this);
+                        var oldCount = _holders.Count;
+                        var newCount = NumberOfCells();
 			if (oldCount > newCount) throw new Exception("AppendData() can not be called if number of cells is decreased");
 			for (var i = 0; i < newCount - oldCount; i++)
 				_holders.Add(new UITableViewCellHolder());
@@ -644,8 +669,8 @@ namespace UIKit
 		public void PrependData()
 		{
 			if (dataSource == null) throw new Exception("DataSource can not be null!");
-			var oldCount = _holders.Count;
-			var newCount = dataSource.NumberOfCellsInTableView(this);
+                        var oldCount = _holders.Count;
+                        var newCount = NumberOfCells();
 			var deltaCount = newCount - oldCount;
 			if (deltaCount < 0) throw new Exception("PrependData() can not be called if number of cells is decreased.");
 
