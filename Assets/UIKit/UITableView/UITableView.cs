@@ -344,31 +344,29 @@ namespace UIKit
                 void OnNormalizedPositionChanged(Vector2 normalizedPosition)
                 {
                         _onNormalizedPositionChangedCalled = true;
-                        if (_holders.Count <= 0) return;
-                        if (_enableLooping) {
-                                const float epsilon = 0.0001f;
-                                if (_direction.IsVertical()) {
-                                        if (normalizedPosition.y <= 0f) {
-                                                normalizedPosition.y = 1f - epsilon;
-                                                _scrollRect.normalizedPosition = normalizedPosition;
-                                        } else if (normalizedPosition.y >= 1f) {
-                                                normalizedPosition.y = epsilon;
-                                                _scrollRect.normalizedPosition = normalizedPosition;
-                                        }
-                                } else {
-                                        if (normalizedPosition.x <= 0f) {
-                                                normalizedPosition.x = 1f - epsilon;
-                                                _scrollRect.normalizedPosition = normalizedPosition;
-                                        } else if (normalizedPosition.x >= 1f) {
-                                                normalizedPosition.x = epsilon;
-                                                _scrollRect.normalizedPosition = normalizedPosition;
-                                        }
-                                }
-                        }
-                        ReloadCells(normalizedPosition, false);
-                        if (!_enableLooping)
-                                DetectAndNotifyReachableStatus();
-                }
+                       if (_holders.Count <= 0) return;
+                       if (_enableLooping) {
+                               var velocity = _scrollRect.velocity;
+                               if (_direction.IsVertical()) {
+                                       if (normalizedPosition.y < 0f || normalizedPosition.y > 1f) {
+                                               normalizedPosition.y = normalizedPosition.y < 0f ? normalizedPosition.y + 1f : normalizedPosition.y - 1f;
+                                               _scrollRect.normalizedPosition = normalizedPosition;
+                                               _scrollRect.velocity = velocity;
+                                       }
+                               } else {
+                                       if (normalizedPosition.x < 0f || normalizedPosition.x > 1f) {
+                                               normalizedPosition.x = normalizedPosition.x < 0f ? normalizedPosition.x + 1f : normalizedPosition.x - 1f;
+                                               _scrollRect.normalizedPosition = normalizedPosition;
+                                               _scrollRect.velocity = velocity;
+                                       }
+                               }
+                               // Use updated normalized position after wrapping
+                               normalizedPosition = _scrollRect.normalizedPosition;
+                       }
+                       ReloadCells(normalizedPosition, false);
+                       if (!_enableLooping)
+                               DetectAndNotifyReachableStatus();
+               }
 		void ReloadCells(Vector2 normalizedPosition, bool alwaysRearrangeCell)
 		{
 			var range = RecalculateVisibleRange(normalizedPosition);
