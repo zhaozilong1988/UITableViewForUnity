@@ -41,10 +41,10 @@ namespace UIKit
 			}
 		}
 
-                public bool enableLooping {
-                        get => _enableLooping;
-                        set => _enableLooping = value;
-                }
+		public bool enableLooping {
+			get => _enableLooping;
+			set => _enableLooping = value;
+		}
 
 		public UITableViewDirection direction {
 			get => _direction;
@@ -84,8 +84,8 @@ namespace UIKit
 #endif
 		[Header("If selected, \nthe UITableViewCellLifeCycle will be ignored, \nand all cells will be loaded at once.")]
 		[SerializeField] bool _ignoreCellLifeCycle;
-                [Header("Enable looping of scroll content.")]
-                [SerializeField] bool _enableLooping;
+		[Header("Enable looping of scroll content.")]
+		[SerializeField] bool _enableLooping;
 		/// <summary> For distinguishing between table views. For example, using two table views with a single datasource. </summary>
 		[Header("For distinguishing between table views. \nFor example, using two table views \nwith a single datasource.")]
 		public int _tag;
@@ -218,52 +218,52 @@ namespace UIKit
 			return new Vector2Int(_foundStartIndex, _foundEndIndex);
 		}
 
-                int FindIndexOfCellAtPosition(Vector2 targetPosition, int searchFromIndex, int lastFoundIndex)
-                {
-                        var length = _holders.Count;
-                        var isVertical = _direction.IsVertical();
-                        var targetPositionXY = isVertical ? targetPosition.y : targetPosition.x;
-                        var hintIndex = Mathf.Clamp(lastFoundIndex, 0, length - 1); // Clamp hint to valid range:
+		int FindIndexOfCellAtPosition(Vector2 targetPosition, int searchFromIndex, int lastFoundIndex)
+		{
+			var length = _holders.Count;
+			var isVertical = _direction.IsVertical();
+			var targetPositionXY = isVertical ? targetPosition.y : targetPosition.x;
+			var hintIndex = Mathf.Clamp(lastFoundIndex, 0, length - 1); // Clamp hint to valid range:
 
-                        // 1) Quick check around the hint (±1), in case scrolling is incremental:
-                        if (_holders[hintIndex].rowPosition <= targetPositionXY) { // scroll up
-                                if (hintIndex == length - 1 || _holders[hintIndex + 1].rowPosition > targetPositionXY) {
-                                        return _enableLooping && length > 0 ? hintIndex % length : hintIndex;
-                                }
-                        } else if (hintIndex > 0 && _holders[hintIndex - 1].rowPosition <= targetPositionXY) {
-                                var idx = hintIndex - 1;
-                                return _enableLooping && length > 0 ? idx % length : idx;
-                        }
+			// 1) Quick check around the hint (±1), in case scrolling is incremental:
+			if (_holders[hintIndex].rowPosition <= targetPositionXY) { // scroll up
+				if (hintIndex == length - 1 || _holders[hintIndex + 1].rowPosition > targetPositionXY) {
+					return _enableLooping && length > 0 ? hintIndex % length : hintIndex;
+				}
+			} else if (hintIndex > 0 && _holders[hintIndex - 1].rowPosition <= targetPositionXY) {
+				var idx = hintIndex - 1;
+				return _enableLooping && length > 0 ? idx % length : idx;
+			}
 
-                        // 2) Fallback: full binary search
-                        var result = FindIndexOfCellAtPosition(targetPositionXY, searchFromIndex, length);
-                        if (_enableLooping && length > 0) result %= length;
-                        return result;
-                }
+			// 2) Fallback: full binary search
+			var result = FindIndexOfCellAtPosition(targetPositionXY, searchFromIndex, length);
+			if (_enableLooping && length > 0) result %= length;
+			return result;
+		}
 
-                int FindIndexOfCellAtPosition(float targetPositionXY, int searchFromIndex, int length)
-                {
-                        while (searchFromIndex < length) {
-                                var midIndex = (searchFromIndex + length) >> 1;
-                                if (_holders[midIndex].rowPosition > targetPositionXY) {
-                                        length = midIndex;
-                                        continue;
-                                }
-                                searchFromIndex = midIndex + 1;
-                        }
-                        var result = Math.Max(0, searchFromIndex - 1);
-                        if (_enableLooping && length > 0) result %= length;
-                        return result;
-                }
+		int FindIndexOfCellAtPosition(float targetPositionXY, int searchFromIndex, int length)
+		{
+			while (searchFromIndex < length) {
+				var midIndex = (searchFromIndex + length) >> 1;
+				if (_holders[midIndex].rowPosition > targetPositionXY) {
+					length = midIndex;
+					continue;
+				}
+				searchFromIndex = midIndex + 1;
+			}
+			var result = Math.Max(0, searchFromIndex - 1);
+			if (_enableLooping && length > 0) result %= length;
+			return result;
+		}
 
-                int FindIndexOfCellAtCalibrationPoint(Vector2 calibrationPoint, Vector2 normalizedPosition)
-                {
-                        var np = _direction.IsTopToBottomOrRightToLeft() ? Vector2.one - normalizedPosition : normalizedPosition;
-                        var tvPos = np * _content.rect.size - _viewport.rect.size * (np - calibrationPoint);
-                        var index = FindIndexOfCellAtPosition(_direction.IsVertical() ? tvPos.y : tvPos.x, 0, _holders.Count);
-                        if (_enableLooping && _holders.Count > 0) index %= _holders.Count;
-                        return index;
-                }
+		int FindIndexOfCellAtCalibrationPoint(Vector2 calibrationPoint, Vector2 normalizedPosition)
+		{
+			var np = _direction.IsTopToBottomOrRightToLeft() ? Vector2.one - normalizedPosition : normalizedPosition;
+			var tvPos = np * _content.rect.size - _viewport.rect.size * (np - calibrationPoint);
+			var index = FindIndexOfCellAtPosition(_direction.IsVertical() ? tvPos.y : tvPos.x, 0, _holders.Count);
+			if (_enableLooping && _holders.Count > 0) index %= _holders.Count;
+			return index;
+		}
 
 		void ResizeContent(int numberOfCells, bool forceUpdateContent)
 		{
@@ -341,32 +341,52 @@ namespace UIKit
 				: new Vector2(cumulativeRowLength, _content.sizeDelta.y);
 		}
 
-                void OnNormalizedPositionChanged(Vector2 normalizedPosition)
-                {
-                        _onNormalizedPositionChangedCalled = true;
-                       if (_holders.Count <= 0) return;
-                       if (_enableLooping) {
-                               var velocity = _scrollRect.velocity;
-                               if (_direction.IsVertical()) {
-                                       if (normalizedPosition.y < 0f || normalizedPosition.y > 1f) {
-                                               normalizedPosition.y = normalizedPosition.y < 0f ? normalizedPosition.y + 1f : normalizedPosition.y - 1f;
-                                               _scrollRect.normalizedPosition = normalizedPosition;
-                                               _scrollRect.velocity = velocity;
-                                       }
-                               } else {
-                                       if (normalizedPosition.x < 0f || normalizedPosition.x > 1f) {
-                                               normalizedPosition.x = normalizedPosition.x < 0f ? normalizedPosition.x + 1f : normalizedPosition.x - 1f;
-                                               _scrollRect.normalizedPosition = normalizedPosition;
-                                               _scrollRect.velocity = velocity;
-                                       }
-                               }
-                               // Use updated normalized position after wrapping
-                               normalizedPosition = _scrollRect.normalizedPosition;
-                       }
-                       ReloadCells(normalizedPosition, false);
-                       if (!_enableLooping)
-                               DetectAndNotifyReachableStatus();
-               }
+		void OnNormalizedPositionChanged(Vector2 normalizedPosition)
+		{
+			_onNormalizedPositionChangedCalled = true;
+		       if (_holders.Count <= 0) return;
+		       if (_enableLooping) {
+			       var velocity = _scrollRect.velocity;
+			       if (_direction.IsVertical()) {
+				       var contentSize = _content.rect.height;
+				       var viewportSize = _viewport.rect.height;
+				       if (contentSize > viewportSize) {
+					       var threshold = viewportSize / contentSize;
+					       var wrapAmount = 1f - 2f * threshold;
+					       if (normalizedPosition.y < threshold) {
+						       normalizedPosition.y += wrapAmount;
+						       _scrollRect.normalizedPosition = normalizedPosition;
+						       _scrollRect.velocity = velocity;
+					       } else if (normalizedPosition.y > 1f - threshold) {
+						       normalizedPosition.y -= wrapAmount;
+						       _scrollRect.normalizedPosition = normalizedPosition;
+						       _scrollRect.velocity = velocity;
+					       }
+				       }
+			       } else {
+				       var contentSize = _content.rect.width;
+				       var viewportSize = _viewport.rect.width;
+				       if (contentSize > viewportSize) {
+					       var threshold = viewportSize / contentSize;
+					       var wrapAmount = 1f - 2f * threshold;
+					       if (normalizedPosition.x < threshold) {
+						       normalizedPosition.x += wrapAmount;
+						       _scrollRect.normalizedPosition = normalizedPosition;
+						       _scrollRect.velocity = velocity;
+					       } else if (normalizedPosition.x > 1f - threshold) {
+						       normalizedPosition.x -= wrapAmount;
+						       _scrollRect.normalizedPosition = normalizedPosition;
+						       _scrollRect.velocity = velocity;
+					       }
+				       }
+			       }
+			       // Use updated normalized position after wrapping
+			       normalizedPosition = _scrollRect.normalizedPosition;
+		       }
+		       ReloadCells(normalizedPosition, false);
+		       if (!_enableLooping)
+			       DetectAndNotifyReachableStatus();
+	       }
 		void ReloadCells(Vector2 normalizedPosition, bool alwaysRearrangeCell)
 		{
 			var range = RecalculateVisibleRange(normalizedPosition);
@@ -541,18 +561,18 @@ namespace UIKit
 			if (!_onNormalizedPositionChangedCalled)
 				ReloadCells(_scrollRect.normalizedPosition, false);
 
-                        if (!_enableLooping) {
-                                // Recalculate if the content is reaching view port's boundary.
-                                CalculateReachableStatus(out var curIsReachingTopmostOrRightmost, out var curIsReachingBottommostOrLeftmost);
-                                _isReachingTopmostOrRightmost = curIsReachingTopmostOrRightmost;
-                                _isReachingBottommostOrLeftmost = curIsReachingBottommostOrLeftmost;
-                        }
+			if (!_enableLooping) {
+				// Recalculate if the content is reaching view port's boundary.
+				CalculateReachableStatus(out var curIsReachingTopmostOrRightmost, out var curIsReachingBottommostOrLeftmost);
+				_isReachingTopmostOrRightmost = curIsReachingTopmostOrRightmost;
+				_isReachingBottommostOrLeftmost = curIsReachingBottommostOrLeftmost;
+			}
 		}
 
 		///<summary> Detect if the table view has reached or left the topmost/rightmost or bottommost/leftmost</summary>
 		void DetectAndNotifyReachableStatus()
 		{
-                        if (_enableLooping || this.reachable == null) return;
+			if (_enableLooping || this.reachable == null) return;
 			CalculateReachableStatus(out var curIsReachingTopmostOrRightmost, out var curIsReachingBottommostOrLeftmost);
 			if (!_isReachingTopmostOrRightmost && curIsReachingTopmostOrRightmost) {
 				this.reachable.TableViewReachedTopmostOrRightmost(this);
@@ -572,8 +592,8 @@ namespace UIKit
 
 		void CalculateReachableStatus(out bool isReachingTopmostOrRightmost, out bool isReachingBottommostOrLeftmost)
 		{
-                        isReachingTopmostOrRightmost = isReachingBottommostOrLeftmost = false;
-                        if (_enableLooping || this.reachable == null) return;
+			isReachingTopmostOrRightmost = isReachingBottommostOrLeftmost = false;
+			if (_enableLooping || this.reachable == null) return;
 			var upperTolerance = this.reachable.TableViewReachableEdgeTolerance(this);
 			float curPosition, lowerTolerance;
 			var deltaSize = _content.rect.size - _viewport.rect.size;
@@ -609,7 +629,7 @@ namespace UIKit
 			ResizeContent(0, false);
 		}
 
-		/// <summary> Replace the current cell at row with a new cell.  </summary>
+		/// <summary> Replace the current cell at row with a new cell.	</summary>
 		public void ReloadDataAt(int index) 
 		{
 			RearrangeData();
