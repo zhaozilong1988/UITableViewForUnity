@@ -49,6 +49,11 @@
             "displayName": "7_SnappingTable",
             "description": "7_Snapping table.",
             "path": "Samples/7_SnappingTable"
+        },
+        {
+            "displayName": "8_LoopTable",
+            "description": "Looping table.",
+            "path": "Samples/8_LoopTable"
         }
     ]
 }

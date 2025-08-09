@@ -12,6 +12,9 @@ For example
 ![](sample_snapping.gif) | ![](sample_expend.gif) | ![](sample_endless_grid.gif) |
 | Changeable Grid | Draggable Grid | Deletable Grid |
 ![](sample_changeable_grid.gif) | ![](sample_grid_drag.gif) | ![](sample_grid_del.gif) |
+| Looping Table |  |  |
+![](sample_endless_table.gif) |  |  |
+To enable looping behaviour, set `enableLooping` to true on `UITableView`. The sample scene `8_LoopTable` demonstrates this feature.
 
 
 # Why I need this?
