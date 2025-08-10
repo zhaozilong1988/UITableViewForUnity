@@ -346,43 +346,43 @@ namespace UIKit
 			_onNormalizedPositionChangedCalled = true;
 		       if (_holders.Count <= 0) return;
 		       if (_enableLooping) {
-			       var velocity = _scrollRect.velocity;
-			       if (_direction.IsVertical()) {
-				       var contentSize = _content.rect.height;
-				       var viewportSize = _viewport.rect.height;
-				       if (contentSize > viewportSize) {
-					       var threshold = viewportSize / contentSize;
-					       var wrapAmount = 1f - 2f * threshold;
-					       if (normalizedPosition.y < threshold) {
-						       normalizedPosition.y += wrapAmount;
-						       _scrollRect.normalizedPosition = normalizedPosition;
-						       _scrollRect.velocity = velocity;
-					       } else if (normalizedPosition.y > 1f - threshold) {
-						       normalizedPosition.y -= wrapAmount;
-						       _scrollRect.normalizedPosition = normalizedPosition;
-						       _scrollRect.velocity = velocity;
-					       }
-				       }
-			       } else {
-				       var contentSize = _content.rect.width;
-				       var viewportSize = _viewport.rect.width;
-				       if (contentSize > viewportSize) {
-					       var threshold = viewportSize / contentSize;
-					       var wrapAmount = 1f - 2f * threshold;
-					       if (normalizedPosition.x < threshold) {
-						       normalizedPosition.x += wrapAmount;
-						       _scrollRect.normalizedPosition = normalizedPosition;
-						       _scrollRect.velocity = velocity;
-					       } else if (normalizedPosition.x > 1f - threshold) {
-						       normalizedPosition.x -= wrapAmount;
-						       _scrollRect.normalizedPosition = normalizedPosition;
-						       _scrollRect.velocity = velocity;
-					       }
-				       }
-			       }
-			       // Use updated normalized position after wrapping
-			       normalizedPosition = _scrollRect.normalizedPosition;
-		       }
+                               var velocity = _scrollRect.velocity;
+                               if (_direction.IsVertical()) {
+                                       var contentSize = _content.rect.height;
+                                       var viewportSize = _viewport.rect.height;
+                                       if (contentSize > viewportSize) {
+                                               var threshold = viewportSize / (contentSize - viewportSize);
+                                               var offset = 1f - threshold;
+                                               if (normalizedPosition.y < threshold) {
+                                                       normalizedPosition.y += offset;
+                                                       _scrollRect.normalizedPosition = normalizedPosition;
+                                                       _scrollRect.velocity = velocity;
+                                               } else if (normalizedPosition.y > 1f - threshold) {
+                                                       normalizedPosition.y -= offset;
+                                                       _scrollRect.normalizedPosition = normalizedPosition;
+                                                       _scrollRect.velocity = velocity;
+                                               }
+                                       }
+                               } else {
+                                       var contentSize = _content.rect.width;
+                                       var viewportSize = _viewport.rect.width;
+                                       if (contentSize > viewportSize) {
+                                               var threshold = viewportSize / (contentSize - viewportSize);
+                                               var offset = 1f - threshold;
+                                               if (normalizedPosition.x < threshold) {
+                                                       normalizedPosition.x += offset;
+                                                       _scrollRect.normalizedPosition = normalizedPosition;
+                                                       _scrollRect.velocity = velocity;
+                                               } else if (normalizedPosition.x > 1f - threshold) {
+                                                       normalizedPosition.x -= offset;
+                                                       _scrollRect.normalizedPosition = normalizedPosition;
+                                                       _scrollRect.velocity = velocity;
+                                               }
+                                       }
+                               }
+                               // Use updated normalized position after wrapping
+                               normalizedPosition = _scrollRect.normalizedPosition;
+                       }
 		       ReloadCells(normalizedPosition, false);
 		       if (!_enableLooping)
 			       DetectAndNotifyReachableStatus();
