@@ -813,12 +813,15 @@ namespace UIKit
 				default: throw new ArgumentOutOfRangeException();
 			}
 
-			var deltaSize = _content.rect.size - _viewport.rect.size;
-			var normalizedPosition = _scrollRect.normalizedPosition;
-			switch (_direction) {
-				case UITableViewDirection.TopToBottom:
-					position += displacement;
-					normalizedPosition.y = 1f - position / deltaSize.y;
+                        var deltaSize = _content.rect.size - _viewport.rect.size;
+                        var normalizedPosition = _scrollRect.normalizedPosition;
+                        if ((_direction.IsVertical() && Mathf.Approximately(deltaSize.y, 0f)) ||
+                            (!_direction.IsVertical() && Mathf.Approximately(deltaSize.x, 0f)))
+                                return normalizedPosition;
+                        switch (_direction) {
+                                case UITableViewDirection.TopToBottom:
+                                        position += displacement;
+                                        normalizedPosition.y = 1f - position / deltaSize.y;
 					break;
 				case UITableViewDirection.BottomToTop:
 					position -= displacement;
