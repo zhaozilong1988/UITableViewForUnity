@@ -18,6 +18,7 @@ namespace UIKit
 		const float MAGNETIC_WILL_BE_TRIGGERED_WHEN_SCROLLING_SPEED_BELOW = 100f;
 		const float WHEN_MAGNETIC_IS_TRIGGERED_SCROLLING_SPEED_WILL_BE_CHANGED_TO = 10000f;
 		const float FLICK_WILL_BE_TRIGGERED_IF_FLICK_DURATION_BELOW_TIME = 1f;
+		const int MIN_INFINITE_LOOP_COPY_COUNT = 3;
 		static readonly (float lower, float upper) _flickWillBeTriggeredIfFlickDistanceFallsWithinRange = (40f, 100f);
 
 		public ScrollRect scrollRect => _scrollRect;
@@ -41,6 +42,16 @@ namespace UIKit
 			}
 		}
 
+		/// <summary> If selected, cells will be repeated internally and the scroll position will be wrapped to create an endless loop. </summary>
+		public bool enableInfiniteLoop {
+			get => _enableInfiniteLoop;
+			set {
+				if (_enableInfiniteLoop == value) return;
+				_enableInfiniteLoop = value;
+				ReloadData();
+			}
+		}
+
 		public UITableViewDirection direction {
 			get => _direction;
 			set {
@@ -54,6 +65,9 @@ namespace UIKit
 		}
 
 		int _foundStartIndex, _foundEndIndex;
+		int _logicalCellCount;
+		int _logicalRowCount;
+		int _infiniteLoopCopyCount = 1;
 		List<int> _columnAtRowInGrid;
 		List<UITableViewCellHolder> _sortedHolders; // for IUITableViewSortable.
 		readonly List<UITableViewCellHolder> _holders = new List<UITableViewCellHolder>(); // all holders
@@ -64,7 +78,10 @@ namespace UIKit
 		Transform _cellsPool;
 		Vector2 _flickPositionAt;
 		float _flickStartAt;
+		float _infiniteLoopSegmentLength;
 		bool _onNormalizedPositionChangedCalled;
+		bool _isAdjustingInfiniteLoopPosition;
+		int? _delegateCellContextHolderIndex;
 		bool _isReachingBottommostOrLeftmost, _isReachingTopmostOrRightmost; // for detecting boundary when IUITableViewReachable is assigned.
 		int? _dragCellIndex, _clickCellIndex;
 		UITableViewMagneticInternalState _magneticInternalState = UITableViewMagneticInternalState.Stopped;
@@ -79,6 +96,8 @@ namespace UIKit
 #endif
 		[Header("If selected, \nthe UITableViewCellLifeCycle will be ignored, \nand all cells will be loaded at once.")]
 		[SerializeField] bool _ignoreCellLifeCycle;
+		[Header("If selected, the table view will loop endlessly.")]
+		[SerializeField] bool _enableInfiniteLoop;
 		/// <summary> For distinguishing between table views. For example, using two table views with a single datasource. </summary>
 		[Header("For distinguishing between table views. \nFor example, using two table views \nwith a single datasource.")]
 		public int _tag;
@@ -130,8 +149,9 @@ namespace UIKit
 			_magneticInternalState = UITableViewMagneticInternalState.Attracting;
 			var calibrationPoint = magnetic.MagneticCalibrationPointInTableView(this);
 			var fromNp = _scrollRect.normalizedPosition;
-			var cellIndex = toIndexOfCellAt.HasValue ? toIndexOfCellAt.Value : FindIndexOfCellAtCalibrationPoint(calibrationPoint, fromNp);
-			var toNp = GetNormalizedPositionOfCellAt(cellIndex, calibrationPoint);
+			var holderIndex = toIndexOfCellAt.HasValue ? GetPreferredHolderIndex(toIndexOfCellAt.Value) : FindIndexOfCellAtCalibrationPoint(calibrationPoint, fromNp);
+			var logicalIndex = toIndexOfCellAt.HasValue ? toIndexOfCellAt.Value : GetDataIndexFromHolderIndex(holderIndex);
+			var toNp = GetNormalizedPositionOfHolderAt(holderIndex, calibrationPoint);
 			float duration;
 			if (overrideDuration.HasValue)
 				duration = overrideDuration.Value;
@@ -143,12 +163,12 @@ namespace UIKit
 				duration = Mathf.Abs(_direction.IsVertical() ? deltaDistance.y : deltaDistance.x) / changedTo;
 			}
 
-			magnetic.MagneticStateDidChangeInTableView(this, cellIndex, UITableViewMagneticState.Start);
+			magnetic.MagneticStateDidChangeInTableView(this, logicalIndex, UITableViewMagneticState.Start);
 			ScrollToNormalizedPosition(fromNp, toNp, duration, onScrollingStopped: interrupted => {
 				_magneticInternalState = UITableViewMagneticInternalState.Stopped;
 				overrideOnScrollingStopped?.Invoke(interrupted);
 				var state = interrupted ? UITableViewMagneticState.Interrupted : UITableViewMagneticState.Completed;
-				magnetic.MagneticStateDidChangeInTableView(this, cellIndex, state);
+				magnetic.MagneticStateDidChangeInTableView(this, logicalIndex, state);
 			});
 		}
 
@@ -265,15 +285,16 @@ namespace UIKit
 			var rowNumber = _columnAtRowInGrid?.Count ?? numberOfCells;
 			var gridDataSource = dataSource as IUIGridViewDataSource;
 			for (var rowIndex = 0; rowIndex < rowNumber; rowIndex++) {
+				var logicalRowIndex = GetLogicalRowIndex(rowIndex);
 				// find max margin, length at row
 				float maxUpperRowMargin = 0f, maxLowerRowMargin = 0f, maxRowLength = 0f;
 				var upperRowMargin = _direction.IsTopToBottomOrRightToLeft()
-					? (marginDataSource?.LengthForUpperMarginInTableView(this, rowIndex) ?? 0f)
-					: (marginDataSource?.LengthForLowerMarginInTableView(this, rowIndex) ?? 0f);
+					? (marginDataSource?.LengthForUpperMarginInTableView(this, logicalRowIndex) ?? 0f)
+					: (marginDataSource?.LengthForLowerMarginInTableView(this, logicalRowIndex) ?? 0f);
 				maxUpperRowMargin = Mathf.Max(maxUpperRowMargin, upperRowMargin);
 				var lowerRowMargin = _direction.IsTopToBottomOrRightToLeft()
-					? (marginDataSource?.LengthForLowerMarginInTableView(this, rowIndex) ?? 0f)
-					: (marginDataSource?.LengthForUpperMarginInTableView(this, rowIndex) ?? 0f);
+					? (marginDataSource?.LengthForLowerMarginInTableView(this, logicalRowIndex) ?? 0f)
+					: (marginDataSource?.LengthForUpperMarginInTableView(this, logicalRowIndex) ?? 0f);
 				maxLowerRowMargin = Mathf.Max(maxLowerRowMargin, lowerRowMargin);
 
 				var columnNumber = _columnAtRowInGrid?[rowIndex] ?? 1;
@@ -282,9 +303,10 @@ namespace UIKit
 				if (emptyColumnAtLastRow > 0) columnNumber -= emptyColumnAtLastRow; // if the last row has empty columns, reduce column number.
 				var substituteCellIndex = cellIndex;
 				for (var columnIndex = 0; columnIndex < columnNumber; columnIndex++) {
-					var rowLength = dataSource.LengthForCellInTableView(this, substituteCellIndex);
+					var logicalIndex = GetDataIndexFromHolderIndex(substituteCellIndex);
+					var rowLength = dataSource.LengthForCellInTableView(this, logicalIndex);
 					maxRowLength = Mathf.Max(maxRowLength, rowLength);
-					var columnWidth = gridDataSource?.WidthOfCellAtRowInGridView(this, rowIndex, columnIndex, averageColumnWidth) ?? averageColumnWidth;
+					var columnWidth = gridDataSource?.WidthOfCellAtRowInGridView(this, logicalRowIndex, columnIndex, averageColumnWidth) ?? averageColumnWidth;
 					Debug.Assert(columnWidth > 0f, $"Width of cell can not be less than zero, rowIndex:{rowIndex}, columnIndex:{columnIndex}.");
 
 					var holder = _holders[substituteCellIndex];
@@ -295,13 +317,13 @@ namespace UIKit
 					holder.rowPosition = cumulativeRowLength + lastMaxLowerRowMargin + maxUpperRowMargin;
 					holder.columnPosition = cumulativeColumnWidth;
 					holder.columnWidth = columnWidth;
-					holder.siblingOrder = this.sortable?.SiblingOrderAtIndexInTableView(this, rowIndex) ?? -1;
+					holder.siblingOrder = this.sortable?.SiblingOrderAtIndexInTableView(this, logicalIndex) ?? -1;
 
 					cumulativeColumnWidth += columnWidth;
 					substituteCellIndex++;
 				}
 
-				var rowAlignment = gridDataSource?.AlignmentOfCellsAtRowInGridView(this, rowIndex) ?? UITableViewAlignment.LeftOrBottom;
+				var rowAlignment = gridDataSource?.AlignmentOfCellsAtRowInGridView(this, logicalRowIndex) ?? UITableViewAlignment.LeftOrBottom;
 				var emptyColumnWidth = contentColumnWidth - cumulativeColumnWidth;
 				for (var columnIndex = 0; columnIndex < columnNumber; columnIndex++) {
 					var holder = _holders[cellIndex];
@@ -322,6 +344,7 @@ namespace UIKit
 			}
 
 			cumulativeRowLength += lastMaxLowerRowMargin; // the last cell's margin
+			_infiniteLoopSegmentLength = IsInfiniteLoopActive() ? cumulativeRowLength / _infiniteLoopCopyCount : 0f;
 			_content.sizeDelta = _direction.IsVertical()
 				? new Vector2(_content.sizeDelta.x, cumulativeRowLength)
 				: new Vector2(cumulativeRowLength, _content.sizeDelta.y);
@@ -331,6 +354,8 @@ namespace UIKit
 		{
 			_onNormalizedPositionChangedCalled = true;
 			if (_holders.Count <= 0) return;
+			if (_isAdjustingInfiniteLoopPosition) return;
+			if (TryWrapInfiniteLoopNormalizedPosition(normalizedPosition)) return;
 			ReloadCells(normalizedPosition, false);
 			DetectAndNotifyReachableStatus();
 		}
@@ -369,21 +394,28 @@ namespace UIKit
 		void LoadCell(int index, bool alwaysRearrangeCell)
 		{
 			var holder = _holders[index];
+			var logicalIndex = GetDataIndexFromHolderIndex(index);
 			if (holder.loadedCell != null) {
+				holder.loadedCell.index = logicalIndex;
 				if (alwaysRearrangeCell) RearrangeCell(index);
 				return;
 			}
-			holder.loadedCell = dataSource.CellAtIndexInTableView(this, index);
+			holder.loadedCell = dataSource.CellAtIndexInTableView(this, logicalIndex);
 			holder.loadedCell.rectTransform.SetParent(_content);
 			holder.loadedCell.rectTransform.localScale = Vector3.one;
 			holder.loadedCell.rectTransform.localRotation = Quaternion.identity;
 			RearrangeCell(index);
 			holder.loadedCell.gameObject.SetActive(true);
-			holder.loadedCell.index = index;
-			@delegate?.CellAtIndexInTableViewWillAppear(this, index);
+			holder.loadedCell.index = logicalIndex;
+			_delegateCellContextHolderIndex = index;
+			try {
+				@delegate?.CellAtIndexInTableViewWillAppear(this, logicalIndex);
+			} finally {
+				_delegateCellContextHolderIndex = null;
+			}
 #if UNITY_EDITOR
 			_cellsPool.name = $"ReusableCells({_cellsPool.childCount})";
-			holder.loadedCell.gameObject.name = $"{index}_{holder.loadedCell.reuseIdentifier}";
+			holder.loadedCell.gameObject.name = $"{logicalIndex}@{index}_{holder.loadedCell.reuseIdentifier}";
 #endif
 		}
 
@@ -415,7 +447,13 @@ namespace UIKit
 		{
 			var holder = _holders[index];
 			var cell = holder.loadedCell;
-			@delegate?.CellAtIndexInTableViewDidDisappear(this, index);
+			var logicalIndex = cell.index ?? GetDataIndexFromHolderIndex(index);
+			_delegateCellContextHolderIndex = index;
+			try {
+				@delegate?.CellAtIndexInTableViewDidDisappear(this, logicalIndex);
+			} finally {
+				_delegateCellContextHolderIndex = null;
+			}
 			cell.index = null;
 			switch (cell.lifeCycle) {
 				case UITableViewCellLifeCycle.RecycleWhenDisappeared:
@@ -468,21 +506,34 @@ namespace UIKit
 			if (dataSource == null) throw new Exception("DataSource can not be null!");
 			if (startLocation.HasValue && startNormalizedPosition.HasValue) throw new IndexOutOfRangeException("You can only choose one between startLocation and startNormalizedPosition.");
 			if (startLocation?.index < 0) throw new IndexOutOfRangeException("Start index must be more than zero.");
-			var newCount = dataSource.NumberOfCellsInTableView(this);
+			_logicalCellCount = dataSource.NumberOfCellsInTableView(this);
+			List<int> baseColumnsAtRow = null;
 			if (dataSource is IUIGridViewDataSource gridDataSource) {
-				_columnAtRowInGrid ??= new List<int>();
-				_columnAtRowInGrid.Clear();
-				for (int cellIndex = 0, rowIndex = 0, columnAtRow; cellIndex < newCount; cellIndex += columnAtRow, rowIndex++) {
+				baseColumnsAtRow = new List<int>();
+				for (int cellIndex = 0, rowIndex = 0, columnAtRow; cellIndex < _logicalCellCount; cellIndex += columnAtRow, rowIndex++) {
 					columnAtRow = gridDataSource.NumberOfColumnsAtRowInGridView(this, rowIndex);
 					if (columnAtRow < 1) throw new Exception("Number of cells at row can not be less than 1!");
-					_columnAtRowInGrid.Add(columnAtRow);
+					baseColumnsAtRow.Add(columnAtRow);
 				}
+				_logicalRowCount = baseColumnsAtRow.Count;
+			}
+			else {
+				_logicalRowCount = _logicalCellCount;
+			}
+			var logicalContentLength = CalculateLogicalContentLength(baseColumnsAtRow);
+			_infiniteLoopCopyCount = CalculateInfiniteLoopCopyCount(_logicalCellCount, logicalContentLength);
+			var newCount = GetPhysicalCellCount(_logicalCellCount);
+			if (baseColumnsAtRow != null) {
+				_columnAtRowInGrid ??= new List<int>();
+				_columnAtRowInGrid.Clear();
+				for (var i = 0; i < _infiniteLoopCopyCount; i++)
+					_columnAtRowInGrid.AddRange(baseColumnsAtRow);
 			}
 			else _columnAtRowInGrid = null;
 
 			UnloadAllCells();
 			var oldCount = _holders.Count;
-			if (startLocation?.index > newCount - 1) throw new IndexOutOfRangeException("Start index must be less than quantity of cell.");
+			if (startLocation?.index > _logicalCellCount - 1) throw new IndexOutOfRangeException("Start index must be less than quantity of cell.");
 			var deltaCount = Mathf.Abs(oldCount - newCount);
 			for (var i = 0; i < deltaCount; i++) {
 				if (oldCount > newCount)
@@ -492,20 +543,22 @@ namespace UIKit
 			}
 
 			ResizeContent(newCount, true);
-			if (newCount == 0) return;
+			if (_logicalCellCount == 0) return;
 
 			_onNormalizedPositionChangedCalled = false;
 			if (magnetic != null) {
 				var calibrationPoint = magnetic.MagneticCalibrationPointInTableView(this);
 				var cellIndex = startLocation.HasValue
-					? startLocation.Value.index
+					? GetPreferredHolderIndex(startLocation.Value.index)
 					: FindIndexOfCellAtCalibrationPoint(calibrationPoint, startNormalizedPosition.HasValue ? startNormalizedPosition.Value : _scrollRect.normalizedPosition);
-				_scrollRect.normalizedPosition = GetNormalizedPositionOfCellAt(cellIndex, calibrationPoint);
+				_scrollRect.normalizedPosition = GetNormalizedPositionOfHolderAt(cellIndex, calibrationPoint);
 			} else {
 				if (startLocation.HasValue) _scrollRect.normalizedPosition = GetNormalizedPositionOfCellAt(startLocation.Value);
 				else if (startNormalizedPosition.HasValue) _scrollRect.normalizedPosition = startNormalizedPosition.Value;
 				else _scrollRect.normalizedPosition = _scrollRect.normalizedPosition; // WORKAROUND: Make sure the private method of EnsureLayoutHasRebuilt() in scrollRect is called.
 			}
+			if (TryGetWrappedInfiniteLoopNormalizedPosition(_scrollRect.normalizedPosition, out var wrappedNormalizedPosition))
+				_scrollRect.normalizedPosition = wrappedNormalizedPosition;
 			if (!_onNormalizedPositionChangedCalled)
 				ReloadCells(_scrollRect.normalizedPosition, false);
 
@@ -540,6 +593,7 @@ namespace UIKit
 		{
 			isReachingTopmostOrRightmost = isReachingBottommostOrLeftmost = false;
 			if (this.reachable == null) return;
+			if (IsInfiniteLoopActive()) return;
 			var upperTolerance = this.reachable.TableViewReachableEdgeTolerance(this);
 			float curPosition, lowerTolerance;
 			var deltaSize = _content.rect.size - _viewport.rect.size;
@@ -558,8 +612,13 @@ namespace UIKit
 		public void RearrangeData()
 		{
 			if (dataSource == null) throw new Exception("DataSource can not be null!");
+			if (_enableInfiniteLoop) {
+				ReloadData();
+				return;
+			}
 			var oldCount = _holders.Count;
-			var newCount = dataSource.NumberOfCellsInTableView(this);
+			_logicalCellCount = dataSource.NumberOfCellsInTableView(this);
+			var newCount = GetPhysicalCellCount(_logicalCellCount);
 			if (oldCount != newCount) throw new Exception("Rearrange can not be called if count is changed");
 			ResizeContent(newCount, false);
 			ReloadCells(_scrollRect.normalizedPosition, true);
@@ -572,6 +631,10 @@ namespace UIKit
 			if (dataSource == null) throw new Exception("DataSource can not be null!");
 			UnloadAllCells();
 			_holders.Clear();
+			_logicalCellCount = 0;
+			_logicalRowCount = 0;
+			_infiniteLoopCopyCount = 1;
+			_infiniteLoopSegmentLength = 0f;
 			ResizeContent(0, false);
 		}
 
@@ -579,13 +642,16 @@ namespace UIKit
 		public void ReloadDataAt(int index) 
 		{
 			RearrangeData();
-			foreach (var cell in GetAllLoadedCells()) {
-				if (!cell.index.HasValue || cell.index.Value != index) continue;
-				var targetIdx = cell.index.Value;
-				UnloadCell(targetIdx);
-				LoadCell(targetIdx, true);
-				break;
+			_swapper.Clear();
+			foreach (var key in _loadedHolders.Keys) {
+				if (GetDataIndexFromHolderIndex(key) != index) continue;
+				_swapper.Add(key);
 			}
+			foreach (var key in _swapper) {
+				UnloadCell(key);
+				LoadCell(key, true);
+			}
+			_swapper.Clear();
 		}
 
 		/// <summary> Recycle or destroy all loaded cells then reload them again. </summary>
@@ -619,6 +685,10 @@ namespace UIKit
 		public void AppendData()
 		{
 			if (dataSource == null) throw new Exception("DataSource can not be null!");
+			if (_enableInfiniteLoop) {
+				ReloadData();
+				return;
+			}
 			var oldCount = _holders.Count;
 			var newCount = dataSource.NumberOfCellsInTableView(this);
 			if (oldCount > newCount) throw new Exception("AppendData() can not be called if number of cells is decreased");
@@ -644,6 +714,10 @@ namespace UIKit
 		public void PrependData()
 		{
 			if (dataSource == null) throw new Exception("DataSource can not be null!");
+			if (_enableInfiniteLoop) {
+				ReloadData();
+				return;
+			}
 			var oldCount = _holders.Count;
 			var newCount = dataSource.NumberOfCellsInTableView(this);
 			var deltaCount = newCount - oldCount;
@@ -750,7 +824,7 @@ namespace UIKit
 		/// <seealso cref="ScrollToCellAt(UITableViewCellLocation, float, Action)">ScrollToCellAt(UITableViewCellLocation, float, Action)</seealso>
 		public void ScrollToCellAt(int index, float duration, UITableViewAlignment alignment = UITableViewAlignment.RightOrTop, bool withMargin = false, float displacement = 0f, OnScrollingStopped onScrollingStopped = null)
 		{
-			if (index > _holders.Count - 1 || index < 0) throw new IndexOutOfRangeException("Index must be less than cells' number and more than zero.");
+			if (index > _logicalCellCount - 1 || index < 0) throw new IndexOutOfRangeException("Index must be less than cells' number and more than zero.");
 			if (magnetic == null)
 				ScrollToNormalizedPosition(_scrollRect.normalizedPosition, GetNormalizedPositionOfCellAt(index, alignment, withMargin, displacement), duration, onScrollingStopped);
 			else {
@@ -786,15 +860,21 @@ namespace UIKit
 			return GetNormalizedPositionOfCellAt(location.index, location.alignment, location.withMargin, location.displacement);
 		}
 
-		Vector2 GetNormalizedPositionOfCellAt(int index, Vector2 calibrationPoint)
+		Vector2 GetNormalizedPositionOfHolderAt(int holderIndex, Vector2 calibrationPoint)
 		{
 			var displacement = (calibrationPoint - Vector2.one * 0.5f) * _viewport.rect.size;
-			return GetNormalizedPositionOfCellAt(index, UITableViewAlignment.Center, false, _direction.IsVertical() ? displacement.y : displacement.x);
+			var holder = _holders[holderIndex];
+			var logicalIndex = GetDataIndexFromHolderIndex(holderIndex);
+			return GetNormalizedPositionOfCellAt(logicalIndex, UITableViewAlignment.Center, false, _direction.IsVertical() ? displacement.y : displacement.x, holder);
 		}
 
 		public Vector2 GetNormalizedPositionOfCellAt(int index, UITableViewAlignment alignment, bool withMargin, float displacement)
 		{
-			var holder = _holders[index];
+			return GetNormalizedPositionOfCellAt(index, alignment, withMargin, displacement, _holders[GetPreferredHolderIndex(index)]);
+		}
+
+		Vector2 GetNormalizedPositionOfCellAt(int index, UITableViewAlignment alignment, bool withMargin, float displacement, UITableViewCellHolder holder)
+		{
 			var position = holder.rowPosition;
 			var viewportLength = _direction.IsVertical() ? _viewport.rect.height : _viewport.rect.width;
 			switch (alignment) {
@@ -849,7 +929,7 @@ namespace UIKit
 		/// <exception cref="ArgumentException">Cell at index is not type of T</exception>
 		public T GetLoadedCell<T>(int index) where T : UITableViewCell
 		{
-			if (!_loadedHolders.TryGetValue(index, out var holder)) return null;
+			if (!TryGetLoadedHolder(index, out var holder)) return null;
 			T cell = holder.loadedCell as T;
 			if (cell == null) throw new ArgumentException($"Cell at index:{index} is not type of {typeof(T)}");
 			return cell;
@@ -857,14 +937,14 @@ namespace UIKit
 
 		public UITableViewCell GetLoadedCell(int index)
 		{
-			return _loadedHolders.TryGetValue(index, out var holder) ? holder.loadedCell : null;
+			return TryGetLoadedHolder(index, out var holder) ? holder.loadedCell : null;
 		}
 
 		public bool TryGetLoadedCell<T>(int index, out T result) where T : UITableViewCell
 		{
 			result = null;
-			if (index < 0 || _holders.Count - 1 < index) return false;
-			if (!_loadedHolders.TryGetValue(index, out var holder)) return false;
+			if (index < 0 || _logicalCellCount - 1 < index) return false;
+			if (!TryGetLoadedHolder(index, out var holder)) return false;
 			var cell = holder.loadedCell as T;
 			if (cell == null) return false;
 			result = cell;
@@ -886,7 +966,8 @@ namespace UIKit
 		public IEnumerable<T> GetAllLoadedCells<T>(Func<int, bool> condition) where T : UITableViewCell
 		{
 			foreach (var kvp in _loadedHolders) {
-				if (!condition.Invoke(kvp.Key)) continue;
+				var logicalIndex = GetDataIndexFromHolderIndex(kvp.Key);
+				if (!condition.Invoke(logicalIndex)) continue;
 				var tCell = kvp.Value.loadedCell as T;
 				if (tCell == null) continue;
 				yield return tCell;
@@ -899,7 +980,7 @@ namespace UIKit
 			var withCell = GetLoadedCell(withCellIndex);
 			if (withCell == null) yield break;
 			foreach (var kvp in _loadedHolders) {
-				if (kvp.Key == withCellIndex) continue;
+				if (GetDataIndexFromHolderIndex(kvp.Key) == withCellIndex) continue;
 				if (kvp.Value.loadedCell.rectTransform.CalculateAreaOfIntersection(withCell.worldRect) <= 0f) continue;
 				yield return kvp.Value.loadedCell;
 			}
@@ -923,13 +1004,184 @@ namespace UIKit
 			var withCell = GetLoadedCell(withCellIndex);
 			if (withCell == null) return false;
 			foreach (var kvp in _loadedHolders) {
-				if (kvp.Key == withCellIndex) continue;
+				var logicalIndex = GetDataIndexFromHolderIndex(kvp.Key);
+				if (logicalIndex == withCellIndex) continue;
 				var area = kvp.Value.loadedCell.rectTransform.CalculateAreaOfIntersection(withCell.worldRect);
 				if (maxAreaOfIntersection >= area) continue;
-				mostIntersectedCellIndex = kvp.Key;
+				mostIntersectedCellIndex = logicalIndex;
 				maxAreaOfIntersection = area;
 			}
 			return mostIntersectedCellIndex >= 0;
+		}
+
+		int GetPhysicalCellCount(int logicalCellCount)
+		{
+			return ShouldUseInfiniteLoop(logicalCellCount) ? logicalCellCount * _infiniteLoopCopyCount : logicalCellCount;
+		}
+
+		bool ShouldUseInfiniteLoop(int logicalCellCount)
+		{
+			return _enableInfiniteLoop && logicalCellCount > 0 && _infiniteLoopCopyCount > 1;
+		}
+
+		bool IsInfiniteLoopActive()
+		{
+			return ShouldUseInfiniteLoop(_logicalCellCount) && _holders.Count == GetPhysicalCellCount(_logicalCellCount);
+		}
+
+		int GetDataIndexFromHolderIndex(int holderIndex)
+		{
+			if (!IsInfiniteLoopActive()) return holderIndex;
+			return PositiveModulo(holderIndex, _logicalCellCount);
+		}
+
+		int GetPreferredHolderIndex(int logicalIndex)
+		{
+			if (!IsInfiniteLoopActive()) return logicalIndex;
+			return logicalIndex + _logicalCellCount * GetPreferredLoopCopyIndex();
+		}
+
+		bool TryGetLoadedHolder(int logicalIndex, out UITableViewCellHolder holder)
+		{
+			if (!IsInfiniteLoopActive()) return _loadedHolders.TryGetValue(logicalIndex, out holder);
+			if (_delegateCellContextHolderIndex.HasValue &&
+			    _loadedHolders.TryGetValue(_delegateCellContextHolderIndex.Value, out holder) &&
+			    GetDataIndexFromHolderIndex(_delegateCellContextHolderIndex.Value) == logicalIndex)
+				return true;
+			foreach (var kvp in _loadedHolders) {
+				if (GetDataIndexFromHolderIndex(kvp.Key) != logicalIndex) continue;
+				holder = kvp.Value;
+				return true;
+			}
+			holder = null;
+			return false;
+		}
+
+		int GetLogicalRowIndex(int rowIndex)
+		{
+			if (!IsInfiniteLoopActive() || _logicalRowCount <= 0) return rowIndex;
+			return PositiveModulo(rowIndex, _logicalRowCount);
+		}
+
+		bool TryWrapInfiniteLoopNormalizedPosition(Vector2 normalizedPosition)
+		{
+			if (!TryGetWrappedInfiniteLoopNormalizedPosition(normalizedPosition, out var wrappedNormalizedPosition))
+				return false;
+			_isAdjustingInfiniteLoopPosition = true;
+			_scrollRect.normalizedPosition = wrappedNormalizedPosition;
+			_isAdjustingInfiniteLoopPosition = false;
+			ReloadCells(wrappedNormalizedPosition, false);
+			DetectAndNotifyReachableStatus();
+			return true;
+		}
+
+		bool TryGetWrappedInfiniteLoopNormalizedPosition(Vector2 normalizedPosition, out Vector2 wrappedNormalizedPosition)
+		{
+			wrappedNormalizedPosition = normalizedPosition;
+			if (!IsInfiniteLoopActive() || _infiniteLoopSegmentLength <= 0f) return false;
+			var scrollPosition = GetScrollPosition(normalizedPosition);
+			var preferredCopyIndex = GetPreferredLoopCopyIndex();
+			var lowerThreshold = _infiniteLoopSegmentLength * (preferredCopyIndex - 0.5f);
+			var upperThreshold = _infiniteLoopSegmentLength * (preferredCopyIndex + 0.5f);
+			var wrapped = false;
+			while (scrollPosition < lowerThreshold) {
+				scrollPosition += _infiniteLoopSegmentLength;
+				wrapped = true;
+			}
+			while (scrollPosition > upperThreshold) {
+				scrollPosition -= _infiniteLoopSegmentLength;
+				wrapped = true;
+			}
+			if (!wrapped) return false;
+			wrappedNormalizedPosition = GetNormalizedPositionAtScrollPosition(scrollPosition, normalizedPosition);
+			return true;
+		}
+
+		float CalculateLogicalContentLength(List<int> baseColumnsAtRow)
+		{
+			if (_logicalCellCount <= 0) return 0f;
+			float cumulativeRowLength = 0f, lastMaxLowerRowMargin = 0f;
+			var cellIndex = 0;
+			var rowCount = baseColumnsAtRow?.Count ?? _logicalCellCount;
+			for (var rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+				float maxRowLength = 0f;
+				var upperRowMargin = _direction.IsTopToBottomOrRightToLeft()
+					? (marginDataSource?.LengthForUpperMarginInTableView(this, rowIndex) ?? 0f)
+					: (marginDataSource?.LengthForLowerMarginInTableView(this, rowIndex) ?? 0f);
+				var lowerRowMargin = _direction.IsTopToBottomOrRightToLeft()
+					? (marginDataSource?.LengthForLowerMarginInTableView(this, rowIndex) ?? 0f)
+					: (marginDataSource?.LengthForUpperMarginInTableView(this, rowIndex) ?? 0f);
+				var columnCount = baseColumnsAtRow?[rowIndex] ?? 1;
+				var emptyColumnAtLastRow = cellIndex + columnCount - _logicalCellCount;
+				if (emptyColumnAtLastRow > 0) columnCount -= emptyColumnAtLastRow;
+				for (var columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+					maxRowLength = Mathf.Max(maxRowLength, dataSource.LengthForCellInTableView(this, cellIndex));
+					cellIndex++;
+				}
+				cumulativeRowLength += lastMaxLowerRowMargin + upperRowMargin + maxRowLength;
+				lastMaxLowerRowMargin = lowerRowMargin;
+			}
+			return cumulativeRowLength + lastMaxLowerRowMargin;
+		}
+
+		int CalculateInfiniteLoopCopyCount(int logicalCellCount, float logicalContentLength)
+		{
+			if (!_enableInfiniteLoop || logicalCellCount <= 0 || logicalContentLength <= 0f) return 1;
+			var viewportLength = _direction.IsVertical() ? _viewport.rect.height : _viewport.rect.width;
+			var requiredTotalLength = viewportLength + logicalContentLength * 2f;
+			var copyCount = Mathf.CeilToInt(requiredTotalLength / logicalContentLength);
+			copyCount = Mathf.Max(MIN_INFINITE_LOOP_COPY_COUNT, copyCount);
+			if ((copyCount & 1) == 0) copyCount++;
+			return copyCount;
+		}
+
+		int GetPreferredLoopCopyIndex()
+		{
+			return _infiniteLoopCopyCount / 2;
+		}
+
+		float GetScrollPosition(Vector2 normalizedPosition)
+		{
+			var deltaSize = _content.rect.size - _viewport.rect.size;
+			var scrollableLength = _direction.IsVertical() ? deltaSize.y : deltaSize.x;
+			if (scrollableLength <= 0f) return 0f;
+			return _direction switch {
+				UITableViewDirection.TopToBottom => (1f - normalizedPosition.y) * scrollableLength,
+				UITableViewDirection.BottomToTop => normalizedPosition.y * scrollableLength,
+				UITableViewDirection.RightToLeft => (1f - normalizedPosition.x) * scrollableLength,
+				UITableViewDirection.LeftToRight => normalizedPosition.x * scrollableLength,
+				_ => throw new ArgumentOutOfRangeException(),
+			};
+		}
+
+		Vector2 GetNormalizedPositionAtScrollPosition(float scrollPosition, Vector2 fallback)
+		{
+			var deltaSize = _content.rect.size - _viewport.rect.size;
+			var scrollableLength = _direction.IsVertical() ? deltaSize.y : deltaSize.x;
+			if (scrollableLength <= 0f) return fallback;
+			scrollPosition = Mathf.Clamp(scrollPosition, 0f, scrollableLength);
+			switch (_direction) {
+				case UITableViewDirection.TopToBottom:
+					fallback.y = 1f - scrollPosition / scrollableLength;
+					break;
+				case UITableViewDirection.BottomToTop:
+					fallback.y = scrollPosition / scrollableLength;
+					break;
+				case UITableViewDirection.RightToLeft:
+					fallback.x = 1f - scrollPosition / scrollableLength;
+					break;
+				case UITableViewDirection.LeftToRight:
+					fallback.x = scrollPosition / scrollableLength;
+					break;
+				default: throw new ArgumentOutOfRangeException();
+			}
+			return fallback;
+		}
+
+		static int PositiveModulo(int value, int length)
+		{
+			var result = value % length;
+			return result < 0 ? result + length : result;
 		}
 
 		/// <summary> Attempts to find the cell that has the largest intersection area with the specified reference cell. </summary>

@@ -9,6 +9,8 @@ namespace UIKit.Samples
 
 		[SerializeField] Sprite[] _iconSprites;
 		[SerializeField] Color[] _backgroundColors;
+		[SerializeField] bool _useInfiniteLoop = true;
+		[SerializeField, Min(1)] int _numberOfCells = 7;
 
 		void Start()
 		{
@@ -16,6 +18,7 @@ namespace UIKit.Samples
 			_tableView.dataSource = this;
 			// Tell the table view that this class will respond to its delegate methods
 			_tableView.@delegate = this;
+			_tableView.enableInfiniteLoop = _useInfiniteLoop;
 
 			// Reload the table view to refresh UI
 			_tableView.ReloadData();
@@ -29,7 +32,7 @@ namespace UIKit.Samples
 
 		public int NumberOfCellsInTableView(UITableView tableView)
 		{
-			return 200;
+			return _numberOfCells;
 		}
 
 		public float LengthForCellInTableView(UITableView tableView, int index)
@@ -42,7 +45,9 @@ namespace UIKit.Samples
 		public void CellAtIndexInTableViewWillAppear(UITableView tableView, int index)
 		{
 			var cell = tableView.GetLoadedCell<SimpleCell>(index);
-			cell.text.text = $"Cell Index: {index}";
+			cell.text.text = _useInfiniteLoop
+				? $"Loop Cell: {index}\nKeep scrolling"
+				: $"Cell Index: {index}";
 			cell.text.color = index % _backgroundColors.Length == 0 ? Color.black : Color.white;
 			cell.icon.sprite = _iconSprites[index % _iconSprites.Length];
 			cell.background.color = _backgroundColors[index % _backgroundColors.Length];
@@ -50,10 +55,8 @@ namespace UIKit.Samples
 
 		public void CellAtIndexInTableViewDidDisappear(UITableView tableView, int index)
 		{
-			var cell = tableView.GetLoadedCell<SimpleCell>(index);
-			cell.text.text = string.Empty;
-			cell.icon.sprite = null;
-			cell.background.color = Color.white;
+			// In infinite loop mode, another copy of the same logical index may still be visible.
+			// Leave cleanup to the next WillAppear call so we do not touch the wrong instance.
 		}
 		#endregion
 	}
