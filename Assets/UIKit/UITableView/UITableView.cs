@@ -117,6 +117,9 @@ namespace UIKit
 		protected override void OnDestroy()
 		{
 			if (_scrollRect != null) _scrollRect.onValueChanged.RemoveListener(OnNormalizedPositionChanged);
+#if UNITY_EDITOR
+			EditorApplication.update -= OnEditorUpdate;
+#endif
 			base.OnDestroy();
 		}
 
@@ -178,12 +181,16 @@ namespace UIKit
 			InitializeScrollRect();
 			Validate();
 
-			EditorApplication.update += () => {
-				if (_useNestedScrollRect == _wasUseNestedScrollRect) return;
-				_wasUseNestedScrollRect = _useNestedScrollRect;
-				if (_scrollRect as NestedScrollRect != null == _useNestedScrollRect) return;
-				NestedScrollRect.ExchangeBetweenScrollRectAndNestedScrollRect(_scrollRect);
-			};
+			EditorApplication.update -= OnEditorUpdate;
+			EditorApplication.update += OnEditorUpdate;
+		}
+
+		void OnEditorUpdate()
+		{
+			if (_useNestedScrollRect == _wasUseNestedScrollRect) return;
+			_wasUseNestedScrollRect = _useNestedScrollRect;
+			if (_scrollRect as NestedScrollRect != null == _useNestedScrollRect) return;
+			NestedScrollRect.ExchangeBetweenScrollRectAndNestedScrollRect(_scrollRect);
 		}
 #endif
 		void InitializeScrollRect()
@@ -234,6 +241,7 @@ namespace UIKit
 		int FindIndexOfCellAtPosition(Vector2 targetPosition, int searchFromIndex, int lastFoundIndex)
 		{
 			var length = _holders.Count;
+			if (length <= 0) return 0;
 			var isVertical = _direction.IsVertical();
 			var targetPositionXY = isVertical ? targetPosition.y : targetPosition.x;
 			var hintIndex = Mathf.Clamp(lastFoundIndex, 0, length - 1); // Clamp hint to valid range:
@@ -266,6 +274,7 @@ namespace UIKit
 
 		int FindIndexOfCellAtCalibrationPoint(Vector2 calibrationPoint, Vector2 normalizedPosition)
 		{
+			if (_holders.Count <= 0) return 0;
 			var np = _direction.IsTopToBottomOrRightToLeft() ? Vector2.one - normalizedPosition : normalizedPosition;
 			var tvPos = np * _content.rect.size - _viewport.rect.size * (np - calibrationPoint);
 			return FindIndexOfCellAtPosition(_direction.IsVertical() ? tvPos.y : tvPos.x, 0, _holders.Count);
@@ -695,10 +704,22 @@ namespace UIKit
 			for (var i = 0; i < newCount - oldCount; i++)
 				_holders.Add(new UITableViewCellHolder());
 			if (dataSource is IUIGridViewDataSource grid) {
-				for (int cellIndex = oldCount, rowIndex = _columnAtRowInGrid.Count-1, columnAtRow; cellIndex < newCount; cellIndex += columnAtRow, rowIndex++) {
-					columnAtRow = grid.NumberOfColumnsAtRowInGridView(this, rowIndex);
+				_columnAtRowInGrid ??= new List<int>();
+				var cellIndex = 0;
+				var rowIndex = 0;
+				while (cellIndex < oldCount) {
+					var columnAtRow = grid.NumberOfColumnsAtRowInGridView(this, rowIndex);
+					if (columnAtRow < 1) throw new Exception("Number of cells at row can not be less than 1!");
+					if (rowIndex < _columnAtRowInGrid.Count) _columnAtRowInGrid[rowIndex] = columnAtRow;
+					else _columnAtRowInGrid.Add(columnAtRow);
+					cellIndex += columnAtRow;
+					rowIndex++;
+				}
+				for (; cellIndex < newCount; rowIndex++) {
+					var columnAtRow = grid.NumberOfColumnsAtRowInGridView(this, rowIndex);
 					if (columnAtRow < 1) throw new Exception("Number of cells at row can not be less than 1!");
 					_columnAtRowInGrid.Add(columnAtRow);
+					cellIndex += columnAtRow;
 				}
 			}
 			var oldContentSize = _content.rect.size;
@@ -1193,12 +1214,13 @@ namespace UIKit
 			var withCell = GetLoadedCell(withCellIndex);
 			if (withCell == null) return false;
 			foreach (var kvp in _loadedHolders) {
-				if (kvp.Key == withCellIndex) continue;
+				var logicalIndex = GetDataIndexFromHolderIndex(kvp.Key);
+				if (logicalIndex == withCellIndex) continue;
 				var tCell = kvp.Value.loadedCell as T;
 				if (tCell == null) continue;
 				var area = tCell.rectTransform.CalculateAreaOfIntersection(withCell.worldRect);
 				if (maxAreaOfIntersection >= area) continue;
-				mostIntersectedCellIndex = kvp.Key;
+				mostIntersectedCellIndex = logicalIndex;
 				maxAreaOfIntersection = area;
 			}
 			return mostIntersectedCellIndex >= 0;
@@ -1209,8 +1231,9 @@ namespace UIKit
 		/// use ReloadData() instead because the IUITableViewDataSource's methods will not be called. </summary>
 		public void RefreshAllLoadedCells()
 		{
+			if (@delegate == null) return;
 			foreach (var kvp in _loadedHolders)
-				this.@delegate.CellAtIndexInTableViewWillAppear(this, kvp.Key);
+				@delegate.CellAtIndexInTableViewWillAppear(this, GetDataIndexFromHolderIndex(kvp.Key));
 		}
 
 		/// <summary> Destroy the cells those which waiting for reuse. </summary>
@@ -1233,6 +1256,10 @@ namespace UIKit
 
 		bool TryFindClickedLoadedCell(PointerEventData eventData, IUITableViewInteractable interactable, out UITableViewCell target)
 		{
+			if (_holders.Count <= 0 || _loadedHolders.Count <= 0) {
+				target = null;
+				return false;
+			}
 			var position = TransformPoint(eventData, interactable);
 			var viewportSize = _viewport.rect.size;
 			var tableViewPosition = viewportSize * (Vector2.one - _viewport.pivot) - (Vector2)_viewport.InverseTransformPoint(position);
