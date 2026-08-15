@@ -416,12 +416,7 @@ namespace UIKit
 			RearrangeCell(index);
 			holder.loadedCell.gameObject.SetActive(true);
 			holder.loadedCell.index = logicalIndex;
-			_delegateCellContextHolderIndex = index;
-			try {
-				@delegate?.CellAtIndexInTableViewWillAppear(this, logicalIndex);
-			} finally {
-				_delegateCellContextHolderIndex = null;
-			}
+			NotifyCellWillAppear(index, logicalIndex);
 #if UNITY_EDITOR
 			_cellsPool.name = $"ReusableCells({_cellsPool.childCount})";
 			holder.loadedCell.gameObject.name = $"{logicalIndex}@{index}_{holder.loadedCell.reuseIdentifier}";
@@ -457,12 +452,7 @@ namespace UIKit
 			var holder = _holders[index];
 			var cell = holder.loadedCell;
 			var logicalIndex = cell.index ?? GetDataIndexFromHolderIndex(index);
-			_delegateCellContextHolderIndex = index;
-			try {
-				@delegate?.CellAtIndexInTableViewDidDisappear(this, logicalIndex);
-			} finally {
-				_delegateCellContextHolderIndex = null;
-			}
+			NotifyCellDidDisappear(index, logicalIndex);
 			cell.index = null;
 			switch (cell.lifeCycle) {
 				case UITableViewCellLifeCycle.RecycleWhenDisappeared:
@@ -1078,6 +1068,26 @@ namespace UIKit
 			return false;
 		}
 
+		void NotifyCellWillAppear(int holderIndex, int logicalIndex)
+		{
+			_delegateCellContextHolderIndex = holderIndex;
+			try {
+				@delegate?.CellAtIndexInTableViewWillAppear(this, logicalIndex);
+			} finally {
+				_delegateCellContextHolderIndex = null;
+			}
+		}
+
+		void NotifyCellDidDisappear(int holderIndex, int logicalIndex)
+		{
+			_delegateCellContextHolderIndex = holderIndex;
+			try {
+				@delegate?.CellAtIndexInTableViewDidDisappear(this, logicalIndex);
+			} finally {
+				_delegateCellContextHolderIndex = null;
+			}
+		}
+
 		int GetLogicalRowIndex(int rowIndex)
 		{
 			if (!IsInfiniteLoopActive() || _logicalRowCount <= 0) return rowIndex;
@@ -1088,8 +1098,10 @@ namespace UIKit
 		{
 			if (!TryGetWrappedInfiniteLoopNormalizedPosition(normalizedPosition, out var wrappedNormalizedPosition))
 				return false;
+			var velocity = _scrollRect.velocity;
 			_isAdjustingInfiniteLoopPosition = true;
 			_scrollRect.normalizedPosition = wrappedNormalizedPosition;
+			_scrollRect.velocity = velocity;
 			_isAdjustingInfiniteLoopPosition = false;
 			ReloadCells(wrappedNormalizedPosition, false);
 			DetectAndNotifyReachableStatus();
@@ -1233,7 +1245,7 @@ namespace UIKit
 		{
 			if (@delegate == null) return;
 			foreach (var kvp in _loadedHolders)
-				@delegate.CellAtIndexInTableViewWillAppear(this, GetDataIndexFromHolderIndex(kvp.Key));
+				NotifyCellWillAppear(kvp.Key, GetDataIndexFromHolderIndex(kvp.Key));
 		}
 
 		/// <summary> Destroy the cells those which waiting for reuse. </summary>
@@ -1243,7 +1255,7 @@ namespace UIKit
 				var count = queue.Count;
 				for (var i = 0; i < count; i++) {
 					var cell = queue.Dequeue();
-					Destroy(cell);
+					Destroy(cell.gameObject);
 				}
 			}
 		}
