@@ -77,6 +77,7 @@ namespace UIKit
 		readonly ScrollState _scrollState = new ScrollState();
 		Transform _cellsPool;
 		Vector2 _flickPositionAt;
+		PointerEventData _scrollDragEventData;
 		float _flickStartAt;
 		float _infiniteLoopSegmentLength;
 		bool _onNormalizedPositionChangedCalled;
@@ -112,6 +113,12 @@ namespace UIKit
 			InitializeScrollRect();
 			InitializeCellsPool();
 			_scrollRect.onValueChanged.AddListener(OnNormalizedPositionChanged);
+		}
+
+		protected override void OnDisable()
+		{
+			_scrollDragEventData = null;
+			base.OnDisable();
 		}
 
 		protected override void OnDestroy()
@@ -232,7 +239,7 @@ namespace UIKit
 			if (_columnAtRowInGrid != null) {
 				_foundStartIndex -= _holders[_foundStartIndex].columnIndex;
 				var e = _holders[_foundEndIndex];
-				_foundEndIndex += _columnAtRowInGrid[e.rowIndex] - e.columnIndex - 1;
+				_foundEndIndex += GetRowCellCount(_foundEndIndex - e.columnIndex, e.rowIndex) - e.columnIndex - 1;
 				_foundEndIndex = Mathf.Min(_foundEndIndex, _holders.Count - 1);
 			}
 			return new Vector2Int(_foundStartIndex, _foundEndIndex);
@@ -308,8 +315,9 @@ namespace UIKit
 
 				var columnNumber = _columnAtRowInGrid?[rowIndex] ?? 1;
 				float cumulativeColumnWidth = 0f, averageColumnWidth = contentColumnWidth / columnNumber;
-				var emptyColumnAtLastRow = cellIndex + columnNumber - numberOfCells;
-				if (emptyColumnAtLastRow > 0) columnNumber -= emptyColumnAtLastRow; // if the last row has empty columns, reduce column number.
+				columnNumber = Mathf.Min(columnNumber, numberOfCells - cellIndex);
+				if (IsInfiniteLoopActive())
+					columnNumber = Mathf.Min(columnNumber, _logicalCellCount - GetDataIndexFromHolderIndex(cellIndex));
 				var substituteCellIndex = cellIndex;
 				for (var columnIndex = 0; columnIndex < columnNumber; columnIndex++) {
 					var logicalIndex = GetDataIndexFromHolderIndex(substituteCellIndex);
@@ -712,6 +720,8 @@ namespace UIKit
 					cellIndex += columnAtRow;
 				}
 			}
+			_logicalCellCount = newCount;
+			_logicalRowCount = _columnAtRowInGrid?.Count ?? newCount;
 			var oldContentSize = _content.rect.size;
 			var oldAnchoredPosition = _content.anchoredPosition;
 			ResizeContent(newCount, false);
@@ -734,13 +744,17 @@ namespace UIKit
 			var deltaCount = newCount - oldCount;
 			if (deltaCount < 0) throw new Exception("PrependData() can not be called if number of cells is decreased.");
 
+			if (deltaCount == 0) return;
+
 			for (var i = 0; i < deltaCount; i++)
 				_holders.Insert(0, new UITableViewCellHolder());
 			if (dataSource is IUIGridViewDataSource grid) {
+				_columnAtRowInGrid ??= new List<int>();
+				_columnAtRowInGrid.Clear();
 				for (int cellIndex = 0, rowIndex = 0, columnAtRow; cellIndex < newCount; cellIndex += columnAtRow, rowIndex++) {
 					columnAtRow = grid.NumberOfColumnsAtRowInGridView(this, rowIndex);
 					if (columnAtRow < 1) throw new Exception("Number of cells at row can not be less than 1!");
-					_columnAtRowInGrid.Insert(rowIndex, columnAtRow);
+					_columnAtRowInGrid.Add(columnAtRow);
 				}
 			}
 
@@ -753,6 +767,8 @@ namespace UIKit
 			}
 			_swapper.Clear();
 
+			_logicalCellCount = newCount;
+			_logicalRowCount = _columnAtRowInGrid?.Count ?? newCount;
 			var oldContentSize = _content.rect.size;
 			var oldAnchoredPosition = _content.anchoredPosition;
 			ResizeContent(newCount, false);
@@ -1088,6 +1104,16 @@ namespace UIKit
 			}
 		}
 
+		// Keep configured column counts for widths, but do not fill a partial row
+		// with cells from the next copy of an infinite grid.
+		int GetRowCellCount(int firstCellIndex, int rowIndex)
+		{
+			var remaining = IsInfiniteLoopActive()
+				? _logicalCellCount - GetDataIndexFromHolderIndex(firstCellIndex)
+				: _holders.Count - firstCellIndex;
+			return Mathf.Min(_columnAtRowInGrid[rowIndex], remaining);
+		}
+
 		int GetLogicalRowIndex(int rowIndex)
 		{
 			if (!IsInfiniteLoopActive() || _logicalRowCount <= 0) return rowIndex;
@@ -1100,9 +1126,20 @@ namespace UIKit
 				return false;
 			var velocity = _scrollRect.velocity;
 			_isAdjustingInfiniteLoopPosition = true;
-			_scrollRect.normalizedPosition = wrappedNormalizedPosition;
-			_scrollRect.velocity = velocity;
-			_isAdjustingInfiniteLoopPosition = false;
+			try {
+				_scrollRect.normalizedPosition = wrappedNormalizedPosition;
+				// Rebase the pointer and content origins together, so the next OnDrag
+				// continues from the wrapped position instead of jumping back.
+				if (_scrollDragEventData != null) {
+					if (_scrollRect is NestedScrollRect nested)
+						nested.RebaseDrag(_scrollDragEventData);
+					else
+						_scrollRect.OnBeginDrag(_scrollDragEventData);
+				}
+				_scrollRect.velocity = velocity;
+			} finally {
+				_isAdjustingInfiniteLoopPosition = false;
+			}
 			ReloadCells(wrappedNormalizedPosition, false);
 			DetectAndNotifyReachableStatus();
 			return true;
@@ -1161,10 +1198,10 @@ namespace UIKit
 		{
 			if (!_enableInfiniteLoop || logicalCellCount <= 0 || logicalContentLength <= 0f) return 1;
 			var viewportLength = _direction.IsVertical() ? _viewport.rect.height : _viewport.rect.width;
-			var requiredTotalLength = viewportLength + logicalContentLength * 2f;
-			var copyCount = Mathf.CeilToInt(requiredTotalLength / logicalContentLength);
+			// The viewport starts near the middle copy. Reserve enough copies on
+			// either side so the entire viewport fits even at the upper wrap threshold.
+			var copyCount = 2 * Mathf.CeilToInt(viewportLength / logicalContentLength) + 1;
 			copyCount = Mathf.Max(MIN_INFINITE_LOOP_COPY_COUNT, copyCount);
-			if ((copyCount & 1) == 0) copyCount++;
 			return copyCount;
 		}
 
@@ -1268,31 +1305,33 @@ namespace UIKit
 
 		bool TryFindClickedLoadedCell(PointerEventData eventData, IUITableViewInteractable interactable, out UITableViewCell target)
 		{
-			if (_holders.Count <= 0 || _loadedHolders.Count <= 0) {
-				target = null;
-				return false;
-			}
-			var position = TransformPoint(eventData, interactable);
-			var viewportSize = _viewport.rect.size;
-			var tableViewPosition = viewportSize * (Vector2.one - _viewport.pivot) - (Vector2)_viewport.InverseTransformPoint(position);
-			var calibrationPoint = new Vector2(tableViewPosition.x / viewportSize.x, tableViewPosition.y / viewportSize.y);
-			if (!_direction.IsTopToBottomOrRightToLeft())
-				calibrationPoint = Vector2.one - calibrationPoint;
-			var cellIndex = FindIndexOfCellAtCalibrationPoint(calibrationPoint, _scrollRect.normalizedPosition);
+			target = null;
+			if (_holders.Count == 0 || _loadedHolders.Count == 0) return false;
+			var cam = interactable.TableViewCameraForInteractive(this);
+			if (!RectTransformUtility.RectangleContainsScreenPoint(_viewport, eventData.position, cam)) return false;
+			if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(_content, eventData.position, cam, out var localPoint)) return false;
+
+			// ScrollRect expands its internal bounds for short content, so normalizedPosition
+			// cannot reliably map a pointer back to a cell. Use the actual content rectangle.
+			var contentRect = _content.rect;
+			var fromEnd = _direction.IsTopToBottomOrRightToLeft();
+			var rowPosition = _direction.IsVertical()
+				? (fromEnd ? contentRect.yMax - localPoint.y : localPoint.y - contentRect.yMin)
+				: (fromEnd ? contentRect.xMax - localPoint.x : localPoint.x - contentRect.xMin);
+			var cellIndex = FindIndexOfCellAtPosition(rowPosition, 0, _holders.Count);
 			int startIndex = cellIndex, endIndex = cellIndex;
 			if (_columnAtRowInGrid != null) {
 				var e = _holders[cellIndex];
 				startIndex -= e.columnIndex;
-				endIndex += _columnAtRowInGrid[e.rowIndex] - e.columnIndex - 1;
+				endIndex += GetRowCellCount(startIndex, e.rowIndex) - e.columnIndex - 1;
 				endIndex = Mathf.Min(endIndex, _holders.Count - 1);
 			}
 			for (var i = startIndex; i <= endIndex; i++) {
 				if (!_loadedHolders.TryGetValue(i, out var holder)) continue;
-				if (!holder.loadedCell.worldRect.Contains(position)) continue;
+				if (holder.loadedCell == null || !RectTransformUtility.RectangleContainsScreenPoint(holder.loadedCell.rectTransform, eventData.position, cam)) continue;
 				target = holder.loadedCell;
 				return true;
 			}
-			target = null;
 			return false;
 		}
 
@@ -1322,16 +1361,21 @@ namespace UIKit
 
 		public virtual void OnBeginDrag(PointerEventData eventData)
 		{
+			if (eventData.button == PointerEventData.InputButton.Left) _scrollDragEventData = eventData;
 			OnBeginDragIfMagnetic();
 			OnBeginDragIfFlickable(eventData);
 			OnBeginDragIfDraggable(eventData);
 		}
 		public virtual void OnDrag(PointerEventData eventData)
 		{
+			if (_scrollDragEventData != null && eventData.pointerId == _scrollDragEventData.pointerId)
+				_scrollDragEventData = eventData;
 			OnDragIfDraggable(eventData);
 		}
 		public virtual void OnEndDrag(PointerEventData eventData)
 		{
+			if (_scrollDragEventData != null && eventData.pointerId == _scrollDragEventData.pointerId)
+				_scrollDragEventData = null;
 			OnEndDragIfMagnetic();
 			OnEndDragIfFlickable(eventData);
 			OnEndDragIfDraggable(eventData);

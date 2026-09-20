@@ -71,6 +71,13 @@ namespace UIKit.Helper
 			_routeToParent = false;
 		}
 
+		// Reset only this ScrollRect's drag origin; do not reroute a new begin-drag
+		// event to parent tables or change the direction chosen for this gesture.
+		internal void RebaseDrag(PointerEventData eventData)
+		{
+			if (!_routeToParent) base.OnBeginDrag(eventData);
+		}
+
 #if UNITY_EDITOR
 		public static void ExchangeBetweenScrollRectAndNestedScrollRect(ScrollRect scrollRect)
 		{
