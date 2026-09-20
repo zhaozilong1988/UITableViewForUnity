@@ -1,0 +1,13 @@
+{
+  "name": "UIKit.RegressionTests",
+  "references": [
+    "UIKit",
+    "UnityEngine.UI"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}
