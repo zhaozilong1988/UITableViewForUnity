@@ -64,10 +64,112 @@ Cellの高さを自由(0不可)に調整できるので、ジャバラ式みた�
 ## .unitypackage
 [Releases](https://github.com/zhaozilong1988/UITableViewForUnity/releases)からunitypackageファイルをダウンロードして、プロジェクトにインポートします。
 
-# 使い方
+# クイックスタートガイド
+
+## ステップ1：Cellクラスの作成
+
+`UITableViewCell`を継承したクラスを作成します：
+
+```csharp
+using UnityEngine.UI;
+
+namespace UIKit.Samples
+{
+    public class SimpleCell : UITableViewCell
+    { 
+        public Text text; 
+        public Image icon; 
+        public Image background;
+    }
+}
+```
+
+## ステップ2：DataSourceとDelegateの実装
+
+`IUITableViewDataSource`と`IUITableViewDelegate`を実装するMonoBehaviourを作成します：
+
+```csharp
+using UnityEngine;
+
+namespace UIKit.Samples
+{
+    public class SimpleTableScene : MonoBehaviour, IUITableViewDataSource, IUITableViewDelegate
+    {
+        [SerializeField] UITableView _tableView;
+        [SerializeField] SimpleCell _cellPrefab;
+
+        void Start()
+        {
+            // DataSourceとDelegateを設定
+            _tableView.dataSource = this;
+            _tableView.@delegate = this;
+
+            // TableViewをリロードしてUIを更新
+            _tableView.ReloadData();
+        }
+
+        #region IUITableViewDataSource
+        // 指定されたインデックスのCellを返す
+        public UITableViewCell CellAtIndexInTableView(UITableView tableView, int index)
+        {
+            return _tableView.ReuseOrCreateCell(_cellPrefab);
+        }
+
+        // Cellの総数を返す
+        public int NumberOfCellsInTableView(UITableView tableView)
+        {
+            return 200;
+        }
+
+        // 各Cellの高さ（横向きの場合は幅）を返す
+        public float LengthForCellInTableView(UITableView tableView, int index)
+        {
+            return index % 2 == 0 ? 150 : 200; // 可変高さ
+        }
+        #endregion
+
+        #region IUITableViewDelegate
+        // Cellが表示される直前に呼ばれる
+        public void CellAtIndexInTableViewWillAppear(UITableView tableView, int index)
+        {
+            var cell = tableView.GetLoadedCell<SimpleCell>(index);
+            cell.text.text = $"Cell Index: {index}";
+        }
+
+        // Cellが非表示になった時に呼ばれる
+        public void CellAtIndexInTableViewDidDisappear(UITableView tableView, int index)
+        {
+            var cell = tableView.GetLoadedCell<SimpleCell>(index);
+            cell.text.text = string.Empty;
+        }
+        #endregion
+    }
+}
+```
+
+## ステップ3：シーンの設定
+
+1. ScrollRectを含むCanvasを作成
+2. ScrollRectにUITableViewコンポーネントを追加
+3. SimpleCellスクリプトを持つCellプレハブを作成
+4. プレハブとUITableViewをシーンスクリプトに割り当て
+
+# サンプル一覧
 
 [Assets/UIKit/Samples](https://github.com/zhaozilong1988/UITableViewForUnity/tree/master/Assets/UIKit/Samples)フォルダー内のサンプル、または Unity Package Manager の「Samples」タブをご確認ください。
+
 ![](samples_tab.png)
+
+| サンプル | 説明 |
+| --- | --- |
+| 0_SimpleTable | 可変高さのセルを持つ基本的なテーブルビュー |
+| 1_Chat | 複数のセルタイプを持つチャット形式のリスト |
+| 2_Sns | 追加/先頭追加をサポートするSNS形式のフィード |
+| 3_SimpleGrid | 基本的なグリッドレイアウト |
+| 4_NetflixLike | ネストされたスクロールリスト |
+| 5_AdvancedGrid | ドラッグ＆削除機能付きの高度なグリッド |
+| 6_AdvancedTable | 展開/折りたたみ可能なセル |
+| 7_SnappingTable | セルにスナップするスクロール |
 
 # 設計について
 
