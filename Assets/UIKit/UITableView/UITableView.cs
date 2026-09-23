@@ -651,13 +651,15 @@ namespace UIKit
 
 			for (var i = 0; i < deltaCount; i++)
 				_holders.Insert(0, new UITableViewCellHolder());
-			if (dataSource is IUIGridViewDataSource grid) {
-				for (int cellIndex = 0, rowIndex = 0, columnAtRow; cellIndex < newCount; cellIndex += columnAtRow, rowIndex++) {
-					columnAtRow = grid.NumberOfColumnsAtRowInGridView(this, rowIndex);
-					if (columnAtRow < 1) throw new Exception("Number of cells at row can not be less than 1!");
-					_columnAtRowInGrid.Insert(rowIndex, columnAtRow);
-				}
-			}
+                        if (dataSource is IUIGridViewDataSource grid) {
+                                var inserted = 0;
+                                for (int rowIndex = 0; inserted < deltaCount; rowIndex++) {
+                                        var columnAtRow = grid.NumberOfColumnsAtRowInGridView(this, rowIndex);
+                                        if (columnAtRow < 1) throw new Exception("Number of cells at row can not be less than 1!");
+                                        _columnAtRowInGrid.Insert(rowIndex, columnAtRow);
+                                        inserted += columnAtRow;
+                                }
+                        }
 
 			_swapper.AddRange(_loadedHolders.Keys);
 			_swapper.Sort(); // ex. 1,3,5,8
