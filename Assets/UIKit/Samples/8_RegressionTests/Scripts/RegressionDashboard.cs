@@ -51,6 +51,7 @@ namespace UIKit.Samples
 		[SerializeField] UnityEngine.UI.Button _runAll;
 		[SerializeField] UnityEngine.UI.Button _direction;
 		[SerializeField] UnityEngine.UI.Button _rerun;
+		[SerializeField] UnityEngine.UI.Button _interactionToggle;
 		[SerializeField] UnityEngine.UI.Button _errorToggle;
 		[SerializeField] UnityEngine.UI.Button _fit;
 		[SerializeField] UnityEngine.UI.Button _zoom;
@@ -60,9 +61,12 @@ namespace UIKit.Samples
 		Vector2 _lastSize;
 		bool _showError;
 		float _previewZoom = 1;
+		RegressionInteractivePreview _interaction;
+		int _interactionCase = -1;
+		public UITableViewRegressionFixture interactivePreview => _interaction?.fixture;
 		public void Initialize(UITableViewRegressionScene runner)
 		{
-			if (_table == null || _cellPrefab == null || _preview == null || _summary == null || _runAll == null || _direction == null)
+			if (_table == null || _cellPrefab == null || _preview == null || _summary == null || _runAll == null || _direction == null || _interactionToggle == null)
 				throw new InvalidOperationException("Regression dashboard has missing authored references.");
 			_runner = runner;
 			_table.dataSource = this;
@@ -72,10 +76,30 @@ namespace UIKit.Samples
 			_fit.onClick.AddListener(() => { _previewZoom = 1; RefreshDetails(); });
 			_zoom.onClick.AddListener(() => { _previewZoom = _previewZoom >= 4 ? 1 : _previewZoom * 2; RefreshDetails(); });
 			_rerun.onClick.AddListener(runner.RunSelectedCase);
-			_errorToggle.onClick.AddListener(() => { _showError = !_showError; RefreshDetails(); });
+			_interactionToggle.onClick.AddListener(ToggleInteraction);
+			_errorToggle.onClick.AddListener(() => { DisposeInteraction(); _showError = !_showError; RefreshDetails(); });
 			Refresh();
 			ApplyLayout();
 		}
+		public void ToggleInteraction()
+		{
+			if (_runner == null || _runner.isRunning || _runner.selectedPreview == null) return;
+			if (_interaction != null) DisposeInteraction();
+			else {
+				_interactionCase = _runner.selectedCase;
+				_interaction = new RegressionInteractivePreview(_runner.selectedPreview, message => _previewCaption.text = message);
+				AttachFixture(_interaction.fixture, true);
+				_showError = false;
+			}
+			RefreshDetails();
+		}
+		void DisposeInteraction()
+		{
+			_interaction?.Dispose();
+			_interaction = null;
+			_interactionCase = -1;
+		}
+		void OnDestroy() => DisposeInteraction();
 		void LateUpdate()
 		{
 			if (_runner != null && _lastSize != _body.rect.size) ApplyLayout();
@@ -117,6 +141,11 @@ namespace UIKit.Samples
 		{
 			var index = _runner.selectedCase;
 			var result = _runner.results[index];
+			if (_interaction != null && (_runner.isRunning || _interactionCase != index || _interaction.source != _runner.selectedPreview)) DisposeInteraction();
+			var live = _interaction != null;
+			if (_runner.selectedPreview != null) _runner.selectedPreview.root.SetActive(!live);
+			_interactionToggle.interactable = !_runner.isRunning && _runner.selectedPreview != null;
+			_interactionToggle.GetComponentInChildren<UnityEngine.UI.Text>().text = live ? "Result view" : "Interact";
 			_title.text = $"{index + 1:00}  {Titles[index]}";
 			_description.text = Descriptions[index];
 			_expected.text = Expectations[index];
@@ -126,42 +155,49 @@ namespace UIKit.Samples
 			_rerun.interactable = !_runner.isRunning;
 			_errorToggle.gameObject.SetActive(result.state == RegressionCaseState.Failed);
 			_errorToggle.interactable = !_runner.isRunning;
-			_errorPanel.SetActive(_showError && result.state == RegressionCaseState.Failed);
+			_errorPanel.SetActive(_showError && result.state == RegressionCaseState.Failed && !live);
 			_failure.text = result.failure;
 			_preview.gameObject.SetActive(!_errorPanel.activeSelf);
 			_emptyPreview.gameObject.SetActive(_runner.selectedPreview == null || _runner.selectedPreview.count == 0);
 			_emptyPreview.text = _runner.selectedPreview == null ? "Run this check to keep its table here." : "EMPTY TABLE / 0 cells";
 			_previewCaption.text = _errorPanel.activeSelf ? "FAILURE DETAILS / scroll to read" : $"OVERVIEW x{_previewZoom:0} / cyan = tested viewport";
+			if (live) _interaction.ShowHint();
+			var captionOffset = _previewCaption.rectTransform.offsetMax;
+			captionOffset.x = live ? -18 : -186;
+			_previewCaption.rectTransform.offsetMax = captionOffset;
+			_fit.gameObject.SetActive(!live); _zoom.gameObject.SetActive(!live);
 			_viewportFrame.gameObject.SetActive(_runner.selectedPreview != null);
 			_fit.interactable = _zoom.interactable = _runner.selectedPreview != null && !_errorPanel.activeSelf;
 			FitSelectedPreview();
 		}
 		public void AttachPreview(UITableViewRegressionFixture fixture, int index)
 		{
+			AttachFixture(fixture, false);
+			fixture.root.SetActive(index == _runner.selectedCase);
+			FitPreview(fixture, false);
+		}
+		void AttachFixture(UITableViewRegressionFixture fixture, bool interactive)
+		{
 			fixture.root.transform.SetParent(_preview, false);
 			fixture.root.transform.SetAsFirstSibling();
 			var canvas = fixture.root.GetComponent<Canvas>();
 			canvas.overrideSorting = false;
-			// Keep the measured geometry, but reveal loaded cells outside the tested viewport.
-			// This read-only overview makes partial rows and retained offscreen cells visible.
-			fixture.root.GetComponent<UnityEngine.UI.GraphicRaycaster>().enabled = false;
-			fixture.table.scrollRect.viewport.GetComponent<UnityEngine.UI.RectMask2D>().enabled = false;
-			fixture.table.scrollRect.enabled = false;
-			fixture.table.enabled = false;
+			fixture.root.GetComponent<UnityEngine.UI.GraphicRaycaster>().enabled = interactive;
+			fixture.table.scrollRect.viewport.GetComponent<UnityEngine.UI.RectMask2D>().enabled = interactive;
+			fixture.table.scrollRect.enabled = interactive;
+			fixture.table.enabled = interactive;
 			var rect = fixture.root.GetComponent<RectTransform>();
 			rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(.5f, .5f);
 			rect.anchoredPosition = Vector2.zero;
 			rect.sizeDelta = fixture.table.GetComponent<RectTransform>().rect.size;
-
-			fixture.root.SetActive(index == _runner.selectedCase);
-			FitPreview(fixture);
 		}
+
 		void FitSelectedPreview()
 		{
-			var fixture = _runner?.selectedPreview;
-			if (fixture != null) FitPreview(fixture);
+			var fixture = _interaction?.fixture ?? _runner?.selectedPreview;
+			if (fixture != null) FitPreview(fixture, _interaction != null);
 		}
-		void FitPreview(UITableViewRegressionFixture fixture)
+		void FitPreview(UITableViewRegressionFixture fixture, bool interactive)
 		{
 			var available = _preview.rect.size - new Vector2(28, 28);
 			if (available.x <= 0 || available.y <= 0) return;
@@ -169,11 +205,11 @@ namespace UIKit.Samples
 			fixture.table.scrollRect.viewport.GetWorldCorners(corners);
 			var bounds = new Bounds(fixture.root.transform.InverseTransformPoint(corners[0]), Vector3.zero);
 			foreach (var corner in corners) bounds.Encapsulate(fixture.root.transform.InverseTransformPoint(corner));
-			foreach (var cell in fixture.table.GetAllLoadedCells()) {
+			if (!interactive) foreach (var cell in fixture.table.GetAllLoadedCells()) {
 				cell.rectTransform.GetWorldCorners(corners);
 				foreach (var corner in corners) bounds.Encapsulate(fixture.root.transform.InverseTransformPoint(corner));
 			}
-			var scale = Mathf.Min(available.x / bounds.size.x, available.y / bounds.size.y) * _previewZoom;
+			var scale = Mathf.Min(available.x / bounds.size.x, available.y / bounds.size.y) * (interactive ? 1 : _previewZoom);
 			fixture.root.transform.localScale = Vector3.one * scale;
 			fixture.root.GetComponent<RectTransform>().anchoredPosition = -(Vector2)bounds.center * scale;
 			fixture.table.scrollRect.viewport.GetWorldCorners(corners);
@@ -185,7 +221,12 @@ namespace UIKit.Samples
 			}
 			_viewportFrame.sizeDelta = max - min;
 			_viewportFrame.anchoredPosition = (min + max) * .5f;
-			foreach (var cell in fixture.table.GetAllLoadedCells<RegressionCell>()) {
+			if (interactive) {
+				var rootCanvas = fixture.root.GetComponent<Canvas>().rootCanvas;
+				_interaction.recorder.camera = rootCanvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : rootCanvas.worldCamera;
+				_interaction.SetDisplayScale(scale * rootCanvas.scaleFactor);
+			}
+			else foreach (var cell in fixture.table.GetAllLoadedCells<RegressionCell>()) {
 				cell.label.fontSize = Mathf.RoundToInt(Mathf.Min(22, fixture.cellLength * scale * .6f) / scale);
 				cell.GetComponent<UnityEngine.UI.Image>().color = cell.index == 10 ? new Color(.12f, .65f, .44f) : cell.index % 2 == 0 ? new Color(.16f, .36f, .56f) : new Color(.12f, .25f, .39f);
 			}

@@ -16,6 +16,9 @@ namespace UIKit.Samples
 		public readonly List<UITableViewDirection> flickDirections = new List<UITableViewDirection>();
 		public readonly HashSet<UITableViewCell> suppliedCells = new HashSet<UITableViewCell>();
 		public int cellRequests, appears, disappears, clicks, drags, revision;
+		public bool recordEvidence = true;
+		public Action<UITableViewCell> cellBound;
+		public Action<string, int?> interaction;
 		public int reachedTop, reachedBottom, leftTop, leftBottom;
 		public bool variableLengths, variableColumns, mixedTypes, movable = true, autoResize = true;
 		public float widthRatio = 1, upperMargin = -1, lowerMargin = -1;
@@ -56,7 +59,7 @@ namespace UIKit.Samples
 			RegressionCell cell = mixedTypes && index % 2 != 0
 				? view.ReuseOrCreateCell("BasicAlternateCell", _alternate, fixture.lifeCycle, autoResize)
 				: view.ReuseOrCreateCell("BasicRegressionCell", _prefab, fixture.lifeCycle, autoResize);
-			suppliedCells.Add(cell);
+			if (recordEvidence) suppliedCells.Add(cell);
 			return cell;
 		}
 		public void CellAtIndexInTableViewWillAppear(UITableView view, int index)
@@ -65,6 +68,7 @@ namespace UIKit.Samples
 			if (cell == null || cell.index != index) throw new InvalidOperationException("Appearance callback lost its physical cell.");
 			cell.label.text = index + " / v" + revision;
 			appears++;
+			cellBound?.Invoke(cell);
 		}
 		public void CellAtIndexInTableViewDidDisappear(UITableView view, int index)
 		{
@@ -77,8 +81,9 @@ namespace UIKit.Samples
 		public Camera TableViewCameraForInteractive(UITableView view) => camera;
 		void Record(UITableView view, string name, int? index)
 		{
-			events.Add(name + ":" + (index.HasValue ? index.Value.ToString() : "none"));
+			if (recordEvidence) events.Add(name + ":" + (index.HasValue ? index.Value.ToString() : "none"));
 			touched = index.HasValue ? view.GetLoadedCell(index.Value) : null;
+			interaction?.Invoke(name, index);
 		}
 		public void TableViewOnPointerDownCellAt(UITableView view, int index, PointerEventData data) => Record(view, "down", index);
 		public void TableViewOnPointerUpCellAt(UITableView view, int index, PointerEventData data) => Record(view, "up", index);
@@ -87,11 +92,11 @@ namespace UIKit.Samples
 		public void TableViewOnBeginDrag(UITableView view, int? index, PointerEventData data) { draggedIndex = index; Record(view, "begin", index); }
 		public void TableViewOnDrag(UITableView view, int? index, PointerEventData data) { drags++; draggedIndex = index; Record(view, "drag", index); }
 		public void TableViewOnEndDrag(UITableView view, int? index, PointerEventData data) { draggedIndex = index; Record(view, "end", index); }
-		public void TableViewOnDidFlick(UITableView view, int? index, UITableViewDirection direction) { flickDirections.Add(direction); Record(view, "flick", index); }
+		public void TableViewOnDidFlick(UITableView view, int? index, UITableViewDirection direction) { if (recordEvidence) flickDirections.Add(direction); Record(view, "flick", index); }
 		public float FlickWillBeTriggeredIfFlickDurationBelowTime(UITableView view) => flickDuration;
 		public (float lower, float upper) FlickWillBeTriggeredIfFlickDistanceFallsWithinRange(UITableView view) => (flickLower, flickUpper);
 		public Vector2 MagneticCalibrationPointInTableView(UITableView view) => calibration;
-		public void MagneticStateDidChangeInTableView(UITableView view, int index, UITableViewMagneticState state) { magneticStates.Add(state); Record(view, "magnetic", index); }
+		public void MagneticStateDidChangeInTableView(UITableView view, int index, UITableViewMagneticState state) { if (recordEvidence) magneticStates.Add(state); Record(view, "magnetic", index); }
 		public float MagneticWillBeTriggeredWhenScrollingSpeedBelow(UITableView view) => magneticThreshold;
 		public float WhenMagneticIsTriggeredScrollingSpeedWillBeChangedTo(UITableView view) => magneticSpeed;
 		public void TableViewReachedTopmostOrRightmost(UITableView view) { reachedTop++; }

@@ -6,16 +6,19 @@ Open `8_RegressionTests.unity` and enter Play Mode. The dashboard fills the scre
 
 - **Run all checks** updates the PASS / FAIL / PENDING totals and every result row. Failed checks appear first.
 - Select a result row to compare **EXPECTED** with **MEASURED AT COMPLETION**. Selection preserves the result and shows its retained table without rerunning it.
-- **Run selected check** reruns only that case; the other results remain available.
+- **Run selected** reruns only that case; the other results remain available.
 - The read-only overview reveals all loaded cells, including those outside the tested viewport. The cyan outline marks the actual viewport; the measured table geometry is unchanged. Cell #10 is green when present. Previews are scaled to fit; the numerical measurements remain in the original table units. Empty cases show **EMPTY TABLE / 0 cells**.
+- **Interact** opens a separate live table with the selected result's data/configuration. Drag to scroll and click a cell to highlight it; the caption reports the input event. Empty/short-content cases explain why no scrolling is available. **Result view** discards manual changes and restores the original frozen preview. Selection, rerun, direction changes and scene close also discard the live table.
 - **Fit** shows the entire overview; **Zoom +** cycles through 2x, 4x, and Fit without changing the result.
-- A failed check enables **Failure details**, with a scrollable exception and assertion message. The Console also receives each PASS / FAIL and its failure details.
+- Fit/Zoom apply to the saved result overview. Interaction mode fits the viewport once and keeps its scale stable while scrolling; offscreen cells are clipped as in a normal table.
+
+A failed check enables **Failure details**, with a scrollable exception and assertion message. The Console also receives each PASS / FAIL and its failure details.
 
 Use the **direction button** at the upper right to choose TopToBottom, BottomToTop, LeftToRight, or RightToLeft. Changing direction clears previous results/previews so measurements from different directions are never mixed. The direction button is disabled during execution.
 
 The totals cover the scene checks below, not every automated test in the repository. The direct PlayMode checks exercise each case in all four scroll directions; EditMode results remain in Test Runner. Pointer tests send deterministic EventSystem events to actual cell geometry; they do not claim real-device touch or physical mouse coverage.
 
-The dashboard hierarchy is authored in the scene, and result rows use `Prefabs/RegressionResultCell.prefab` with the existing `UITableView` data source/delegate and cell recycling. Temporary reproduction tables use the existing Canvas / ScrollRect / Viewport / Content fixture. Completed interactive fixtures are retained until that case is rerun or the scene closes; direct automated `RunCase` calls dispose their fixtures immediately. It does not change Build Settings or require extra packages.
+The dashboard hierarchy is authored in the scene, and result rows use `Prefabs/RegressionResultCell.prefab` with the existing `UITableView` data source/delegate and cell recycling. Temporary reproduction tables use the existing Canvas / ScrollRect / Viewport / Content fixture. Completed result fixtures are retained until that case is rerun or the scene closes; direct automated `RunCase` calls dispose their fixtures immediately. It does not change Build Settings or require extra packages.
 
 To regenerate the authored dashboard and row prefab, use **UIKit > Tests > Create Regression Scene**. This preserves the existing scene/prefab GUIDs. The builder creates the cell prefab after opening its authoring scene and checks its serialized reference before saving.
 
@@ -48,7 +51,7 @@ The dashboard contains **31 checks: 9 original regressions + 22 basic-feature ch
 | 30 | Loop wrapping at both boundaries; velocity and continued-drag displacement |
 | 31 | Nested scroll routing; invalid index/count/datasource calls |
 
-The preview shows the final state of each check. Animated-scroll, callback and lifecycle outcomes are recorded in the measured summary; the final preview does not replay those events. Dashboard rows 1-9 retain the original regression IDs and assertions.
+The saved preview shows the final state of each check. The interactive table uses independent cells/callbacks/scroll state and preserves the saved expected/measured values and PASS/FAIL. It copies the final fixture configuration (including variable grids, cell types, manual sizes and loop options); it does not replay the test steps or change the automatic verdict. Animated-scroll, callback and lifecycle outcomes are recorded in the measured summary; the final preview does not replay those events. Dashboard rows 1-9 retain the original regression IDs and assertions.
 
 ## Automated tests
 
@@ -84,6 +87,6 @@ The obsolete Asset Store Tools package was subsequently removed at `b5d1fbd`. La
 
 ## Validation of the expanded dashboard
 
-Validated with Unity `6000.6.0f1` in an isolated project copy: **42 PlayMode tests** (all 31 cases in four directions, Run All in four directions, dashboard behavior and sample smoke coverage) and **19 EditMode tests** (library regressions plus the authored scene/prefab contract). A temporary render-capture check also verified all result names and detail labels at 1280x900, 800x1200 and 960x600; result rows allow two lines for long names. The capture helper is not part of the shipped sample.
+Validated with Unity `6000.6.0f1` in an isolated project copy: **53 PlayMode tests** (all 31 cases in four directions, Run All in four directions, dashboard behavior, interactive raycast/click/drag and cleanup, and sample smoke coverage) and **19 EditMode tests** (library regressions plus the authored scene/prefab contract). A temporary render-capture check also verified all result names and detail labels at 1280x900, 800x1200 and 960x600; result rows allow two lines for long names. The capture helper is not part of the shipped sample.
 
 These are Editor/PlayMode checks. Unity 2019.4 and target-player/device execution were not run for this slice. Reopen the saved scene after updating scripts/assets so an older in-memory dashboard hierarchy does not override the new authored references.
