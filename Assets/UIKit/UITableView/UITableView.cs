@@ -147,6 +147,10 @@ namespace UIKit
 		void UpdateMagneticState(int? toIndexOfCellAt, float? overrideDuration, OnScrollingStopped overrideOnScrollingStopped)
 		{
 			if (magnetic == null) return;
+			if (_holders.Count == 0) {
+				_magneticInternalState = UITableViewMagneticInternalState.Stopped;
+				return;
+			}
 			if (!toIndexOfCellAt.HasValue) {
 				if (_magneticInternalState != UITableViewMagneticInternalState.Scrolling) return;
 				var speed = _direction.IsVertical() ? Mathf.Abs(this.scrollRect.velocity.y) : Mathf.Abs(this.scrollRect.velocity.x);
@@ -379,6 +383,7 @@ namespace UIKit
 
 		void ReloadCells(Vector2 normalizedPosition, bool alwaysRearrangeCell)
 		{
+			if (_holders.Count == 0) return;
 			var range = RecalculateVisibleRange(normalizedPosition);
 			UnloadUnusedCells(range); // recycle invisible cells except life cycle is RecycleWhenReload
 			LoadCells(range, alwaysRearrangeCell); // reuse or create visible cells
@@ -699,6 +704,7 @@ namespace UIKit
 			var oldCount = _holders.Count;
 			var newCount = dataSource.NumberOfCellsInTableView(this);
 			if (oldCount > newCount) throw new Exception("AppendData() can not be called if number of cells is decreased");
+			_logicalCellCount = newCount;
 			for (var i = 0; i < newCount - oldCount; i++)
 				_holders.Add(new UITableViewCellHolder());
 			if (dataSource is IUIGridViewDataSource grid) {
@@ -720,7 +726,6 @@ namespace UIKit
 					cellIndex += columnAtRow;
 				}
 			}
-			_logicalCellCount = newCount;
 			_logicalRowCount = _columnAtRowInGrid?.Count ?? newCount;
 			var oldContentSize = _content.rect.size;
 			var oldAnchoredPosition = _content.anchoredPosition;
@@ -743,8 +748,8 @@ namespace UIKit
 			var newCount = dataSource.NumberOfCellsInTableView(this);
 			var deltaCount = newCount - oldCount;
 			if (deltaCount < 0) throw new Exception("PrependData() can not be called if number of cells is decreased.");
-
 			if (deltaCount == 0) return;
+			_logicalCellCount = newCount;
 
 			for (var i = 0; i < deltaCount; i++)
 				_holders.Insert(0, new UITableViewCellHolder());
@@ -757,6 +762,7 @@ namespace UIKit
 					_columnAtRowInGrid.Add(columnAtRow);
 				}
 			}
+			_logicalRowCount = _columnAtRowInGrid?.Count ?? newCount;
 
 			_swapper.AddRange(_loadedHolders.Keys);
 			_swapper.Sort(); // ex. 1,3,5,8
@@ -767,8 +773,6 @@ namespace UIKit
 			}
 			_swapper.Clear();
 
-			_logicalCellCount = newCount;
-			_logicalRowCount = _columnAtRowInGrid?.Count ?? newCount;
 			var oldContentSize = _content.rect.size;
 			var oldAnchoredPosition = _content.anchoredPosition;
 			ResizeContent(newCount, false);
@@ -922,6 +926,12 @@ namespace UIKit
 
 			var deltaSize = _content.rect.size - _viewport.rect.size;
 			var normalizedPosition = _scrollRect.normalizedPosition;
+			if ((_direction.IsVertical() ? deltaSize.y : deltaSize.x) <= 0f) {
+				var origin = _direction.IsTopToBottomOrRightToLeft() ? 1f : 0f;
+				if (_direction.IsVertical()) normalizedPosition.y = origin;
+				else normalizedPosition.x = origin;
+				return normalizedPosition;
+			}
 			switch (_direction) {
 				case UITableViewDirection.TopToBottom:
 					position += displacement;
