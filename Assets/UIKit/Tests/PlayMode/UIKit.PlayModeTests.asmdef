@@ -1,0 +1,6 @@
+{
+    "name": "UIKit.PlayModeTests",
+    "references": ["UIKit", "UnityEngine.UI"],
+    "optionalUnityReferences": ["TestAssemblies"],
+    "autoReferenced": false
+}

@@ -1,0 +1,6 @@
+{
+    "name": "UIKit.TestSceneBuilder",
+    "references": ["UIKit"],
+    "includePlatforms": ["Editor"],
+    "autoReferenced": false
+}
