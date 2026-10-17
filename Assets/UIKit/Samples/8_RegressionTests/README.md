@@ -34,4 +34,6 @@ Baseline: `958bfeb`, Unity `6000.6.0f1`, Windows Editor PlayMode. The runtime im
 
 Finding 5 is narrower than the initial review suggested: visible cells are registered again by `ReloadCells()`. The confirmed failure concerns **retained offscreen cells**. The reproduction explicitly checks retention before invoking the zero-count prepend.
 
-The final post-fix run passed **11 tests with no failures**: the nine regression tests (36 direction/case combinations), the scene's Run All button (nine checks), and initialization/cell loading in all eight existing samples. These checks cover runtime behavior and initialization; they are not a target-player build or a visual layout audit of every sample.
+At commit `2acdf02`, the post-fix run passed **11 tests with no failures**: the nine regression tests (36 direction/case combinations), the scene's Run All button (nine checks), and initialization/cell loading in all eight existing samples. These checks cover runtime behavior and initialization; they are not a target-player build or a visual layout audit of every sample.
+
+Asset Store Tools changes were subsequently excluded from the PR. With that package restored to the PR base, Unity `6000.6.0f1` compilation fails in `PackageExporter.cs` (`GUID`) and `CheckAudioClipping.cs` (obsolete `GetInstanceID()` / `GetAssetPath(int)` APIs), so tests cannot run in that configuration. The passing results above precede that exclusion.
