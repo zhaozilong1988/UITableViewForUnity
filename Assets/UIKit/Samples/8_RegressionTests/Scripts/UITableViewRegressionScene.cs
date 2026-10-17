@@ -9,18 +9,21 @@ namespace UIKit.Samples
 	public class UITableViewRegressionScene : MonoBehaviour
 	{
 		public const string ScenePath = "Assets/UIKit/Samples/8_RegressionTests/8_RegressionTests.unity";
-		public static readonly string[] CaseNames = {
+		public const int RegressionCaseCount = 9;
+		public static readonly string[] CaseNames = Combine(new[] {
 			"1a. Append then scroll to new cell", "1b. Prepend then scroll to shifted cell",
 			"2. Short content in infinite loop", "3. Infinite grid with incomplete last row",
 			"4. Prepend grid with row margins", "5. Prepend zero cells (retained offscreen cells)",
 			"6a. Rearrange empty table", "6b. Magnetic drag on empty table", "7. Content equals viewport"
-		};
+		}, BasicTableViewChecks.Names);
 		[SerializeField] RegressionDashboard _dashboard;
 		readonly RegressionCaseResult[] _results = CreateResults();
 		readonly UITableViewRegressionFixture[] _previews = new UITableViewRegressionFixture[CaseNames.Length];
 		bool _running;
 		bool _destroying;
 		int _selectedCase;
+		UITableViewDirection _direction = UITableViewDirection.TopToBottom;
+		public UITableViewDirection testDirection => _direction;
 		public bool isRunning => _running;
 		public int passedCount => Count(RegressionCaseState.Passed);
 		public int failedCount => Count(RegressionCaseState.Failed);
@@ -29,6 +32,29 @@ namespace UIKit.Samples
 		public IReadOnlyList<RegressionCaseResult> results => _results;
 		public UITableViewRegressionFixture selectedPreview => _previews[_selectedCase];
 
+		internal static string[] Combine(string[] first, string[] second)
+		{
+			var result = new string[first.Length + second.Length];
+			Array.Copy(first, result, first.Length);
+			Array.Copy(second, 0, result, first.Length, second.Length);
+			return result;
+		}
+		public void CycleDirection()
+		{
+			if (_running) return;
+			var directions = new[] { UITableViewDirection.TopToBottom, UITableViewDirection.BottomToTop, UITableViewDirection.LeftToRight, UITableViewDirection.RightToLeft };
+			_direction = directions[(Array.IndexOf(directions, _direction) + 1) % directions.Length];
+			ResetResults();
+			RefreshDashboard();
+		}
+		void ResetResults()
+		{
+			for (var i = 0; i < _results.Length; i++) {
+				_results[i] = new RegressionCaseResult();
+				_previews[i]?.Dispose();
+				_previews[i] = null;
+			}
+		}
 		static RegressionCaseResult[] CreateResults()
 		{
 			var results = new RegressionCaseResult[CaseNames.Length];
@@ -75,8 +101,13 @@ namespace UIKit.Samples
 		IEnumerator ExecuteCase(int index, UITableViewDirection direction, bool retainPreview)
 		{
 			var viewport = index == 2 ? 1000f : index == 3 || index == 8 ? 100f : 300f;
-			var fixture = new UITableViewRegressionFixture(direction, viewport, index == 3 || index == 4);
+			var fixture = index < RegressionCaseCount ? new UITableViewRegressionFixture(direction, viewport, index == 3 || index == 4)
+				: BasicTableViewChecks.CreateFixture(index - RegressionCaseCount, direction);
 			try {
+				if (index >= RegressionCaseCount) {
+					yield return BasicTableViewChecks.Run(index - RegressionCaseCount, fixture, actual => _results[index].actual = actual);
+					yield break;
+				}
 				fixture.count = index == 2 || index == 8 ? 1 : index == 3 ? 5 : index == 4 ? 6 : index == 6 || index == 7 ? 0 : 10;
 				fixture.columns = index == 3 || index == 4 ? 3 : 1;
 				fixture.margin = index == 4 ? 10f : 0f;
@@ -179,30 +210,31 @@ namespace UIKit.Samples
 			if (_running) yield break;
 			_running = true;
 			try {
-				if (selected < 0) {
-					for (var i = 0; i < _results.Length; i++) {
-						_results[i] = new RegressionCaseResult();
-						_previews[i]?.Dispose();
-						_previews[i] = null;
-					}
-				}
+				if (selected < 0) ResetResults();
 				for (var i = 0; i < CaseNames.Length; i++) {
 					if (selected >= 0 && selected != i) continue;
 					_selectedCase = i;
 					_results[i] = new RegressionCaseResult { state = RegressionCaseState.Running };
 					RefreshDashboard();
 					var started = Time.realtimeSinceStartup;
-					var routine = ExecuteCase(i, UITableViewDirection.TopToBottom, true);
+					var routine = ExecuteCase(i, _direction, true);
 					Exception failure = null;
+					// Flatten nested case coroutines so every assertion reaches the result UI.
+					var stack = new Stack<IEnumerator>();
+					stack.Push(routine);
 					try {
-						while (true) {
+						while (stack.Count > 0) {
+							var current = stack.Peek();
 							bool next;
-							try { next = routine.MoveNext(); }
+							try { next = current.MoveNext(); }
 							catch (Exception e) { failure = e; break; }
-							if (!next) break;
-							yield return routine.Current;
+							if (!next) { (stack.Pop() as IDisposable)?.Dispose(); continue; }
+							if (current.Current is IEnumerator nested) stack.Push(nested);
+							else yield return current.Current;
 						}
-					} finally { (routine as IDisposable)?.Dispose(); }
+					} finally {
+						while (stack.Count > 0) (stack.Pop() as IDisposable)?.Dispose();
+					}
 					_results[i].state = failure == null ? RegressionCaseState.Passed : RegressionCaseState.Failed;
 					_results[i].failure = failure?.ToString() ?? "";
 					if (failure != null && _results[i].actual.StartsWith("Not measured"))

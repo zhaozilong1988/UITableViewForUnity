@@ -28,7 +28,12 @@ namespace UIKit.Tests
 				Assert.That(dashboard, Is.Not.Null);
 				CheckReferences(runner);
 				CheckReferences(dashboard);
+				Assert.That(RegressionDashboard.Titles.Length, Is.EqualTo(UITableViewRegressionScene.CaseNames.Length));
+				Assert.That(RegressionDashboard.Descriptions.Length, Is.EqualTo(RegressionDashboard.Titles.Length));
+				Assert.That(RegressionDashboard.Expectations.Length, Is.EqualTo(RegressionDashboard.Titles.Length));
 				var data = new SerializedObject(dashboard);
+				var summary = (UnityEngine.UI.Text)data.FindProperty("_summary").objectReferenceValue;
+				Assert.That(summary.text, Does.Contain("PENDING " + UITableViewRegressionScene.CaseNames.Length), "The saved scene must match the current case catalog.");
 				var table = (UITableView)data.FindProperty("_table").objectReferenceValue;
 				var scroll = table.GetComponent<UnityEngine.UI.ScrollRect>();
 				Assert.That(scroll.viewport, Is.Not.Null);
@@ -37,6 +42,16 @@ namespace UIKit.Tests
 				var cell = (RegressionResultCell)data.FindProperty("_cellPrefab").objectReferenceValue;
 				Assert.That(AssetDatabase.GetAssetPath(cell), Is.EqualTo("Assets/UIKit/Samples/8_RegressionTests/Prefabs/RegressionResultCell.prefab"));
 				CheckReferences(cell);
+				var rowObject = (GameObject)PrefabUtility.InstantiatePrefab(cell.gameObject, scene);
+				try {
+					var row = rowObject.GetComponent<RegressionResultCell>();
+					rowObject.GetComponent<RectTransform>().sizeDelta = new Vector2(340, 116);
+					var label = (UnityEngine.UI.Text)new SerializedObject(row).FindProperty("_title").objectReferenceValue;
+					for (var i = 0; i < RegressionDashboard.Titles.Length; i++) {
+						row.Bind($"{i + 1:00}  {RegressionDashboard.Titles[i]}", RegressionCaseState.Passed, false, true, () => { });
+						Assert.That(label.preferredHeight, Is.LessThanOrEqualTo(label.rectTransform.rect.height), "The authored result row must show its full name: " + label.text);
+					}
+				} finally { Object.DestroyImmediate(rowObject); }
 				var frame = (RectTransform)data.FindProperty("_viewportFrame").objectReferenceValue;
 				Assert.That(frame.GetComponentsInChildren<UnityEngine.UI.Image>().Length, Is.EqualTo(4), "Viewport annotation needs a hollow frame, so it does not cover the table or empty-state text.");
 				foreach (var image in frame.GetComponentsInChildren<UnityEngine.UI.Image>()) Assert.That(image.raycastTarget, Is.False);

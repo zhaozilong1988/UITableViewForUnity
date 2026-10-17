@@ -42,15 +42,19 @@ namespace UIKit.Tests
 			canvasRect.gameObject.AddComponent<UnityEngine.UI.GraphicRaycaster>();
 			var dashboard = canvasRect.gameObject.AddComponent<RegressionDashboard>();
 			Surface(canvasRect, new Color(.025f, .04f, .07f));
-			var heading = Text("Heading", canvasRect, "UITableView / Regression checks", 32);
-			Top(heading.rectTransform, 24, 18, 0, 44, 24);
-			var intro = Text("Scope", canvasRect, "9 scene checks. Automated test results are reported separately in Test Runner.", 20);
+			var heading = Text("Heading", canvasRect, "UITableView / Feature checks", 32);
+			Top(heading.rectTransform, 24, 18, 0, 44, 276);
+			var intro = Text("Scope", canvasRect, $"{UITableViewRegressionScene.CaseNames.Length} checks: basic features + regressions. Choose a direction, then run.", 20);
 			Top(intro.rectTransform, 24, 68, 0, 32, 24);
-			var summary = Text("Summary", canvasRect, "PASS 0    FAIL 0    PENDING 9", 26);
+			var summary = Text("Summary", canvasRect, $"PASS 0    FAIL 0    PENDING {UITableViewRegressionScene.CaseNames.Length}", 26);
 			Top(summary.rectTransform, 24, 108, 0, 60, 276);
-			var runAll = Button("RunAll", canvasRect, "Run all 9 checks", new Color(.12f, .44f, .68f));
+			var runAll = Button("RunAll", canvasRect, $"Run all {UITableViewRegressionScene.CaseNames.Length} checks", new Color(.12f, .44f, .68f));
 			Top(runAll.GetComponent<RectTransform>(), -256, 108, 232, 48);
 			runAll.GetComponent<RectTransform>().anchorMin = runAll.GetComponent<RectTransform>().anchorMax = Vector2.one;
+			var direction = Button("Direction", canvasRect, "TopToBottom", new Color(.13f, .3f, .48f));
+			Top(direction.GetComponent<RectTransform>(), -256, 18, 232, 48);
+			direction.GetComponent<RectTransform>().anchorMin = direction.GetComponent<RectTransform>().anchorMax = Vector2.one;
+			direction.GetComponentInChildren<UnityEngine.UI.Text>().fontSize = 20;
 			var body = Rect("Body", canvasRect);
 			Fill(body, 24, 176, 24, 24);
 			var list = Rect("Results", body); list.anchorMin = Vector2.zero; list.anchorMax = new Vector2(.37f, 1); list.offsetMin = Vector2.zero; list.offsetMax = new Vector2(-10, 0); Surface(list, Panel);
@@ -100,7 +104,7 @@ namespace UIKit.Tests
 			Assign(runner, "_dashboard", dashboard);
 			Assign(dashboard, "_body", body, "_listPanel", list, "_detailPanel", detail, "_preview", preview, "_viewportFrame", viewportFrame, "_table", table, "_cellPrefab", prefab,
 				"_summary", summary, "_title", title, "_description", description, "_expected", expected, "_actual", actual, "_status", status,
-				"_previewCaption", caption, "_emptyPreview", empty, "_failure", failure, "_runAll", runAll, "_rerun", rerun, "_errorToggle", errors, "_fit", fit, "_zoom", zoom, "_errorPanel", failurePanel.gameObject);
+				"_previewCaption", caption, "_emptyPreview", empty, "_failure", failure, "_runAll", runAll, "_direction", direction, "_rerun", rerun, "_errorToggle", errors, "_fit", fit, "_zoom", zoom, "_errorPanel", failurePanel.gameObject);
 			if (new SerializedObject(dashboard).FindProperty("_cellPrefab").objectReferenceValue == null)
 				throw new InvalidOperationException("The authored dashboard must retain its result-cell prefab reference.");
 			EditorSceneManager.SaveScene(scene, UITableViewRegressionScene.ScenePath);
@@ -110,14 +114,14 @@ namespace UIKit.Tests
 		}
 		static RegressionResultCell CreateCell()
 		{
-			var rect = Rect("RegressionResultCell", null); rect.sizeDelta = new Vector2(440, 102);
+			var rect = Rect("RegressionResultCell", null); rect.sizeDelta = new Vector2(440, 116);
 			var image = Surface(rect, Panel); image.raycastTarget = true;
 			var button = rect.gameObject.AddComponent<UnityEngine.UI.Button>(); button.targetGraphic = image;
 			var cell = rect.gameObject.AddComponent<RegressionResultCell>();
 			var stripeRect = Rect("StateStripe", rect); stripeRect.anchorMin = Vector2.zero; stripeRect.anchorMax = Vector2.up; stripeRect.sizeDelta = new Vector2(4, -10); stripeRect.anchoredPosition = new Vector2(4, 0);
 			var stripe = Surface(stripeRect, Color.gray);
-			var title = Text("Title", rect, "01  Append a cell", 24); Top(title.rectTransform, 18, 10, 0, 48, 14);
-			var status = Text("State", rect, "NOT RUN  >", 20); Top(status.rectTransform, 18, 62, 0, 28, 14);
+			var title = Text("Title", rect, "01  Append a cell", 24); Top(title.rectTransform, 18, 10, 0, 60, 14);
+			var status = Text("State", rect, "NOT RUN  >", 20); Top(status.rectTransform, 18, 76, 0, 28, 14);
 			Assign(cell, "_title", title, "_status", status, "_background", image, "_stripe", stripe, "_select", button);
 			PrefabUtility.SaveAsPrefabAsset(rect.gameObject, CellPath);
 			UnityEngine.Object.DestroyImmediate(rect.gameObject);

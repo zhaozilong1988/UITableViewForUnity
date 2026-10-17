@@ -7,12 +7,12 @@ namespace UIKit.Samples
 	// Authored uGUI; the sample's own UITableView recycles the result rows.
 	public sealed class RegressionDashboard : MonoBehaviour, IUITableViewDataSource, IUITableViewDelegate
 	{
-		public static readonly string[] Titles = {
+		public static readonly string[] Titles = UITableViewRegressionScene.Combine(new[] {
 			"Append a cell", "Prepend a cell", "Short infinite loop", "Incomplete grid row",
 			"Grid margins after prepend", "Prepend zero cells", "Rearrange an empty table",
 			"Empty magnetic table", "Content fits the viewport"
-		};
-		public static readonly string[] Descriptions = {
+		}, BasicTableViewChecks.Titles);
+		public static readonly string[] Descriptions = UITableViewRegressionScene.Combine(new[] {
 			"Add a cell at the end, then scroll to the new last item.",
 			"Add a cell at the beginning, then scroll to the shifted last item.",
 			"Repeat one 100-unit cell inside a 1000-unit viewport.",
@@ -22,8 +22,8 @@ namespace UIKit.Samples
 			"Rearrange a table that contains no data.",
 			"End a drag on an empty table with magnetic snapping enabled.",
 			"Scroll when content and viewport are both exactly 100 units long."
-		};
-		public static readonly string[] Expectations = {
+		}, BasicTableViewChecks.Descriptions);
+		public static readonly string[] Expectations = UITableViewRegressionScene.Combine(new[] {
 			"11 items; cell #10 is loaded.", "11 items; cell #10 is loaded.",
 			"More than 50 units of scroll room on both sides.",
 			"At least 3 copies; column 0 stays aligned; row spacing is 200.",
@@ -31,7 +31,7 @@ namespace UIKit.Samples
 			"Zero added items; offscreen cell #0 is the same instance.",
 			"No loaded cells; no exception.", "Zero magnetic notifications; no exception.",
 			"Finite X/Y normalized position; no NaN or Infinity."
-		};
+		}, BasicTableViewChecks.Expectations);
 		[SerializeField] RectTransform _body;
 		[SerializeField] RectTransform _listPanel;
 		[SerializeField] RectTransform _detailPanel;
@@ -49,6 +49,7 @@ namespace UIKit.Samples
 		[SerializeField] UnityEngine.UI.Text _emptyPreview;
 		[SerializeField] UnityEngine.UI.Text _failure;
 		[SerializeField] UnityEngine.UI.Button _runAll;
+		[SerializeField] UnityEngine.UI.Button _direction;
 		[SerializeField] UnityEngine.UI.Button _rerun;
 		[SerializeField] UnityEngine.UI.Button _errorToggle;
 		[SerializeField] UnityEngine.UI.Button _fit;
@@ -61,12 +62,13 @@ namespace UIKit.Samples
 		float _previewZoom = 1;
 		public void Initialize(UITableViewRegressionScene runner)
 		{
-			if (_table == null || _cellPrefab == null || _preview == null || _summary == null || _runAll == null)
+			if (_table == null || _cellPrefab == null || _preview == null || _summary == null || _runAll == null || _direction == null)
 				throw new InvalidOperationException("Regression dashboard has missing authored references.");
 			_runner = runner;
 			_table.dataSource = this;
 			_table.@delegate = this;
 			_runAll.onClick.AddListener(runner.RunAllCases);
+			_direction.onClick.AddListener(runner.CycleDirection);
 			_fit.onClick.AddListener(() => { _previewZoom = 1; RefreshDetails(); });
 			_zoom.onClick.AddListener(() => { _previewZoom = _previewZoom >= 4 ? 1 : _previewZoom * 2; RefreshDetails(); });
 			_rerun.onClick.AddListener(runner.RunSelectedCase);
@@ -106,6 +108,8 @@ namespace UIKit.Samples
 			});
 			_summary.text = $"PASS {_runner.passedCount}    FAIL {_runner.failedCount}    PENDING {_runner.pendingCount}";
 			_runAll.interactable = !_runner.isRunning;
+			_direction.interactable = !_runner.isRunning;
+			_direction.GetComponentInChildren<UnityEngine.UI.Text>().text = _runner.testDirection.ToString();
 			_table.ReloadData(position);
 			RefreshDetails();
 		}
@@ -147,7 +151,7 @@ namespace UIKit.Samples
 			var rect = fixture.root.GetComponent<RectTransform>();
 			rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(.5f, .5f);
 			rect.anchoredPosition = Vector2.zero;
-			rect.sizeDelta = new Vector2(400, fixture.ViewportLength);
+			rect.sizeDelta = fixture.table.GetComponent<RectTransform>().rect.size;
 
 			fixture.root.SetActive(index == _runner.selectedCase);
 			FitPreview(fixture);
@@ -200,7 +204,7 @@ namespace UIKit.Samples
 			return state == RegressionCaseState.Passed ? new Color(.3f, .92f, .65f) : state == RegressionCaseState.Failed ? new Color(1, .45f, .48f) : state == RegressionCaseState.Running ? new Color(1, .8f, .35f) : new Color(.65f, .72f, .83f);
 		}
 		public int NumberOfCellsInTableView(UITableView view) => _ordered.Count;
-		public float LengthForCellInTableView(UITableView view, int index) => 102f;
+		public float LengthForCellInTableView(UITableView view, int index) => 116f;
 		public UITableViewCell CellAtIndexInTableView(UITableView view, int index) => view.ReuseOrCreateCell(_cellPrefab);
 		public void CellAtIndexInTableViewWillAppear(UITableView view, int index)
 		{
