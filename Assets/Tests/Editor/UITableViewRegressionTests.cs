@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Reflection;
 using NUnit.Framework;
 using UIKit;
@@ -133,6 +134,139 @@ public class UITableViewRegressionTests
         table.OnEndDrag(data);
         scroll.OnEndDrag(data);
         Assert.That(Field("_scrollDragEventData"), Is.Null);
+    }
+
+    [TestCase(0, false)]
+    [TestCase(3, false)]
+    [TestCase(7, false)]
+    [TestCase(5, true)]
+    public void LoopReloadDisappearanceResolvesTheOldCell(int newCount, bool disableLoop)
+    {
+        Create(5, 200, true);
+        var pending = new HashSet<UITableViewCell>(table.GetAllLoadedCells());
+        var callbacks = new CellCallbacks();
+        callbacks.disappeared = (view, index) => {
+            var cell = view.GetLoadedCell(index);
+            Assert.That(cell, Is.Not.Null, "Disappearance must resolve the old physical copy.");
+            Assert.That(cell.index, Is.EqualTo(index));
+            Assert.That(pending.Remove(cell), Is.True, "Each old cell must disappear exactly once.");
+            Assert.That(view.TryGetLoadedCell<UITableViewCell>(index, out var typed), Is.True);
+            Assert.That(typed, Is.SameAs(cell));
+        };
+        table.@delegate = callbacks;
+        source.count = newCount;
+        if (disableLoop) table.enableInfiniteLoop = false;
+        else table.ReloadData();
+        Assert.That(pending, Is.Empty);
+    }
+
+    UITableViewCell CreateRepeatedCellForInput()
+    {
+        Create(1, 1000, true);
+        table.ignoreCellLifeCycle = true;
+        foreach (var cell in table.GetAllLoadedCells()) {
+            var point = RectTransformUtility.WorldToScreenPoint(null, cell.rectTransform.TransformPoint(cell.rectTransform.rect.center));
+            if (cell != table.GetLoadedCell(0) && RectTransformUtility.RectangleContainsScreenPoint(scroll.viewport, point))
+                return cell;
+        }
+        throw new AssertionException("The fixture must expose a non-first physical copy.");
+    }
+
+    static PointerEventData PointerAt(UITableViewCell cell) => new PointerEventData(null) {
+        button = PointerEventData.InputButton.Left,
+        position = RectTransformUtility.WorldToScreenPoint(null, cell.rectTransform.TransformPoint(cell.rectTransform.rect.center))
+    };
+
+    [Test]
+    public void LoopPointerCallbacksResolveTheTouchedCopy()
+    {
+        var target = CreateRepeatedCellForInput();
+        var callbacks = new CellCallbacks();
+        var count = 0;
+        callbacks.interacted = (view, index) => {
+            Assert.That(view.GetLoadedCell(index.Value), Is.SameAs(target));
+            count++;
+        };
+        table.clickable = callbacks;
+        var pointer = PointerAt(target);
+        table.OnPointerDown(pointer);
+        table.OnPointerUp(pointer);
+        table.OnPointerClick(pointer);
+        Assert.That(count, Is.EqualTo(3));
+    }
+
+    [Test]
+    public void LoopMovableDragKeepsTheTouchedCopy()
+    {
+        var target = CreateRepeatedCellForInput();
+        var other = table.GetLoadedCell(0);
+        var otherPosition = other.rectTransform.localPosition;
+        var callbacks = new CellCallbacks();
+        table.draggable = callbacks;
+        var pointer = PointerAt(target);
+        table.OnBeginDrag(pointer);
+        pointer.position += Vector2.up * 10f;
+        table.OnDrag(pointer);
+        var expected = scroll.content.InverseTransformPoint(pointer.position);
+        Assert.That(Vector3.Distance(target.rectTransform.localPosition, expected), Is.LessThan(.01f));
+        Assert.That(other.rectTransform.localPosition, Is.EqualTo(otherPosition));
+        callbacks.interacted = (view, index) => Assert.That(view.GetLoadedCell(index.Value), Is.SameAs(target));
+        table.OnDrag(pointer);
+        table.OnEndDrag(pointer);
+    }
+
+    [Test]
+    public void LoopDragDoesNotMoveARecycledCellAfterReload()
+    {
+        var target = CreateRepeatedCellForInput();
+        var callbacks = new CellCallbacks();
+        table.draggable = callbacks;
+        var pointer = PointerAt(target);
+        table.OnBeginDrag(pointer);
+        table.ReloadData();
+        var positions = new Dictionary<UITableViewCell, Vector3>();
+        foreach (var cell in table.GetAllLoadedCells()) positions.Add(cell, cell.rectTransform.localPosition);
+        callbacks.interacted = (view, index) => Assert.That(index, Is.Null);
+        pointer.position += Vector2.up * 10f;
+        table.OnDrag(pointer);
+        table.OnEndDrag(pointer);
+        foreach (var entry in positions) Assert.That(entry.Key.rectTransform.localPosition, Is.EqualTo(entry.Value));
+    }
+
+    [Test]
+    public void LoopFlickCallbackResolvesTheTouchedCopy()
+    {
+        var target = CreateRepeatedCellForInput();
+        var callbacks = new CellCallbacks();
+        var count = 0;
+        callbacks.interacted = (view, index) => {
+            Assert.That(view.GetLoadedCell(index.Value), Is.SameAs(target));
+            count++;
+        };
+        table.flickable = callbacks;
+        var pointer = PointerAt(target);
+        pointer.position -= Vector2.up * 30f;
+        table.OnBeginDrag(pointer);
+        pointer.position += Vector2.up * 60f;
+        table.OnEndDrag(pointer);
+        Assert.That(count, Is.EqualTo(1));
+    }
+
+    class CellCallbacks : IUITableViewDelegate, IUITableViewClickable, IUITableViewDraggable, IUITableViewFlickable
+    {
+        public Action<UITableView, int> disappeared;
+        public Action<UITableView, int?> interacted;
+        public Camera TableViewCameraForInteractive(UITableView view) => null;
+        public void CellAtIndexInTableViewWillAppear(UITableView view, int index) { }
+        public void CellAtIndexInTableViewDidDisappear(UITableView view, int index) => disappeared?.Invoke(view, index);
+        public void TableViewOnPointerDownCellAt(UITableView view, int index, PointerEventData data) => interacted?.Invoke(view, index);
+        public void TableViewOnPointerUpCellAt(UITableView view, int index, PointerEventData data) => interacted?.Invoke(view, index);
+        public void TableViewOnPointerClickCellAt(UITableView view, int index, PointerEventData data) => interacted?.Invoke(view, index);
+        public bool TableViewDragCellMovable(UITableView view) => true;
+        public void TableViewOnBeginDrag(UITableView view, int? index, PointerEventData data) => interacted?.Invoke(view, index);
+        public void TableViewOnDrag(UITableView view, int? index, PointerEventData data) => interacted?.Invoke(view, index);
+        public void TableViewOnEndDrag(UITableView view, int? index, PointerEventData data) => interacted?.Invoke(view, index);
+        public void TableViewOnDidFlick(UITableView view, int? index, UITableViewDirection direction) => interacted?.Invoke(view, index);
     }
 
     class Source : IUITableViewDataSource

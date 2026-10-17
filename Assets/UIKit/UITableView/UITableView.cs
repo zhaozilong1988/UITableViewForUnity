@@ -82,9 +82,10 @@ namespace UIKit
 		float _infiniteLoopSegmentLength;
 		bool _onNormalizedPositionChangedCalled;
 		bool _isAdjustingInfiniteLoopPosition;
-		int? _delegateCellContextHolderIndex;
+		int? _cellContextHolderIndex;
 		bool _isReachingBottommostOrLeftmost, _isReachingTopmostOrRightmost; // for detecting boundary when IUITableViewReachable is assigned.
-		int? _dragCellIndex, _clickCellIndex;
+		int? _clickCellIndex;
+		UITableViewCell _dragCell;
 		UITableViewMagneticInternalState _magneticInternalState = UITableViewMagneticInternalState.Stopped;
 		[SerializeField] ScrollRect _scrollRect;
 		[SerializeField] RectTransform _viewport;
@@ -118,6 +119,7 @@ namespace UIKit
 		protected override void OnDisable()
 		{
 			_scrollDragEventData = null;
+			_dragCell = null;
 			base.OnDisable();
 		}
 
@@ -464,6 +466,7 @@ namespace UIKit
 		{
 			var holder = _holders[index];
 			var cell = holder.loadedCell;
+			if (_dragCell == cell) _dragCell = null;
 			var logicalIndex = cell.index ?? GetDataIndexFromHolderIndex(index);
 			NotifyCellDidDisappear(index, logicalIndex);
 			cell.index = null;
@@ -980,7 +983,6 @@ namespace UIKit
 		public bool TryGetLoadedCell<T>(int index, out T result) where T : UITableViewCell
 		{
 			result = null;
-			if (index < 0 || _logicalCellCount - 1 < index) return false;
 			if (!TryGetLoadedHolder(index, out var holder)) return false;
 			var cell = holder.loadedCell as T;
 			if (cell == null) return false;
@@ -1080,11 +1082,16 @@ namespace UIKit
 
 		bool TryGetLoadedHolder(int logicalIndex, out UITableViewCellHolder holder)
 		{
-			if (!IsInfiniteLoopActive()) return _loadedHolders.TryGetValue(logicalIndex, out holder);
-			if (_delegateCellContextHolderIndex.HasValue &&
-			    _loadedHolders.TryGetValue(_delegateCellContextHolderIndex.Value, out holder) &&
-			    GetDataIndexFromHolderIndex(_delegateCellContextHolderIndex.Value) == logicalIndex)
+			// Disappearing cells still belong to the old data/loop mapping during a reload.
+			if (_cellContextHolderIndex.HasValue &&
+			    _loadedHolders.TryGetValue(_cellContextHolderIndex.Value, out holder) &&
+			    holder.loadedCell != null && holder.loadedCell.index == logicalIndex)
 				return true;
+			if (logicalIndex < 0 || logicalIndex >= _logicalCellCount) {
+				holder = null;
+				return false;
+			}
+			if (!IsInfiniteLoopActive()) return _loadedHolders.TryGetValue(logicalIndex, out holder);
 			foreach (var kvp in _loadedHolders) {
 				if (GetDataIndexFromHolderIndex(kvp.Key) != logicalIndex) continue;
 				holder = kvp.Value;
@@ -1096,21 +1103,41 @@ namespace UIKit
 
 		void NotifyCellWillAppear(int holderIndex, int logicalIndex)
 		{
-			_delegateCellContextHolderIndex = holderIndex;
+			var previousContext = _cellContextHolderIndex;
+			_cellContextHolderIndex = holderIndex;
 			try {
 				@delegate?.CellAtIndexInTableViewWillAppear(this, logicalIndex);
 			} finally {
-				_delegateCellContextHolderIndex = null;
+				_cellContextHolderIndex = previousContext;
 			}
 		}
 
 		void NotifyCellDidDisappear(int holderIndex, int logicalIndex)
 		{
-			_delegateCellContextHolderIndex = holderIndex;
+			var previousContext = _cellContextHolderIndex;
+			_cellContextHolderIndex = holderIndex;
 			try {
 				@delegate?.CellAtIndexInTableViewDidDisappear(this, logicalIndex);
 			} finally {
-				_delegateCellContextHolderIndex = null;
+				_cellContextHolderIndex = previousContext;
+			}
+		}
+
+		void InvokeCellCallback(UITableViewCell cell, Action callback)
+		{
+			var previousContext = _cellContextHolderIndex;
+			_cellContextHolderIndex = null;
+			if (cell != null) {
+				foreach (var kvp in _loadedHolders) {
+					if (kvp.Value.loadedCell != cell) continue;
+					_cellContextHolderIndex = kvp.Key;
+					break;
+				}
+			}
+			try {
+				callback();
+			} finally {
+				_cellContextHolderIndex = previousContext;
 			}
 		}
 
@@ -1351,21 +1378,21 @@ namespace UIKit
 			_clickCellIndex = null;
 			if (this.clickable == null) return;
 			if (!TryFindClickedLoadedCell(eventData, this.clickable, out var result)) return;
-			this.clickable.TableViewOnPointerDownCellAt(this, result.index!.Value, eventData);
+			InvokeCellCallback(result, () => this.clickable.TableViewOnPointerDownCellAt(this, result.index!.Value, eventData));
 			_clickCellIndex = result.index.Value;
 		}
 		public virtual void OnPointerClick(PointerEventData eventData)
 		{
 			if (this.clickable == null) return;
 			if (TryFindClickedLoadedCell(eventData, this.clickable, out var result) && _clickCellIndex == result.index)
-				this.clickable.TableViewOnPointerClickCellAt(this, result.index!.Value, eventData);
+				InvokeCellCallback(result, () => this.clickable.TableViewOnPointerClickCellAt(this, result.index!.Value, eventData));
 			_clickCellIndex = null;
 		}
 		public virtual void OnPointerUp(PointerEventData eventData)
 		{
 			if (this.clickable == null) return;
 			if (!TryFindClickedLoadedCell(eventData, this.clickable, out var result)) return;
-			this.clickable.TableViewOnPointerUpCellAt(this, result.index!.Value, eventData);
+			InvokeCellCallback(result, () => this.clickable.TableViewOnPointerUpCellAt(this, result.index!.Value, eventData));
 			_clickCellIndex = _clickCellIndex == result.index ? _clickCellIndex : null;
 		}
 
@@ -1405,33 +1432,32 @@ namespace UIKit
 		void OnBeginDragIfDraggable(PointerEventData eventData)
 		{
 			if (!preserveClickEvenDragBegins) _clickCellIndex = null;
-			_dragCellIndex = null;
+			_dragCell = null;
 			if (this.draggable == null) return;
 			if (TryFindClickedLoadedCell(eventData, this.draggable, out var result))
-				_dragCellIndex = result.index;
-			if (draggable.TableViewDragCellMovable(this) && _dragCellIndex.HasValue)
+				_dragCell = result;
+			if (draggable.TableViewDragCellMovable(this) && _dragCell != null)
 				result.transform.localPosition = scrollRect.content.InverseTransformPoint(eventData.position);
-			this.draggable.TableViewOnBeginDrag(this, _dragCellIndex, eventData);
+			InvokeCellCallback(_dragCell, () => this.draggable.TableViewOnBeginDrag(this, _dragCell?.index, eventData));
 		}
-		bool TryUpdateDragCellIfDraggable(PointerEventData eventData, out int? dragCellIndex)
+		bool TryUpdateDragCellIfDraggable(PointerEventData eventData, out UITableViewCell dragCell)
 		{
 			if (this.draggable == null) {
-				dragCellIndex = _dragCellIndex = null;
+				dragCell = _dragCell = null;
 				return false;
 			}
-			dragCellIndex = _dragCellIndex;
+			dragCell = _dragCell;
 			var movable = draggable.TableViewDragCellMovable(this);
-			if (movable && dragCellIndex.HasValue) {
-				var cell = GetLoadedCell(dragCellIndex.Value);
-				if (cell != null) cell.rectTransform.localPosition = scrollRect.content.InverseTransformPoint(TransformPoint(eventData, this.draggable));
-			} else if (!movable && TryFindClickedLoadedCell(eventData, this.draggable, out var result))
-				dragCellIndex = result.index;
+			if (movable) {
+				if (dragCell != null) dragCell.rectTransform.localPosition = scrollRect.content.InverseTransformPoint(TransformPoint(eventData, this.draggable));
+			} else if (TryFindClickedLoadedCell(eventData, this.draggable, out var result))
+				dragCell = result;
 			return true;
 		}
 		void OnDragIfDraggable(PointerEventData eventData)
 		{
-			if (!TryUpdateDragCellIfDraggable(eventData, out var dragCellIndex)) return;
-			this.draggable.TableViewOnDrag(this, dragCellIndex, eventData);
+			if (!TryUpdateDragCellIfDraggable(eventData, out var dragCell)) return;
+			InvokeCellCallback(dragCell, () => this.draggable.TableViewOnDrag(this, dragCell?.index, eventData));
 		}
 		void OnEndDragIfMagnetic()
 		{
@@ -1453,15 +1479,15 @@ namespace UIKit
 				? extra.FlickWillBeTriggeredIfFlickDistanceFallsWithinRange(this) 
 				: _flickWillBeTriggeredIfFlickDistanceFallsWithinRange;
 			if (flickedDelta > delta.lower && flickedDelta < delta.upper)
-				flickable.TableViewOnDidFlick(this, cellIndex, _direction.IsVertical() ? UITableViewDirection.BottomToTop : UITableViewDirection.LeftToRight);
+				InvokeCellCallback(flickedCell, () => flickable.TableViewOnDidFlick(this, cellIndex, _direction.IsVertical() ? UITableViewDirection.BottomToTop : UITableViewDirection.LeftToRight));
 			else if (flickedDelta < -delta.lower && flickedDelta > -delta.upper)
-				flickable.TableViewOnDidFlick(this, cellIndex, _direction.IsVertical() ? UITableViewDirection.TopToBottom : UITableViewDirection.RightToLeft);
+				InvokeCellCallback(flickedCell, () => flickable.TableViewOnDidFlick(this, cellIndex, _direction.IsVertical() ? UITableViewDirection.TopToBottom : UITableViewDirection.RightToLeft));
 		}
 		void OnEndDragIfDraggable(PointerEventData eventData)
 		{
-			if (!TryUpdateDragCellIfDraggable(eventData, out var dragCellIndex)) return;
-			_dragCellIndex = null;
-			this.draggable.TableViewOnEndDrag(this, dragCellIndex, eventData);
+			if (!TryUpdateDragCellIfDraggable(eventData, out var dragCell)) return;
+			_dragCell = null;
+			InvokeCellCallback(dragCell, () => this.draggable.TableViewOnEndDrag(this, dragCell?.index, eventData));
 		}
 		#endregion
 
