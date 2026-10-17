@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Reflection;
 using NUnit.Framework;
 using UIKit.Samples;
 using UnityEngine;
@@ -62,14 +63,174 @@ namespace UIKit.Tests
 		[UnityTest] public IEnumerator EqualContentAndViewportReturnFinitePosition() => CheckAllDirections(8);
 
 		[UnityTest]
+		public IEnumerator DashboardStartsWithNinePendingChecksAndNoPreview()
+		{
+			Assert.That(_runner.results.Count, Is.EqualTo(9));
+			Assert.That(_runner.pendingCount, Is.EqualTo(9));
+			Assert.That(_runner.passedCount, Is.Zero);
+			Assert.That(_runner.failedCount, Is.Zero);
+			Assert.That(_runner.selectedPreview, Is.Null);
+			var dashboard = _runner.GetComponentInChildren<RegressionDashboard>();
+			Assert.That(Field<UnityEngine.UI.Text>(dashboard, "_summary").text, Does.Contain("PENDING 9"));
+			Assert.That(Field<UnityEngine.UI.Text>(dashboard, "_emptyPreview").gameObject.activeInHierarchy, Is.True);
+			Assert.That(Field<UnityEngine.UI.Text>(dashboard, "_emptyPreview").text, Does.Contain("Run this check"));
+			foreach (var name in new[] { "_runAll", "_rerun", "_fit", "_zoom" }) {
+				var label = Field<UnityEngine.UI.Button>(dashboard, name).GetComponentInChildren<UnityEngine.UI.Text>();
+				Assert.That(label.text, Is.Not.Empty, name);
+				Assert.That(label.preferredHeight, Is.LessThanOrEqualTo(label.rectTransform.rect.height), name + " label must fit vertically");
+			}
+			yield return null;
+		}
+
+		[UnityTest]
+		public IEnumerator ResultRowsRemainSelectableAfterScrollingAndRecycling()
+		{
+			var dashboard = _runner.GetComponentInChildren<RegressionDashboard>();
+			var table = Field<UITableView>(dashboard, "_table");
+			var lastResult = _runner.results[8];
+			table.ScrollToCellAt(8);
+			yield return WaitForVisibleRow(table, 8);
+			var last = table.GetLoadedCell<RegressionResultCell>(8);
+
+			Assert.That(last, Is.Not.Null, "The final check must be reachable by scrolling.");
+			Assert.That(Field<UnityEngine.UI.Text>(last, "_title").text, Does.Contain(RegressionDashboard.Titles[8]));
+			Field<UnityEngine.UI.Button>(last, "_select").onClick.Invoke();
+			Assert.That(_runner.selectedCase, Is.EqualTo(8));
+			table.ScrollToCellAt(0);
+			yield return WaitForVisibleRow(table, 0);
+			var first = table.GetLoadedCell<RegressionResultCell>(0);
+			Assert.That(first, Is.Not.Null);
+			Assert.That(Field<UnityEngine.UI.Text>(first, "_title").text, Does.Contain(RegressionDashboard.Titles[0]));
+			Field<UnityEngine.UI.Button>(first, "_select").onClick.Invoke();
+			Assert.That(_runner.selectedCase, Is.Zero);
+			table.ScrollToCellAt(8);
+			yield return WaitForVisibleRow(table, 8);
+			last = table.GetLoadedCell<RegressionResultCell>(8);
+			Assert.That(last, Is.Not.Null);
+			Field<UnityEngine.UI.Button>(last, "_select").onClick.Invoke();
+			Assert.That(_runner.selectedCase, Is.EqualTo(8), "Recycled row buttons must bind the displayed case.");
+			Assert.That(_runner.results[8], Is.SameAs(lastResult));
+			Assert.That(_runner.pendingCount, Is.EqualTo(9));
+			Assert.That(_runner.isRunning, Is.False);
+			Assert.That(_runner.selectedPreview, Is.Null, "Selecting rows must not execute their checks.");
+		}
+
+		[UnityTest]
 		public IEnumerator RunAllButtonExecutesTheSceneChecks()
 		{
-			var buttons = _runner.GetComponentsInChildren<UnityEngine.UI.Button>();
-			Assert.That(buttons.Length, Is.EqualTo(UITableViewRegressionScene.CaseNames.Length + 1));
-			buttons[0].onClick.Invoke();
-			while (_runner.isRunning) yield return null;
+			UnityEngine.UI.Button runAll = null;
+			foreach (var button in _runner.GetComponentsInChildren<UnityEngine.UI.Button>())
+				if (button.name == "RunAll") runAll = button;
+			Assert.That(runAll, Is.Not.Null, "The authored RunAll button must be wired.");
+			runAll.onClick.Invoke();
+			yield return WaitForRun();
 			Assert.That(_runner.failedCount, Is.Zero);
 			Assert.That(_runner.passedCount, Is.EqualTo(UITableViewRegressionScene.CaseNames.Length));
+			Assert.That(_runner.pendingCount, Is.Zero);
+			var lastPreview = _runner.selectedPreview;
+			var firstResult = _runner.results[0];
+			Assert.That(firstResult.state, Is.EqualTo(RegressionCaseState.Passed));
+			Assert.That(firstResult.actual, Does.Contain("#10 loaded: True"));
+			_runner.SelectCase(0);
+			var firstPreview = _runner.selectedPreview;
+			Assert.That(firstPreview, Is.Not.Null);
+			Assert.That(firstPreview.root.activeSelf, Is.True);
+			Assert.That(lastPreview.root.activeSelf, Is.False);
+			_runner.SelectCase(8);
+			Assert.That(_runner.selectedPreview, Is.SameAs(lastPreview));
+			_runner.SelectCase(0);
+			yield return null;
+			Assert.That(_runner.selectedPreview, Is.SameAs(firstPreview), "Selecting a completed check must reuse its retained table.");
+			Assert.That(_runner.results[0], Is.SameAs(firstResult), "Selection must not rerun the check.");
+			Assert.That(_runner.isRunning, Is.False);
 		}
+
+		[UnityTest]
+		public IEnumerator RerunSelectedPreservesOtherResultsAndCounts()
+		{
+			_runner.SelectCase(0);
+			_runner.RunSelectedCase();
+			yield return WaitForRun();
+			var firstPreview = _runner.selectedPreview;
+			var firstResult = _runner.results[0];
+			_runner.SelectCase(1);
+			_runner.RunSelectedCase();
+			yield return WaitForRun();
+			var otherPreview = _runner.selectedPreview;
+			var otherResult = _runner.results[1];
+			var pendingResult = _runner.results[8];
+			_runner.SelectCase(0);
+			var dashboard = _runner.GetComponentInChildren<RegressionDashboard>();
+			Field<UnityEngine.UI.Button>(dashboard, "_rerun").onClick.Invoke();
+			yield return WaitForRun();
+			Assert.That(_runner.passedCount, Is.EqualTo(2));
+			Assert.That(_runner.failedCount, Is.Zero);
+			Assert.That(_runner.pendingCount, Is.EqualTo(7));
+			Assert.That(_runner.results[0], Is.Not.SameAs(firstResult));
+			Assert.That(_runner.selectedPreview, Is.Not.SameAs(firstPreview));
+			Assert.That(_runner.results[1], Is.SameAs(otherResult));
+			Assert.That(_runner.results[8], Is.SameAs(pendingResult));
+			_runner.SelectCase(1);
+			Assert.That(_runner.selectedPreview, Is.SameAs(otherPreview));
+		}
+
+		[UnityTest]
+		public IEnumerator FailedCheckShowsMeasuredAndExpectedValuesAndSortsFirst()
+		{
+			_runner.SelectCase(4);
+			_runner.RunSelectedCase();
+			Assert.That(_runner.isRunning, Is.True);
+			UITableViewRegressionFixture fixture = null;
+			foreach (var table in Object.FindObjectsOfType<RegressionTableView>())
+				if (table.dataSource is UITableViewRegressionFixture candidate) fixture = candidate;
+			Assert.That(fixture, Is.Not.Null, "The running grid fixture must exist before its first yielded frame finishes.");
+			fixture.margin = 30f;
+			yield return WaitForRun();
+			Assert.That(_runner.failedCount, Is.EqualTo(1));
+			Assert.That(_runner.passedCount, Is.Zero);
+			Assert.That(_runner.pendingCount, Is.EqualTo(8));
+			Assert.That(_runner.results[4].state, Is.EqualTo(RegressionCaseState.Failed));
+			Assert.That(_runner.results[4].actual, Does.Contain("Content length: 480"));
+			Assert.That(_runner.results[4].failure, Does.Contain("360").And.Contain("480"));
+			Assert.That(_runner.selectedPreview, Is.SameAs(fixture));
+			var dashboard = _runner.GetComponentInChildren<RegressionDashboard>();
+			Assert.That(Field<UnityEngine.UI.Text>(dashboard, "_expected").text, Does.Contain("360"));
+			Assert.That(Field<UnityEngine.UI.Text>(dashboard, "_actual").text, Does.Contain("480"));
+			Assert.That(Field<UnityEngine.UI.Text>(dashboard, "_status").text, Does.StartWith("FAIL"));
+			var row = Field<UITableView>(dashboard, "_table").GetLoadedCell<RegressionResultCell>(0);
+			Assert.That(row, Is.Not.Null);
+			Assert.That(Field<UnityEngine.UI.Text>(row, "_title").text, Does.Contain(RegressionDashboard.Titles[4]));
+			Assert.That(Field<UnityEngine.UI.Text>(row, "_status").text, Does.StartWith("FAIL"));
+			Field<UnityEngine.UI.Button>(dashboard, "_errorToggle").onClick.Invoke();
+			Assert.That(Field<GameObject>(dashboard, "_errorPanel").activeInHierarchy, Is.True);
+			Assert.That(Field<UnityEngine.UI.Text>(dashboard, "_failure").text, Is.EqualTo(_runner.results[4].failure));
+		}
+
+		static IEnumerator WaitForVisibleRow(UITableView table, int index)
+		{
+			var deadline = Time.realtimeSinceStartup + 3f;
+			var viewportCorners = new Vector3[4];
+			var cellCorners = new Vector3[4];
+			while (Time.realtimeSinceStartup < deadline) {
+				if (table.TryGetLoadedCell<RegressionResultCell>(index, out var cell)) {
+					table.scrollRect.viewport.GetWorldCorners(viewportCorners);
+					cell.rectTransform.GetWorldCorners(cellCorners);
+					if (cellCorners[0].x < viewportCorners[2].x && cellCorners[2].x > viewportCorners[0].x &&
+						cellCorners[0].y < viewportCorners[2].y && cellCorners[2].y > viewportCorners[0].y) yield break;
+				}
+				yield return null;
+			}
+			Assert.Fail($"Row {index} did not become visible. Position={table.scrollRect.normalizedPosition}, viewport={table.scrollRect.viewport.rect}, content={table.scrollRect.content.rect}");
+		}
+
+		IEnumerator WaitForRun()
+		{
+			var deadline = Time.realtimeSinceStartup + 10f;
+			while (_runner.isRunning && Time.realtimeSinceStartup < deadline) yield return null;
+			Assert.That(_runner.isRunning, Is.False, "The regression dashboard run did not complete within 10 seconds.");
+		}
+
+		static T Field<T>(object target, string name) =>
+			(T)target.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic).GetValue(target);
 	}
 }

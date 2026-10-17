@@ -2,13 +2,24 @@
 
 ## Run the reproduction scene
 
-Open `8_RegressionTests.unity`, enter Play Mode, and click **Run all cases** or an individual case. Results appear in the scene and Console. `PASS` means the expected behavior holds; the same scene checks fail against the original implementation.
+Open `8_RegressionTests.unity` and enter Play Mode. The dashboard fills the screen and stacks its panels on narrow windows.
 
-The scene builds a Canvas / ScrollRect / Viewport / Content hierarchy and supplies cells through `IUITableViewDataSource` / `IUITableViewDelegate`, following the existing samples. It does not change Build Settings or require extra packages.
+- **Run all 9 checks** updates the PASS / FAIL / PENDING totals and every result row. Failed checks appear first.
+- Select a result row to compare **EXPECTED** with **MEASURED AT COMPLETION**. Selection preserves the result and shows its retained table without rerunning it.
+- **Run selected check** reruns only that case; the other results remain available.
+- The read-only overview reveals all loaded cells, including those outside the tested viewport. The cyan outline marks the actual viewport; the measured table geometry is unchanged. Cell #10 is green when present. Previews are scaled to fit; the numerical measurements remain in the original table units. Empty cases show **EMPTY TABLE / 0 cells**.
+- **Fit** shows the entire overview; **Zoom +** cycles through 2x, 4x, and Fit without changing the result.
+- A failed check enables **Failure details**, with a scrollable exception and assertion message. The Console also receives each PASS / FAIL and its failure details.
+
+The totals cover these **nine scene checks**, not every automated test in the repository. The direct PlayMode checks also exercise all four scroll directions, while EditMode results are reported in Test Runner.
+
+The dashboard hierarchy is authored in the scene, and result rows use `Prefabs/RegressionResultCell.prefab` with the existing `UITableView` data source/delegate and cell recycling. Temporary reproduction tables use the existing Canvas / ScrollRect / Viewport / Content fixture. Completed interactive fixtures are retained until that case is rerun or the scene closes; direct automated `RunCase` calls dispose their fixtures immediately. It does not change Build Settings or require extra packages.
+
+To regenerate the authored dashboard and row prefab, use **UIKit > Tests > Create Regression Scene**. This preserves the existing scene/prefab GUIDs. The builder creates the cell prefab after opening its authoring scene and checks its serialized reference before saving.
 
 ## Automated tests
 
-In **Window > General > Test Runner > PlayMode**, run `UIKit.Tests`.
+In **Window > General > Test Runner > PlayMode**, run `UIKit.Tests`. Dashboard regressions cover the initial pending state, running all checks, selecting retained previews, rerunning one check, injected failure measurements/details/order, and scrolling/recycling the result rows.
 
 The nine regression tests load this scene and run each check in all four scrolling directions. A separate test clicks the scene's **Run all cases** button. A smoke test also loads the eight existing sample scenes and checks that they initialize and load cells.
 

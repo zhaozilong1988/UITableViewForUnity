@@ -92,7 +92,7 @@ namespace UIKit.Samples
 		public Vector2 MagneticCalibrationPointInTableView(UITableView tableView) => Vector2.one * 0.5f;
 		public void MagneticStateDidChangeInTableView(UITableView tableView, int index, UITableViewMagneticState state) => magneticNotifications++;
 
-		public void Dispose() { root.SetActive(false); UnityEngine.Object.Destroy(root); }
+		public void Dispose() { if (root == null) return; root.SetActive(false); UnityEngine.Object.Destroy(root); }
 		static RectTransform Rect(string name, Transform parent)
 		{
 			var rect = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();
