@@ -166,7 +166,8 @@ namespace UIKit.Tests
 			_runner.SelectCase(0);
 			var firstPreview = _runner.selectedPreview;
 			Assert.That(firstPreview, Is.Not.Null);
-			Assert.That(firstPreview.root.activeSelf, Is.True);
+			Assert.That(firstPreview.root.activeSelf, Is.False, "The recorded fixture stays frozen while its independent live copy receives input.");
+			Assert.That(_runner.GetComponentInChildren<RegressionDashboard>().interactivePreview, Is.Not.Null);
 			Assert.That(lastPreview.root.activeSelf, Is.False);
 			_runner.SelectCase(UITableViewRegressionScene.CaseNames.Length - 1);
 			Assert.That(_runner.selectedPreview, Is.SameAs(lastPreview));

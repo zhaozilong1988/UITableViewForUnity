@@ -60,9 +60,9 @@ namespace UIKit.Samples
 		}
 		public void ShowHint()
 		{
-			_status(fixture.count == 0 ? "LIVE / empty table; no items to drag" :
-				!fixture.table.enableInfiniteLoop && fixture.ContentLength <= fixture.ViewportLength ? "LIVE / content fits; click a cell" :
-				fixture.table.draggable != null && recorder.movable ? "LIVE / drag a cell; click to select" : "LIVE / drag to scroll; click a cell");
+			_status(fixture.count == 0 ? "LIVE / empty table inside cyan frame" :
+				!fixture.table.enableInfiniteLoop && fixture.ContentLength <= fixture.ViewportLength ? "LIVE / content fits; click inside frame" :
+				fixture.table.draggable != null && recorder.movable ? "LIVE / drag a cell inside cyan frame" : "LIVE / drag or click inside cyan frame");
 		}
 		public void SetDisplayScale(float scale)
 		{
@@ -88,7 +88,7 @@ namespace UIKit.Samples
 				_selected = index;
 				foreach (var cell in fixture.table.GetAllLoadedCells()) BindCell(cell);
 			}
-			_status("LIVE / " + name + (index.HasValue ? " #" + index.Value : "") + "  |  result saved");
+			_status("LIVE / " + name + (index.HasValue ? " #" + index.Value : "") + "  |  cyan = viewport");
 		}
 		public void Dispose()
 		{

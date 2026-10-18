@@ -83,7 +83,7 @@ namespace UIKit.Tests
 			var status = Text("Status", detail, "NOT RUN", 23); Top(status.rectTransform, 18, 286, 0, 30, 18);
 			var actions = Rect("Actions", detail); Top(actions, 18, 328, 0, 48, 18);
 			var rerun = Button("RunSelected", actions, "Run selected", new Color(.13f, .3f, .48f)); ActionSlot(rerun, 0, .34f);
-			var interaction = Button("ToggleInteraction", actions, "Interact", new Color(.14f, .4f, .3f)); ActionSlot(interaction, .36f, .66f);
+			var interaction = Button("ToggleInteraction", actions, "Result view", new Color(.14f, .4f, .3f)); ActionSlot(interaction, .36f, .66f);
 			var errors = Button("ToggleFailure", actions, "Failure details", new Color(.4f, .15f, .2f)); ActionSlot(errors, .68f, 1);
 			var caption = Text("PreviewCaption", detail, "TABLE AT COMPLETION", 17); Top(caption.rectTransform, 18, 392, 0, 24, 186);
 			var fit = Button("PreviewFit", detail, "Fit", new Color(.12f, .22f, .34f)); Top(fit.GetComponent<RectTransform>(), -182, 386, 70, 36); fit.GetComponent<RectTransform>().anchorMin = fit.GetComponent<RectTransform>().anchorMax = Vector2.one; fit.GetComponentInChildren<UnityEngine.UI.Text>().fontSize = 18;

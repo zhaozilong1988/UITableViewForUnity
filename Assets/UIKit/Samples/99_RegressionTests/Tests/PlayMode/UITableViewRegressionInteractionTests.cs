@@ -23,9 +23,11 @@ namespace UIKit.Tests
 			var savedPosition = saved.content.anchoredPosition; var measured = result.actual; var elapsed = result.milliseconds;
 			var oldRecorder = (BasicTableViewFixture)saved.table.@delegate;
 			var oldRequests = oldRecorder.cellRequests; var oldClicks = oldRecorder.clicks;
-			InteractionButton.onClick.Invoke(); yield return null; yield return null;
+			yield return null; yield return null;
 			var live = Dashboard.interactivePreview;
-			Assert.That(live, Is.Not.Null); Assert.That(live, Is.Not.SameAs(saved));
+			Assert.That(live, Is.Not.Null, "A completed result must be interactive without pressing Interact."); Assert.That(live, Is.Not.SameAs(saved));
+			Assert.That(InteractionButton.GetComponentInChildren<UnityEngine.UI.Text>().text, Is.EqualTo("Result view"));
+			AssertFrameMatchesViewport(live);
 			Assert.That(live.table.dataSource, Is.Not.SameAs(saved.table.dataSource));
 			Assert.That(saved.root.activeSelf, Is.False); Assert.That(saved.table.enabled, Is.False);
 			Assert.That(live.table.enabled && live.table.scrollRect.enabled, Is.True);
@@ -49,6 +51,7 @@ namespace UIKit.Tests
 			yield return null; yield return null;
 			Assert.That(Vector2.Distance(live.table.scrollRect.normalizedPosition, before), Is.GreaterThan(.001f));
 			Assert.That(live.root.transform.localScale, Is.EqualTo(scale), "Dragging must not refit the overview around moving cells.");
+			AssertFrameMatchesViewport(live);
 			live.ScrollTo(live.count - 1); yield return null;
 			Assert.That(live.table.GetLoadedCell(live.count - 1), Is.Not.Null); ClickLiveCell(live);
 			live.ScrollTo(0); yield return null; ClickLiveCell(live);
@@ -71,7 +74,7 @@ namespace UIKit.Tests
 		{
 			_runner.SelectCase(index); _runner.RunSelectedCase(); yield return WaitForRun();
 			var saved = _runner.selectedPreview;
-			InteractionButton.onClick.Invoke(); yield return null;
+			yield return null;
 			var live = Dashboard.interactivePreview;
 			Assert.That(live.count, Is.EqualTo(saved.count));
 			Assert.That(live.table.GetComponent<RectTransform>().rect.size, Is.EqualTo(saved.table.GetComponent<RectTransform>().rect.size));
@@ -92,12 +95,12 @@ namespace UIKit.Tests
 		{
 			Assert.That(InteractionButton.interactable, Is.False);
 			_runner.RunSelectedCase(); Assert.That(InteractionButton.interactable, Is.False); yield return WaitForRun();
-			InteractionButton.onClick.Invoke(); var first = Dashboard.interactivePreview;
+			var first = Dashboard.interactivePreview;
 			_runner.SelectCase(1); Assert.That(Dashboard.interactivePreview, Is.Null); Assert.That(first.root.activeSelf, Is.False);
 			Assert.That(InteractionButton.interactable, Is.False);
-			_runner.SelectCase(0); InteractionButton.onClick.Invoke(); var second = Dashboard.interactivePreview;
+			_runner.SelectCase(0); var second = Dashboard.interactivePreview;
 			_runner.RunSelectedCase(); Assert.That(Dashboard.interactivePreview, Is.Null); Assert.That(second.root.activeSelf, Is.False);
-			yield return WaitForRun(); InteractionButton.onClick.Invoke(); var third = Dashboard.interactivePreview;
+			yield return WaitForRun(); var third = Dashboard.interactivePreview;
 			_runner.CycleDirection(); Assert.That(Dashboard.interactivePreview, Is.Null); Assert.That(third.root.activeSelf, Is.False);
 			Assert.That(_runner.pendingCount, Is.EqualTo(_runner.results.Count));
 			yield return null;
@@ -108,7 +111,7 @@ namespace UIKit.Tests
 		public IEnumerator EmptyAndFailedCasesKeepInteractionAndFailureDetailsIndependent()
 		{
 			_runner.SelectCase(6); _runner.RunSelectedCase(); yield return WaitForRun();
-			InteractionButton.onClick.Invoke(); yield return null;
+			yield return null;
 			Assert.That(Dashboard.interactivePreview.count, Is.Zero);
 			Assert.That(Field<UnityEngine.UI.Text>(Dashboard, "_previewCaption").text, Does.Contain("empty table"));
 			_runner.SelectCase(4); _runner.RunSelectedCase();
@@ -116,19 +119,22 @@ namespace UIKit.Tests
 				if (table.dataSource is UITableViewRegressionFixture fixture) fixture.margin = 30;
 			yield return WaitForRun();
 			Assert.That(_runner.failedCount, Is.EqualTo(1)); var savedFailure = _runner.results[4].failure;
-			InteractionButton.onClick.Invoke(); yield return null;
+			yield return null;
 			Assert.That(Dashboard.interactivePreview, Is.Not.Null);
 			Field<UnityEngine.UI.Button>(Dashboard, "_errorToggle").onClick.Invoke();
 			Assert.That(Dashboard.interactivePreview, Is.Null);
 			Assert.That(Field<GameObject>(Dashboard, "_errorPanel").activeInHierarchy, Is.True);
 			Assert.That(_runner.results[4].failure, Is.EqualTo(savedFailure));
+			Field<UnityEngine.UI.Button>(Dashboard, "_errorToggle").onClick.Invoke();
+			Assert.That(Dashboard.interactivePreview, Is.Not.Null, "Closing failure details restores direct interaction.");
+			AssertFrameMatchesViewport(Dashboard.interactivePreview);
 		}
 
 		[UnityTest]
 		public IEnumerator InteractiveLoopWrapsAndClicksTheExactRepeatedCopy()
 		{
 			_runner.SelectCase(2); _runner.RunSelectedCase(); yield return WaitForRun();
-			InteractionButton.onClick.Invoke(); yield return null;
+			yield return null;
 			var live = Dashboard.interactivePreview; var scale = live.root.transform.localScale;
 			var np = live.table.scrollRect.normalizedPosition; np.y = 1;
 			live.table.scrollRect.normalizedPosition = np; live.Pump(); yield return null;
@@ -142,10 +148,41 @@ namespace UIKit.Tests
 		[UnityTest]
 		public IEnumerator InteractiveFixtureIsDestroyedWithItsScene()
 		{
-			_runner.RunSelectedCase(); yield return WaitForRun(); InteractionButton.onClick.Invoke();
+			_runner.RunSelectedCase(); yield return WaitForRun();
 			var live = Dashboard.interactivePreview;
 			yield return SceneManager.UnloadSceneAsync(_scene); yield return null;
 			Assert.That(live.root == null, Is.True);
+		}
+
+		[UnityTest]
+		public IEnumerator CompletedResultSelectionDefaultsToLiveAndFrozenViewRemainsOptional()
+		{
+			_runner.RunSelectedCase(); yield return WaitForRun();
+			var first = Dashboard.interactivePreview;
+			Assert.That(first, Is.Not.Null);
+			InteractionButton.onClick.Invoke();
+			Assert.That(Dashboard.interactivePreview, Is.Null);
+			Assert.That(_runner.selectedPreview.root.activeSelf, Is.True);
+			Dashboard.Refresh();
+			Assert.That(Dashboard.interactivePreview, Is.Null, "An explicit request to inspect the saved result survives ordinary refreshes.");
+			_runner.SelectCase(1); _runner.RunSelectedCase(); yield return WaitForRun();
+			Assert.That(Dashboard.interactivePreview, Is.Not.Null);
+			var other = Dashboard.interactivePreview;
+			_runner.SelectCase(0);
+			Assert.That(Dashboard.interactivePreview, Is.Not.Null, "Selecting a completed row restores direct input automatically.");
+			Assert.That(Dashboard.interactivePreview, Is.Not.SameAs(first));
+			Assert.That(other.root.activeSelf, Is.False);
+			AssertFrameMatchesViewport(Dashboard.interactivePreview);
+		}
+
+		void AssertFrameMatchesViewport(UITableViewRegressionFixture fixture)
+		{
+			var frame = Field<RectTransform>(Dashboard, "_viewportFrame");
+			Assert.That(frame.gameObject.activeInHierarchy, Is.True);
+			foreach (var image in frame.GetComponentsInChildren<UnityEngine.UI.Image>()) Assert.That(image.raycastTarget, Is.False, "Frame decoration must not block direct input.");
+			var expected = new Vector3[4]; var actual = new Vector3[4];
+			fixture.table.scrollRect.viewport.GetWorldCorners(expected); frame.GetWorldCorners(actual);
+			for (var i = 0; i < 4; i++) Assert.That(Vector3.Distance(actual[i], expected[i]), Is.LessThan(.1f), "The cyan frame must continue to identify the actual tested viewport.");
 		}
 
 		static RegressionCell ClickLiveCell(UITableViewRegressionFixture fixture)

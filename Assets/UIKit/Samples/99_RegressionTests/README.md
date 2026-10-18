@@ -5,10 +5,10 @@
 Open `99_RegressionTests.unity` and enter Play Mode. The dashboard fills the screen and stacks its panels on narrow windows.
 
 - **Run all checks** updates the PASS / FAIL / PENDING totals and every result row. Failed checks appear first.
-- Select a result row to compare **EXPECTED** with **MEASURED AT COMPLETION**. Selection preserves the result and shows its retained table without rerunning it.
+- Select a result row to compare **EXPECTED** with **MEASURED AT COMPLETION**. Selection preserves the result and immediately opens an interactive copy of its table configuration without rerunning the check.
 - **Run selected** reruns only that case; the other results remain available.
-- The read-only overview reveals all loaded cells, including those outside the tested viewport. The cyan outline marks the actual viewport; the measured table geometry is unchanged. Cell #10 is green when present. Previews are scaled to fit; the numerical measurements remain in the original table units. Empty cases show **EMPTY TABLE / 0 cells**.
-- **Interact** opens a separate live table with the selected result's data/configuration. Drag to scroll and click a cell to highlight it; the caption reports the input event. Empty/short-content cases explain why no scrolling is available. **Result view** discards manual changes and restores the original frozen preview. Selection, rerun, direction changes and scene close also discard the live table.
+- **Result view** shows the saved read-only overview of all loaded cells, including those outside the tested viewport. The cyan outline marks the actual viewport; the measured table geometry is unchanged. Cell #10 is green when present. Previews are scaled to fit; the numerical measurements remain in the original table units. Empty cases show **EMPTY TABLE / 0 cells**.
+- Completed checks are **interactive immediately**: drag or click inside the cyan frame without pressing **Interact**. The frame remains visible and marks the actual tested viewport. Click a cell to highlight it; the caption reports the input event. Empty/short-content cases explain why no scrolling is available. **Result view** optionally discards manual changes and shows the frozen result; **Interact** returns to a fresh live copy. Selecting another completed row or finishing a rerun restores direct interaction automatically. Direction changes and scene close dispose the live table.
 - **Fit** shows the entire overview; **Zoom +** cycles through 2x, 4x, and Fit without changing the result.
 - Fit/Zoom apply to the saved result overview. Interaction mode fits the viewport once and keeps its scale stable while scrolling; offscreen cells are clipped as in a normal table.
 
@@ -51,7 +51,7 @@ The dashboard contains **31 checks: 9 original regressions + 22 basic-feature ch
 | 30 | Loop wrapping at both boundaries; velocity and continued-drag displacement |
 | 31 | Nested scroll routing; invalid index/count/datasource calls |
 
-The saved preview shows the final state of each check. The interactive table uses independent cells/callbacks/scroll state and preserves the saved expected/measured values and PASS/FAIL. It copies the final fixture configuration (including variable grids, cell types, manual sizes and loop options); it does not replay the test steps or change the automatic verdict. Animated-scroll, callback and lifecycle outcomes are recorded in the measured summary; the final preview does not replay those events. Dashboard rows 1-9 retain the original regression IDs and assertions.
+The saved preview shows the final state of each check. The automatically interactive table uses independent cells/callbacks/scroll state and preserves the saved expected/measured values and PASS/FAIL. It copies the final fixture configuration (including variable grids, cell types, manual sizes and loop options); it does not replay the test steps or change the automatic verdict. Animated-scroll, callback and lifecycle outcomes are recorded in the measured summary; the final preview does not replay those events. Dashboard rows 1-9 retain the original regression IDs and assertions.
 
 ## Folder layout
 
@@ -115,3 +115,9 @@ These are Editor/PlayMode checks. Unity 2019.4 and target-player/device executio
 This regression folder and its scene are now named `99_RegressionTests`; existing folder, script, assembly, scene and prefab GUIDs are preserved. The authoring menu, scene loader and prefab contract use the new paths. EditMode and PlayMode retain their existing assembly boundaries.
 
 Validation for this reorganization uses the same isolated Unity `6000.6.0f1` setup: **55 PlayMode tests** and **20 EditMode tests**, including the new example's seven-cell and short two-cell cycles, both physical wrap boundaries, raycast-routed drag, icon containment, complete cell binding and cell-width reflow after viewport changes. After adjusting only the new cell prefab's layout, the two loop checks and sample smoke check are rerun. Temporary render checks cover 800x1200 and 1280x900; their capture helper is removed from the shipped sample. Unity 2019.4 and player/device execution remain unverified.
+
+## Direct interaction by default
+
+After **Run selected** or **Run all checks** finishes, the selected result accepts pointer input immediately. Selecting another completed result also creates its live table automatically. The cyan frame stays aligned with the live table's viewport; its decorative edges do not intercept raycasts. Scrolling keeps the preview scale and frame stable. Failure details temporarily replace the table; closing them restores direct interaction. The optional **Result view** preserves an explicit request to inspect the frozen result until another result is selected or rerun.
+
+Validation: 56 PlayMode tests and 20 EditMode tests in isolated Unity `6000.6.0f1`, including direct raycast click/drag without a mode-button press in all four directions, frame alignment before/after drag, immutable saved results, selection/rerun/direction cleanup, optional frozen view and failure-details return. A temporary capture check verifies readable controls/results and direct input at 1280x900, 800x1200 and 960x600. The capture helper is removed before the final integrated compile. Unity 2019.4 and player/device execution remain unverified.

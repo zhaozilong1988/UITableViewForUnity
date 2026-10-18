@@ -63,6 +63,9 @@ namespace UIKit.Samples
 		float _previewZoom = 1;
 		RegressionInteractivePreview _interaction;
 		int _interactionCase = -1;
+		int _presentedCase = -1;
+		UITableViewRegressionFixture _presentedSource;
+		bool _preferLive = true;
 		public UITableViewRegressionFixture interactivePreview => _interaction?.fixture;
 		public void Initialize(UITableViewRegressionScene runner)
 		{
@@ -84,14 +87,16 @@ namespace UIKit.Samples
 		public void ToggleInteraction()
 		{
 			if (_runner == null || _runner.isRunning || _runner.selectedPreview == null) return;
-			if (_interaction != null) DisposeInteraction();
-			else {
-				_interactionCase = _runner.selectedCase;
-				_interaction = new RegressionInteractivePreview(_runner.selectedPreview, message => _previewCaption.text = message);
-				AttachFixture(_interaction.fixture, true);
-				_showError = false;
-			}
+			_preferLive = _interaction == null;
+			DisposeInteraction();
+			_showError = false;
 			RefreshDetails();
+		}
+		void StartInteraction()
+		{
+			_interactionCase = _runner.selectedCase;
+			_interaction = new RegressionInteractivePreview(_runner.selectedPreview, message => _previewCaption.text = message);
+			AttachFixture(_interaction.fixture, true);
 		}
 		void DisposeInteraction()
 		{
@@ -141,11 +146,19 @@ namespace UIKit.Samples
 		{
 			var index = _runner.selectedCase;
 			var result = _runner.results[index];
-			if (_interaction != null && (_runner.isRunning || _interactionCase != index || _interaction.source != _runner.selectedPreview)) DisposeInteraction();
+			var source = _runner.selectedPreview;
+			if (_presentedCase != index || _presentedSource != source) {
+				_presentedCase = index;
+				_presentedSource = source;
+				_preferLive = true;
+				_showError = false;
+			}
+			if (_interaction != null && (_runner.isRunning || _interactionCase != index || _interaction.source != source)) DisposeInteraction();
+			if (_preferLive && !_showError && !_runner.isRunning && source != null && _interaction == null) StartInteraction();
 			var live = _interaction != null;
 			if (_runner.selectedPreview != null) _runner.selectedPreview.root.SetActive(!live);
 			_interactionToggle.interactable = !_runner.isRunning && _runner.selectedPreview != null;
-			_interactionToggle.GetComponentInChildren<UnityEngine.UI.Text>().text = live ? "Result view" : "Interact";
+			_interactionToggle.GetComponentInChildren<UnityEngine.UI.Text>().text = live || source == null ? "Result view" : "Interact";
 			_title.text = $"{index + 1:00}  {Titles[index]}";
 			_description.text = Descriptions[index];
 			_expected.text = Expectations[index];
