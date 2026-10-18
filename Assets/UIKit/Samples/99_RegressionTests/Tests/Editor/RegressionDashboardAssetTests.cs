@@ -40,7 +40,7 @@ namespace UIKit.Tests
 				Assert.That(scroll.content.parent, Is.EqualTo(scroll.viewport));
 				Assert.That(scroll.horizontal, Is.False);
 				var cell = (RegressionResultCell)data.FindProperty("_cellPrefab").objectReferenceValue;
-				Assert.That(AssetDatabase.GetAssetPath(cell), Is.EqualTo("Assets/UIKit/Samples/8_RegressionTests/Prefabs/RegressionResultCell.prefab"));
+				Assert.That(AssetDatabase.GetAssetPath(cell), Is.EqualTo("Assets/UIKit/Samples/99_RegressionTests/Prefabs/RegressionResultCell.prefab"));
 				CheckReferences(cell);
 				var rowObject = (GameObject)PrefabUtility.InstantiatePrefab(cell.gameObject, scene);
 				try {

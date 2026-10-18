@@ -14,7 +14,7 @@ namespace UIKit.Tests
 		static readonly string[] SampleScenes = {
 			"0_SimpleTable/0_SimpleTableScene", "1_Chat/1_ChatScene", "2_Sns/2_SnsScene",
 			"3_SimpleGrid/3_SimpleGridScene", "4_NetflixLike/4_NetflixLikeScene",
-			"5_AdvancedGrid/5_AdvancedGridScene", "6_AdvancedTable/6_AdvancedTableScene", "7_SnappingTable/7_SnappingTableScene"
+			"5_AdvancedGrid/5_AdvancedGridScene", "6_AdvancedTable/6_AdvancedTableScene", "7_SnappingTable/7_SnappingTableScene", "8_InfiniteLoop/8_InfiniteLoopScene"
 		};
 
 		[UnityTest]
@@ -38,6 +38,20 @@ namespace UIKit.Tests
 							foreach (var cell in table.GetAllLoadedCells()) {
 								hasLoadedCell |= cell != null;
 							}
+						}
+					}
+					foreach (var root in scene.GetRootGameObjects()) {
+						var simple = root.GetComponentInChildren<UIKit.Samples.SimpleTableScene>();
+						if (simple != null) {
+							var table = simple.GetComponentInChildren<UITableView>();
+							Assert.That(table.enableInfiniteLoop, Is.False, "SimpleTable must retain its finite behavior.");
+							Assert.That(simple.NumberOfCellsInTableView(table), Is.EqualTo(200));
+						}
+						var loop = root.GetComponentInChildren<UIKit.Samples.InfiniteLoopTableScene>();
+						if (loop != null) {
+							var table = loop.GetComponentInChildren<UITableView>();
+							Assert.That(table.enableInfiniteLoop, Is.True);
+							Assert.That(loop.NumberOfCellsInTableView(table), Is.EqualTo(7));
 						}
 					}
 					Assert.That(hasLoadedCell, Is.True, "Sample must initialize its table and display cells: " + path);

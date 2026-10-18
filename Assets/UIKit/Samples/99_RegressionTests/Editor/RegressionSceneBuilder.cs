@@ -10,7 +10,7 @@ namespace UIKit.Tests
 {
 	public static class RegressionSceneBuilder
 	{
-		const string Folder = "Assets/UIKit/Samples/8_RegressionTests";
+		const string Folder = "Assets/UIKit/Samples/99_RegressionTests";
 		const string CellPath = Folder + "/Prefabs/RegressionResultCell.prefab";
 		static readonly Color Panel = new Color(.055f, .085f, .13f);
 		static Font Font => Resources.GetBuiltinResource<Font>(

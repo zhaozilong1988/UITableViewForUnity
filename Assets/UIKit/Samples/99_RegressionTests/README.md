@@ -2,7 +2,7 @@
 
 ## Run the reproduction scene
 
-Open `8_RegressionTests.unity` and enter Play Mode. The dashboard fills the screen and stacks its panels on narrow windows.
+Open `99_RegressionTests.unity` and enter Play Mode. The dashboard fills the screen and stacks its panels on narrow windows.
 
 - **Run all checks** updates the PASS / FAIL / PENDING totals and every result row. Failed checks appear first.
 - Select a result row to compare **EXPECTED** with **MEASURED AT COMPLETION**. Selection preserves the result and shows its retained table without rerunning it.
@@ -58,8 +58,8 @@ The saved preview shows the final state of each check. The interactive table use
 The regression scene, fixtures, authoring tool and automated tests are kept together in this sample:
 
 ```text
-8_RegressionTests/
-  8_RegressionTests.unity
+99_RegressionTests/
+  99_RegressionTests.unity
   Scripts/          Dashboard and reproduction fixtures
   Prefabs/          Authored result row
   Editor/           Scene/prefab authoring tool (UIKit.TestSceneBuilder)
@@ -74,7 +74,7 @@ EditMode and PlayMode retain separate test assemblies so Unity Test Runner disco
 
 In **Window > General > Test Runner > PlayMode**, run `UIKit.Tests`. Dashboard regressions cover the initial pending state, running all checks, selecting retained previews, rerunning one check, injected failure measurements/details/order, and scrolling/recycling the result rows.
 
-The original nine regressions and the basic-feature cases load this scene and run in all four scrolling directions. Separate tests exercise the scene's **Run all checks** and direction buttons. A smoke test also loads the eight existing sample scenes and checks that they initialize and load cells.
+The original nine regressions and the basic-feature cases load this scene and run in all four scrolling directions. Separate tests exercise the scene's **Run all checks** and direction buttons. A smoke test also loads all nine example scenes and checks that they initialize and load cells. It pins the original SimpleTable to 200 finite cells and the independent InfiniteLoop sample to seven looping cells. Two additional loop-scene checks cover the default dataset and a short two-cell cycle, both wrap boundaries, complete recycled-cell binding and raycast-routed pointer dragging.
 
 With Unity CLI (close this project in the Editor, or use a separate project copy):
 
@@ -107,3 +107,11 @@ The Asset Store Tools removal was merged separately in [PR #46](https://github.c
 Validated with Unity `6000.6.0f1` in an isolated project copy: **53 PlayMode tests** (all 31 cases in four directions, Run All in four directions, dashboard behavior, interactive raycast/click/drag and cleanup, and sample smoke coverage) and **19 EditMode tests** (library regressions plus the authored scene/prefab contract). A temporary render-capture check also verified all result names and detail labels at 1280x900, 800x1200 and 960x600; result rows allow two lines for long names. The capture helper is not part of the shipped sample.
 
 These are Editor/PlayMode checks. Unity 2019.4 and target-player/device execution were not run for this slice. Reopen the saved scene after updating scripts/assets so an older in-memory dashboard hierarchy does not override the new authored references.
+
+## Sample separation and regression-folder rename
+
+`0_SimpleTable/Scripts/SimpleTableScene.cs` matches `master` exactly and keeps the original 200-cell finite table. The independent `8_InfiniteLoop/8_InfiniteLoopScene.unity` example enables infinite looping with seven logical cells, its own controller/cell prefab/images, and responsive cell content. The package sample list includes the new example. It reuses the SimpleTable layout and existing UITableView data source/delegate/recycling pattern without depending on SimpleTable sample assets.
+
+This regression folder and its scene are now named `99_RegressionTests`; existing folder, script, assembly, scene and prefab GUIDs are preserved. The authoring menu, scene loader and prefab contract use the new paths. EditMode and PlayMode retain their existing assembly boundaries.
+
+Validation for this reorganization uses the same isolated Unity `6000.6.0f1` setup: **55 PlayMode tests** and **20 EditMode tests**, including the new example's seven-cell and short two-cell cycles, both physical wrap boundaries, raycast-routed drag, icon containment, complete cell binding and cell-width reflow after viewport changes. After adjusting only the new cell prefab's layout, the two loop checks and sample smoke check are rerun. Temporary render checks cover 800x1200 and 1280x900; their capture helper is removed from the shipped sample. Unity 2019.4 and player/device execution remain unverified.

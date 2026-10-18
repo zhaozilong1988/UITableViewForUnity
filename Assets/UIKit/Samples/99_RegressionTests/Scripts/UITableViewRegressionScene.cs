@@ -8,7 +8,7 @@ namespace UIKit.Samples
 {
 	public class UITableViewRegressionScene : MonoBehaviour
 	{
-		public const string ScenePath = "Assets/UIKit/Samples/8_RegressionTests/8_RegressionTests.unity";
+		public const string ScenePath = "Assets/UIKit/Samples/99_RegressionTests/99_RegressionTests.unity";
 		public const int RegressionCaseCount = 9;
 		public static readonly string[] CaseNames = Combine(new[] {
 			"1a. Append then scroll to new cell", "1b. Prepend then scroll to shifted cell",
