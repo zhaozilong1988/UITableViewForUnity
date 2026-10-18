@@ -53,6 +53,23 @@ The dashboard contains **31 checks: 9 original regressions + 22 basic-feature ch
 
 The saved preview shows the final state of each check. The interactive table uses independent cells/callbacks/scroll state and preserves the saved expected/measured values and PASS/FAIL. It copies the final fixture configuration (including variable grids, cell types, manual sizes and loop options); it does not replay the test steps or change the automatic verdict. Animated-scroll, callback and lifecycle outcomes are recorded in the measured summary; the final preview does not replay those events. Dashboard rows 1-9 retain the original regression IDs and assertions.
 
+## Folder layout
+
+The regression scene, fixtures, authoring tool and automated tests are kept together in this sample:
+
+```text
+8_RegressionTests/
+  8_RegressionTests.unity
+  Scripts/          Dashboard and reproduction fixtures
+  Prefabs/          Authored result row
+  Editor/           Scene/prefab authoring tool (UIKit.TestSceneBuilder)
+  Tests/
+    Editor/         EditMode library and authored-asset tests (UIKit.RegressionTests)
+    PlayMode/       Runtime, interaction and sample smoke tests (UIKit.PlayModeTests)
+```
+
+EditMode and PlayMode retain separate test assemblies so Unity Test Runner discovers them in the appropriate mode and test code stays separate from the runtime assembly. The authoring tool has its own Editor assembly so the regeneration menu remains available independently of test inclusion. Existing asset and assembly GUIDs are preserved.
+
 ## Automated tests
 
 In **Window > General > Test Runner > PlayMode**, run `UIKit.Tests`. Dashboard regressions cover the initial pending state, running all checks, selecting retained previews, rerunning one check, injected failure measurements/details/order, and scrolling/recycling the result rows.
@@ -83,7 +100,7 @@ Finding 5 is narrower than the initial review suggested: visible cells are regis
 
 At commit `2acdf02`, the post-fix run passed **11 tests with no failures**: the nine regression tests (36 direction/case combinations), the scene's Run All button (nine checks), and initialization/cell loading in all eight existing samples. These checks cover runtime behavior and initialization; they are not a target-player build or a visual layout audit of every sample.
 
-The Asset Store Tools removal is now a separate [PR #46](https://github.com/zhaozilong1988/UITableViewForUnity/pull/46). This branch retains the embedded package and lock entry exactly as on `master`, so the UITableView PR does not include that removal. The Unity 6 results below were recorded with the package removed and without vendor compatibility patches. Restoring its original 11.4.4 sources reproduces five vendor compiler errors on Unity `6000.6.0f1`; apply PR #46 before Unity 6 compilation/testing. The historical counts above describe the original regression slice, not the current expanded suite.
+The Asset Store Tools removal was merged separately in [PR #46](https://github.com/zhaozilong1988/UITableViewForUnity/pull/46), and this branch includes the updated `master`. The Unity 6 results below use that package configuration without vendor compatibility patches. The historical counts above describe the original regression slice, not the current expanded suite.
 
 ## Validation of the expanded dashboard
 
