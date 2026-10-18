@@ -28,6 +28,11 @@ namespace UIKit.Tests
 				Assert.That(dashboard, Is.Not.Null);
 				CheckReferences(runner);
 				CheckReferences(dashboard);
+				foreach (var button in dashboard.GetComponentsInChildren<UnityEngine.UI.Button>(true)) {
+					Assert.That(button.name, Is.Not.EqualTo("ToggleInteraction"));
+					Assert.That(button.name, Is.Not.EqualTo("PreviewFit"));
+					Assert.That(button.name, Is.Not.EqualTo("PreviewZoom"));
+				}
 				Assert.That(RegressionDashboard.Titles.Length, Is.EqualTo(UITableViewRegressionScene.CaseNames.Length));
 				Assert.That(RegressionDashboard.Descriptions.Length, Is.EqualTo(RegressionDashboard.Titles.Length));
 				Assert.That(RegressionDashboard.Expectations.Length, Is.EqualTo(RegressionDashboard.Titles.Length));

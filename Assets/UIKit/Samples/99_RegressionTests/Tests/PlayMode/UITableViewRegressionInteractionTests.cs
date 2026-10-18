@@ -12,7 +12,6 @@ namespace UIKit.Tests
 	public partial class UITableViewRegressionTests
 	{
 		RegressionDashboard Dashboard => _runner.GetComponentInChildren<RegressionDashboard>();
-		UnityEngine.UI.Button InteractionButton => Field<UnityEngine.UI.Button>(Dashboard, "_interactionToggle");
 
 		[UnityTest]
 		public IEnumerator InteractiveViewportAcceptsRaycastClicksAndDragsWithoutChangingResults([ValueSource(nameof(Directions))] UITableViewDirection direction)
@@ -26,12 +25,11 @@ namespace UIKit.Tests
 			yield return null; yield return null;
 			var live = Dashboard.interactivePreview;
 			Assert.That(live, Is.Not.Null, "A completed result must be interactive without pressing Interact."); Assert.That(live, Is.Not.SameAs(saved));
-			Assert.That(InteractionButton.GetComponentInChildren<UnityEngine.UI.Text>().text, Is.EqualTo("Result view"));
 			AssertFrameMatchesViewport(live);
 			Assert.That(live.table.dataSource, Is.Not.SameAs(saved.table.dataSource));
 			Assert.That(saved.root.activeSelf, Is.False); Assert.That(saved.table.enabled, Is.False);
 			Assert.That(live.table.enabled && live.table.scrollRect.enabled, Is.True);
-			Assert.That(live.table.scrollRect.viewport.GetComponent<UnityEngine.UI.RectMask2D>().enabled, Is.True);
+			Assert.That(live.table.scrollRect.viewport.GetComponent<UnityEngine.UI.RectMask2D>().enabled, Is.False, "ResultView must keep its off-viewport cells visible.");
 			Assert.That(live.root.GetComponent<UnityEngine.UI.GraphicRaycaster>().enabled, Is.True);
 			var scale = live.root.transform.localScale;
 			Assert.That(scale.x, Is.LessThan(1), "Exercise input through the dashboard's scaled nested canvas.");
@@ -58,14 +56,16 @@ namespace UIKit.Tests
 			Assert.That(recorder.clicks, Is.EqualTo(3));
 			Assert.That(saved.content.anchoredPosition, Is.EqualTo(savedPosition));
 			Assert.That(oldRecorder.cellRequests, Is.EqualTo(oldRequests)); Assert.That(oldRecorder.clicks, Is.EqualTo(oldClicks));
-			InteractionButton.onClick.Invoke();
-			Assert.That(Dashboard.interactivePreview, Is.Null); Assert.That(live.root.activeSelf, Is.False);
-			Assert.That(saved.root.activeSelf, Is.True); Assert.That(_runner.selectedPreview, Is.SameAs(saved));
+			Dashboard.Refresh();
+			Assert.That(Dashboard.interactivePreview, Is.SameAs(live), "Ordinary refresh must preserve the directly manipulated overview.");
+			Assert.That(_runner.selectedPreview, Is.SameAs(saved));
 			Assert.That(_runner.results[9], Is.SameAs(result)); Assert.That(result.actual, Is.EqualTo(measured)); Assert.That(result.milliseconds, Is.EqualTo(elapsed));
 			Assert.That(_runner.passedCount, Is.EqualTo(1)); Assert.That(_runner.failedCount, Is.Zero);
+			_runner.SelectCase(8);
+			Assert.That(Dashboard.interactivePreview, Is.Null); Assert.That(live.root.activeSelf, Is.False);
 			yield return null; Assert.That(live.root == null, Is.True);
-			InteractionButton.onClick.Invoke(); yield return null;
-			Assert.That(((BasicTableViewFixture)Dashboard.interactivePreview.table.@delegate).clicks, Is.Zero, "Reentering must create fresh input state.");
+			_runner.SelectCase(9); yield return null;
+			Assert.That(((BasicTableViewFixture)Dashboard.interactivePreview.table.@delegate).clicks, Is.Zero, "Selecting the completed result again creates fresh input state.");
 		}
 
 		static readonly int[] InteractionCopyCases = { 13, 17, 18 };
@@ -93,11 +93,11 @@ namespace UIKit.Tests
 		[UnityTest]
 		public IEnumerator InteractionModeDisposesClonesOnSelectionRunAndDirectionChanges()
 		{
-			Assert.That(InteractionButton.interactable, Is.False);
-			_runner.RunSelectedCase(); Assert.That(InteractionButton.interactable, Is.False); yield return WaitForRun();
+			Assert.That(Dashboard.interactivePreview, Is.Null);
+			_runner.RunSelectedCase(); Assert.That(Dashboard.interactivePreview, Is.Null); yield return WaitForRun();
 			var first = Dashboard.interactivePreview;
 			_runner.SelectCase(1); Assert.That(Dashboard.interactivePreview, Is.Null); Assert.That(first.root.activeSelf, Is.False);
-			Assert.That(InteractionButton.interactable, Is.False);
+			Assert.That(Dashboard.interactivePreview, Is.Null);
 			_runner.SelectCase(0); var second = Dashboard.interactivePreview;
 			_runner.RunSelectedCase(); Assert.That(Dashboard.interactivePreview, Is.Null); Assert.That(second.root.activeSelf, Is.False);
 			yield return WaitForRun(); var third = Dashboard.interactivePreview;
@@ -154,25 +154,44 @@ namespace UIKit.Tests
 			Assert.That(live.root == null, Is.True);
 		}
 
+		static readonly int[] OverviewCases = { 5, 9 };
 		[UnityTest]
-		public IEnumerator CompletedResultSelectionDefaultsToLiveAndFrozenViewRemainsOptional()
+		public IEnumerator ResultViewKeepsFullOverviewGeometryAndOffscreenCells([ValueSource(nameof(OverviewCases))] int index)
 		{
-			_runner.RunSelectedCase(); yield return WaitForRun();
-			var first = Dashboard.interactivePreview;
-			Assert.That(first, Is.Not.Null);
-			InteractionButton.onClick.Invoke();
-			Assert.That(Dashboard.interactivePreview, Is.Null);
-			Assert.That(_runner.selectedPreview.root.activeSelf, Is.True);
-			Dashboard.Refresh();
-			Assert.That(Dashboard.interactivePreview, Is.Null, "An explicit request to inspect the saved result survives ordinary refreshes.");
-			_runner.SelectCase(1); _runner.RunSelectedCase(); yield return WaitForRun();
-			Assert.That(Dashboard.interactivePreview, Is.Not.Null);
-			var other = Dashboard.interactivePreview;
-			_runner.SelectCase(0);
-			Assert.That(Dashboard.interactivePreview, Is.Not.Null, "Selecting a completed row restores direct input automatically.");
-			Assert.That(Dashboard.interactivePreview, Is.Not.SameAs(first));
-			Assert.That(other.root.activeSelf, Is.False);
-			AssertFrameMatchesViewport(Dashboard.interactivePreview);
+			_runner.SelectCase(index); _runner.RunSelectedCase(); yield return WaitForRun();
+			var saved = _runner.selectedPreview; var live = Dashboard.interactivePreview;
+			Assert.That(live, Is.Not.Null);
+			Assert.That(Vector3.Distance(live.root.transform.localScale, saved.root.transform.localScale), Is.LessThan(.0001f), "Direct input must retain ResultView's full overview scale, not refit only the viewport.");
+			Assert.That(Vector2.Distance(live.root.GetComponent<RectTransform>().anchoredPosition, saved.root.GetComponent<RectTransform>().anchoredPosition), Is.LessThan(.01f));
+			var hasOutsideCell = false;
+			foreach (var cell in live.table.GetAllLoadedCells()) {
+				var corners = new Vector3[4]; cell.rectTransform.GetWorldCorners(corners);
+				foreach (var corner in corners) {
+					var point = live.table.scrollRect.viewport.InverseTransformPoint(corner);
+					if (!live.table.scrollRect.viewport.rect.Contains(point)) hasOutsideCell = true;
+				}
+				Assert.That(cell.GetComponent<CanvasRenderer>().cull, Is.False, "Loaded cells outside the blue frame must remain visible in the overview.");
+			}
+			Assert.That(hasOutsideCell, Is.True, "Exercise full ResultView context beyond the tested viewport.");
+			foreach (var cell in saved.table.GetAllLoadedCells()) {
+				var copy = live.table.GetLoadedCell(cell.index.Value);
+				Assert.That(copy, Is.Not.Null, "Retained offscreen result cells must remain present in the interactive overview.");
+				Assert.That(copy.rectTransform.anchoredPosition, Is.EqualTo(cell.rectTransform.anchoredPosition));
+			}
+			AssertFrameMatchesViewport(live);
+			AssertRemovedPreviewControls();
+			var position = live.content.anchoredPosition; Dashboard.Refresh();
+			Assert.That(Dashboard.interactivePreview, Is.SameAs(live));
+			Assert.That(live.content.anchoredPosition, Is.EqualTo(position));
+		}
+
+		void AssertRemovedPreviewControls()
+		{
+			foreach (var button in Dashboard.GetComponentsInChildren<UnityEngine.UI.Button>(true)) {
+				Assert.That(button.name, Is.Not.EqualTo("ToggleInteraction"));
+				Assert.That(button.name, Is.Not.EqualTo("PreviewFit"));
+				Assert.That(button.name, Is.Not.EqualTo("PreviewZoom"));
+			}
 		}
 
 		void AssertFrameMatchesViewport(UITableViewRegressionFixture fixture)

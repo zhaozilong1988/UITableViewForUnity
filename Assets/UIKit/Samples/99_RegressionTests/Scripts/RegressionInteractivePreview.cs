@@ -55,14 +55,21 @@ namespace UIKit.Samples
 				table.enableInfiniteLoop = source.table.enableInfiniteLoop;
 				table.ignoreCellLifeCycle = source.table.ignoreCellLifeCycle;
 				table.ReloadData(source.table.scrollRect.normalizedPosition);
+				// Retained offscreen cells are part of the ResultView overview too.
+				if (fixture.lifeCycle == UITableViewCellLifeCycle.RecycleWhenReloaded && !table.enableInfiniteLoop) {
+					foreach (var cell in source.table.GetAllLoadedCells())
+						if (cell.index.HasValue && table.GetLoadedCell(cell.index.Value) == null) fixture.ScrollTo(cell.index.Value);
+					scroll.normalizedPosition = source.table.scrollRect.normalizedPosition;
+					fixture.Pump();
+				}
 				ShowHint();
 			} catch { fixture.Dispose(); throw; }
 		}
 		public void ShowHint()
 		{
-			_status(fixture.count == 0 ? "LIVE / empty table inside cyan frame" :
-				!fixture.table.enableInfiniteLoop && fixture.ContentLength <= fixture.ViewportLength ? "LIVE / content fits; click inside frame" :
-				fixture.table.draggable != null && recorder.movable ? "LIVE / drag a cell inside cyan frame" : "LIVE / drag or click inside cyan frame");
+			_status(fixture.count == 0 ? "RESULT VIEW / empty table; blue = viewport" :
+				!fixture.table.enableInfiniteLoop && fixture.ContentLength <= fixture.ViewportLength ? "RESULT VIEW / click; blue = viewport" :
+				fixture.table.draggable != null && recorder.movable ? "RESULT VIEW / drag cell; blue = viewport" : "RESULT VIEW / drag or click; blue = viewport");
 		}
 		public void SetDisplayScale(float scale)
 		{
@@ -88,7 +95,7 @@ namespace UIKit.Samples
 				_selected = index;
 				foreach (var cell in fixture.table.GetAllLoadedCells()) BindCell(cell);
 			}
-			_status("LIVE / " + name + (index.HasValue ? " #" + index.Value : "") + "  |  cyan = viewport");
+			_status("RESULT VIEW / " + name + (index.HasValue ? " #" + index.Value : "") + "  |  blue = viewport");
 		}
 		public void Dispose()
 		{

@@ -104,7 +104,7 @@ namespace UIKit.Tests
 			Assert.That(Field<UnityEngine.UI.Text>(dashboard, "_summary").text, Does.Contain($"PENDING {UITableViewRegressionScene.CaseNames.Length}"));
 			Assert.That(Field<UnityEngine.UI.Text>(dashboard, "_emptyPreview").gameObject.activeInHierarchy, Is.True);
 			Assert.That(Field<UnityEngine.UI.Text>(dashboard, "_emptyPreview").text, Does.Contain("Run this check"));
-			foreach (var name in new[] { "_runAll", "_direction", "_rerun", "_interactionToggle", "_fit", "_zoom" }) {
+			foreach (var name in new[] { "_runAll", "_direction", "_rerun" }) {
 				var label = Field<UnityEngine.UI.Button>(dashboard, name).GetComponentInChildren<UnityEngine.UI.Text>();
 				Assert.That(label.text, Is.Not.Empty, name);
 				Assert.That(label.preferredHeight, Is.LessThanOrEqualTo(label.rectTransform.rect.height), name + " label must fit vertically");

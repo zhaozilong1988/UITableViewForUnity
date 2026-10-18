@@ -82,12 +82,9 @@ namespace UIKit.Tests
 			var actual = Text("Actual", actualPanel, "", 21); Fill(actual.rectTransform, 12, 42, 12, 10);
 			var status = Text("Status", detail, "NOT RUN", 23); Top(status.rectTransform, 18, 286, 0, 30, 18);
 			var actions = Rect("Actions", detail); Top(actions, 18, 328, 0, 48, 18);
-			var rerun = Button("RunSelected", actions, "Run selected", new Color(.13f, .3f, .48f)); ActionSlot(rerun, 0, .34f);
-			var interaction = Button("ToggleInteraction", actions, "Result view", new Color(.14f, .4f, .3f)); ActionSlot(interaction, .36f, .66f);
-			var errors = Button("ToggleFailure", actions, "Failure details", new Color(.4f, .15f, .2f)); ActionSlot(errors, .68f, 1);
-			var caption = Text("PreviewCaption", detail, "TABLE AT COMPLETION", 17); Top(caption.rectTransform, 18, 392, 0, 24, 186);
-			var fit = Button("PreviewFit", detail, "Fit", new Color(.12f, .22f, .34f)); Top(fit.GetComponent<RectTransform>(), -182, 386, 70, 36); fit.GetComponent<RectTransform>().anchorMin = fit.GetComponent<RectTransform>().anchorMax = Vector2.one; fit.GetComponentInChildren<UnityEngine.UI.Text>().fontSize = 18;
-			var zoom = Button("PreviewZoom", detail, "Zoom +", new Color(.12f, .22f, .34f)); Top(zoom.GetComponent<RectTransform>(), -104, 386, 86, 36); zoom.GetComponent<RectTransform>().anchorMin = zoom.GetComponent<RectTransform>().anchorMax = Vector2.one; zoom.GetComponentInChildren<UnityEngine.UI.Text>().fontSize = 18;
+			var rerun = Button("RunSelected", actions, "Run selected", new Color(.13f, .3f, .48f)); ActionSlot(rerun, 0, .48f);
+			var errors = Button("ToggleFailure", actions, "Failure details", new Color(.4f, .15f, .2f)); ActionSlot(errors, .52f, 1);
+			var caption = Text("PreviewCaption", detail, "RESULT VIEW / blue frame = tested viewport", 17); Top(caption.rectTransform, 18, 392, 0, 24, 18);
 			var preview = Rect("Preview", detail); Fill(preview, 18, 430, 18, 18); Surface(preview, new Color(.025f, .045f, .075f)); preview.gameObject.AddComponent<UnityEngine.UI.RectMask2D>();
 			var empty = Text("PreviewEmpty", preview, "Run this check to keep its table here.", 24); Fill(empty.rectTransform, 20, 20, 20, 20); empty.alignment = TextAnchor.MiddleCenter;
 			var viewportFrame = Rect("TestedViewportFrame", preview); viewportFrame.anchorMin = viewportFrame.anchorMax = viewportFrame.pivot = new Vector2(.5f, .5f);
@@ -106,7 +103,7 @@ namespace UIKit.Tests
 			Assign(runner, "_dashboard", dashboard);
 			Assign(dashboard, "_body", body, "_listPanel", list, "_detailPanel", detail, "_preview", preview, "_viewportFrame", viewportFrame, "_table", table, "_cellPrefab", prefab,
 				"_summary", summary, "_title", title, "_description", description, "_expected", expected, "_actual", actual, "_status", status,
-				"_previewCaption", caption, "_emptyPreview", empty, "_failure", failure, "_runAll", runAll, "_direction", direction, "_rerun", rerun, "_interactionToggle", interaction, "_errorToggle", errors, "_fit", fit, "_zoom", zoom, "_errorPanel", failurePanel.gameObject);
+				"_previewCaption", caption, "_emptyPreview", empty, "_failure", failure, "_runAll", runAll, "_direction", direction, "_rerun", rerun, "_errorToggle", errors, "_errorPanel", failurePanel.gameObject);
 			if (new SerializedObject(dashboard).FindProperty("_cellPrefab").objectReferenceValue == null)
 				throw new InvalidOperationException("The authored dashboard must retain its result-cell prefab reference.");
 			EditorSceneManager.SaveScene(scene, UITableViewRegressionScene.ScenePath);

@@ -5,20 +5,19 @@
 Open `99_RegressionTests.unity` and enter Play Mode. The dashboard fills the screen and stacks its panels on narrow windows.
 
 - **Run all checks** updates the PASS / FAIL / PENDING totals and every result row. Failed checks appear first.
-- Select a result row to compare **EXPECTED** with **MEASURED AT COMPLETION**. Selection preserves the result and immediately opens an interactive copy of its table configuration without rerunning the check.
-- **Run selected** reruns only that case; the other results remain available.
-- **Result view** shows the saved read-only overview of all loaded cells, including those outside the tested viewport. The cyan outline marks the actual viewport; the measured table geometry is unchanged. Cell #10 is green when present. Previews are scaled to fit; the numerical measurements remain in the original table units. Empty cases show **EMPTY TABLE / 0 cells**.
-- Completed checks are **interactive immediately**: drag or click inside the cyan frame without pressing **Interact**. The frame remains visible and marks the actual tested viewport. Click a cell to highlight it; the caption reports the input event. Empty/short-content cases explain why no scrolling is available. **Result view** optionally discards manual changes and shows the frozen result; **Interact** returns to a fresh live copy. Selecting another completed row or finishing a rerun restores direct interaction automatically. Direction changes and scene close dispose the live table.
-- **Fit** shows the entire overview; **Zoom +** cycles through 2x, 4x, and Fit without changing the result.
-- Fit/Zoom apply to the saved result overview. Interaction mode fits the viewport once and keeps its scale stable while scrolling; offscreen cells are clipped as in a normal table.
+- Select a completed result to compare **EXPECTED** with **MEASURED AT COMPLETION** and operate the result overview directly. Selection does not rerun the check.
+- **Run selected** reruns only that case; the other recorded results remain available.
+- The ResultView overview keeps all loaded cells visible, including cells outside the blue frame. The blue frame marks the actual tested viewport. Original result geometry determines the overview's scale and position; dragging does not refit or zoom it. Outer card bounds still clip the drawing.
+- Drag to scroll or move a cell according to the selected check; click a cell inside the blue frame to highlight it. The caption reports input. Empty and short-content cases explain when no scrolling is available. There are no Interact/Result view switches, Fit or Zoom buttons.
+- Manual input uses an independent copy of the table's data/configuration and callbacks. Recorded expected/measured values, elapsed time and PASS/FAIL remain unchanged. Selecting another result, rerunning, changing direction or closing the scene disposes the manipulated copy.
 
-A failed check enables **Failure details**, with a scrollable exception and assertion message. The Console also receives each PASS / FAIL and its failure details.
+A failed check enables **Failure details**, with a scrollable exception and assertion message. Closing those details returns to the interactive result overview. The Console also receives each PASS / FAIL and its failure details.
 
 Use the **direction button** at the upper right to choose TopToBottom, BottomToTop, LeftToRight, or RightToLeft. Changing direction clears previous results/previews so measurements from different directions are never mixed. The direction button is disabled during execution.
 
-The totals cover the scene checks below, not every automated test in the repository. The direct PlayMode checks exercise each case in all four scroll directions; EditMode results remain in Test Runner. Pointer tests send deterministic EventSystem events to actual cell geometry; they do not claim real-device touch or physical mouse coverage.
+The totals cover the scene checks below, not every automated test in the repository. Direct PlayMode checks exercise each case in all four directions; EditMode results remain in Test Runner. Pointer tests send deterministic EventSystem events to actual cell geometry; they do not claim real-device touch or physical mouse coverage.
 
-The dashboard hierarchy is authored in the scene, and result rows use `Prefabs/RegressionResultCell.prefab` with the existing `UITableView` data source/delegate and cell recycling. Temporary reproduction tables use the existing Canvas / ScrollRect / Viewport / Content fixture. Completed result fixtures are retained until that case is rerun or the scene closes; direct automated `RunCase` calls dispose their fixtures immediately. It does not change Build Settings or require extra packages.
+The dashboard hierarchy is authored in the scene, and result rows use `Prefabs/RegressionResultCell.prefab` with the existing UITableView data source/delegate and cell recycling. Reproduction tables use the existing Canvas / ScrollRect / Viewport / Content fixture. The unmodified measured fixture is retained internally while an independent copy receives input. It does not change Build Settings or require extra packages.
 
 To regenerate the authored dashboard and row prefab, use **UIKit > Tests > Create Regression Scene**. This preserves the existing scene/prefab GUIDs. The builder creates the cell prefab after opening its authoring scene and checks its serialized reference before saving.
 
@@ -51,7 +50,7 @@ The dashboard contains **31 checks: 9 original regressions + 22 basic-feature ch
 | 30 | Loop wrapping at both boundaries; velocity and continued-drag displacement |
 | 31 | Nested scroll routing; invalid index/count/datasource calls |
 
-The saved preview shows the final state of each check. The automatically interactive table uses independent cells/callbacks/scroll state and preserves the saved expected/measured values and PASS/FAIL. It copies the final fixture configuration (including variable grids, cell types, manual sizes and loop options); it does not replay the test steps or change the automatic verdict. Animated-scroll, callback and lifecycle outcomes are recorded in the measured summary; the final preview does not replay those events. Dashboard rows 1-9 retain the original regression IDs and assertions.
+The result overview starts at the final state of each check. The automatically interactive table uses independent cells/callbacks/scroll state and preserves the saved expected/measured values and PASS/FAIL. It copies the final fixture configuration (including variable grids, cell types, manual sizes and loop options); it does not replay the test steps or change the automatic verdict. Animated-scroll, callback and lifecycle outcomes are recorded in the measured summary; the overview does not replay those events. Dashboard rows 1-9 retain the original regression IDs and assertions.
 
 ## Folder layout
 
@@ -116,8 +115,8 @@ This regression folder and its scene are now named `99_RegressionTests`; existin
 
 Validation for this reorganization uses the same isolated Unity `6000.6.0f1` setup: **55 PlayMode tests** and **20 EditMode tests**, including the new example's seven-cell and short two-cell cycles, both physical wrap boundaries, raycast-routed drag, icon containment, complete cell binding and cell-width reflow after viewport changes. After adjusting only the new cell prefab's layout, the two loop checks and sample smoke check are rerun. Temporary render checks cover 800x1200 and 1280x900; their capture helper is removed from the shipped sample. Unity 2019.4 and player/device execution remain unverified.
 
-## Direct interaction by default
+## Interactive ResultView validation
 
-After **Run selected** or **Run all checks** finishes, the selected result accepts pointer input immediately. Selecting another completed result also creates its live table automatically. The cyan frame stays aligned with the live table's viewport; its decorative edges do not intercept raycasts. Scrolling keeps the preview scale and frame stable. Failure details temporarily replace the table; closing them restores direct interaction. The optional **Result view** preserves an explicit request to inspect the frozen result until another result is selected or rerun.
+The result overview preserves the frozen result's full bounds, scale and position, including off-viewport and retained cells, while accepting input directly. Its viewport mask is disabled to keep the surrounding context visible. The blue frame remains aligned with the actual viewport and does not intercept raycasts. There are no view-mode or fit/zoom controls in the authored scene or scene builder.
 
-Validation: 56 PlayMode tests and 20 EditMode tests in isolated Unity `6000.6.0f1`, including direct raycast click/drag without a mode-button press in all four directions, frame alignment before/after drag, immutable saved results, selection/rerun/direction cleanup, optional frozen view and failure-details return. A temporary capture check verifies readable controls/results and direct input at 1280x900, 800x1200 and 960x600. The capture helper is removed before the final integrated compile. Unity 2019.4 and player/device execution remain unverified.
+Validation: 57 PlayMode tests and 20 EditMode tests in isolated Unity `6000.6.0f1`, including direct raycast click/drag in all four directions, full ResultView scale/position, visible off-frame cells, retained offscreen-cell materialization, stable frame during drag, immutable saved results and failure-details/lifecycle handling. A temporary capture check covers 1280x900, 800x1200 and 960x600, and is removed before the final integrated compile. Unity 2019.4 and player/device execution remain unverified.

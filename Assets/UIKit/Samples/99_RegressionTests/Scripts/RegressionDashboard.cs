@@ -51,46 +51,30 @@ namespace UIKit.Samples
 		[SerializeField] UnityEngine.UI.Button _runAll;
 		[SerializeField] UnityEngine.UI.Button _direction;
 		[SerializeField] UnityEngine.UI.Button _rerun;
-		[SerializeField] UnityEngine.UI.Button _interactionToggle;
 		[SerializeField] UnityEngine.UI.Button _errorToggle;
-		[SerializeField] UnityEngine.UI.Button _fit;
-		[SerializeField] UnityEngine.UI.Button _zoom;
 		[SerializeField] GameObject _errorPanel;
 		readonly List<int> _ordered = new List<int>();
 		UITableViewRegressionScene _runner;
 		Vector2 _lastSize;
 		bool _showError;
-		float _previewZoom = 1;
 		RegressionInteractivePreview _interaction;
 		int _interactionCase = -1;
 		int _presentedCase = -1;
 		UITableViewRegressionFixture _presentedSource;
-		bool _preferLive = true;
 		public UITableViewRegressionFixture interactivePreview => _interaction?.fixture;
 		public void Initialize(UITableViewRegressionScene runner)
 		{
-			if (_table == null || _cellPrefab == null || _preview == null || _summary == null || _runAll == null || _direction == null || _interactionToggle == null)
+			if (_table == null || _cellPrefab == null || _preview == null || _summary == null || _runAll == null || _direction == null)
 				throw new InvalidOperationException("Regression dashboard has missing authored references.");
 			_runner = runner;
 			_table.dataSource = this;
 			_table.@delegate = this;
 			_runAll.onClick.AddListener(runner.RunAllCases);
 			_direction.onClick.AddListener(runner.CycleDirection);
-			_fit.onClick.AddListener(() => { _previewZoom = 1; RefreshDetails(); });
-			_zoom.onClick.AddListener(() => { _previewZoom = _previewZoom >= 4 ? 1 : _previewZoom * 2; RefreshDetails(); });
 			_rerun.onClick.AddListener(runner.RunSelectedCase);
-			_interactionToggle.onClick.AddListener(ToggleInteraction);
 			_errorToggle.onClick.AddListener(() => { DisposeInteraction(); _showError = !_showError; RefreshDetails(); });
 			Refresh();
 			ApplyLayout();
-		}
-		public void ToggleInteraction()
-		{
-			if (_runner == null || _runner.isRunning || _runner.selectedPreview == null) return;
-			_preferLive = _interaction == null;
-			DisposeInteraction();
-			_showError = false;
-			RefreshDetails();
 		}
 		void StartInteraction()
 		{
@@ -150,15 +134,12 @@ namespace UIKit.Samples
 			if (_presentedCase != index || _presentedSource != source) {
 				_presentedCase = index;
 				_presentedSource = source;
-				_preferLive = true;
 				_showError = false;
 			}
 			if (_interaction != null && (_runner.isRunning || _interactionCase != index || _interaction.source != source)) DisposeInteraction();
-			if (_preferLive && !_showError && !_runner.isRunning && source != null && _interaction == null) StartInteraction();
+			if (!_showError && !_runner.isRunning && source != null && _interaction == null) StartInteraction();
 			var live = _interaction != null;
 			if (_runner.selectedPreview != null) _runner.selectedPreview.root.SetActive(!live);
-			_interactionToggle.interactable = !_runner.isRunning && _runner.selectedPreview != null;
-			_interactionToggle.GetComponentInChildren<UnityEngine.UI.Text>().text = live || source == null ? "Result view" : "Interact";
 			_title.text = $"{index + 1:00}  {Titles[index]}";
 			_description.text = Descriptions[index];
 			_expected.text = Expectations[index];
@@ -173,14 +154,12 @@ namespace UIKit.Samples
 			_preview.gameObject.SetActive(!_errorPanel.activeSelf);
 			_emptyPreview.gameObject.SetActive(_runner.selectedPreview == null || _runner.selectedPreview.count == 0);
 			_emptyPreview.text = _runner.selectedPreview == null ? "Run this check to keep its table here." : "EMPTY TABLE / 0 cells";
-			_previewCaption.text = _errorPanel.activeSelf ? "FAILURE DETAILS / scroll to read" : $"OVERVIEW x{_previewZoom:0} / cyan = tested viewport";
+			_previewCaption.text = _errorPanel.activeSelf ? "FAILURE DETAILS / scroll to read" : "RESULT VIEW / blue frame = tested viewport";
 			if (live) _interaction.ShowHint();
 			var captionOffset = _previewCaption.rectTransform.offsetMax;
-			captionOffset.x = live ? -18 : -186;
+			captionOffset.x = -18;
 			_previewCaption.rectTransform.offsetMax = captionOffset;
-			_fit.gameObject.SetActive(!live); _zoom.gameObject.SetActive(!live);
 			_viewportFrame.gameObject.SetActive(_runner.selectedPreview != null);
-			_fit.interactable = _zoom.interactable = _runner.selectedPreview != null && !_errorPanel.activeSelf;
 			FitSelectedPreview();
 		}
 		public void AttachPreview(UITableViewRegressionFixture fixture, int index)
@@ -196,7 +175,8 @@ namespace UIKit.Samples
 			var canvas = fixture.root.GetComponent<Canvas>();
 			canvas.overrideSorting = false;
 			fixture.root.GetComponent<UnityEngine.UI.GraphicRaycaster>().enabled = interactive;
-			fixture.table.scrollRect.viewport.GetComponent<UnityEngine.UI.RectMask2D>().enabled = interactive;
+			// Keep the result overview visible outside the tested viewport.
+			fixture.table.scrollRect.viewport.GetComponent<UnityEngine.UI.RectMask2D>().enabled = false;
 			fixture.table.scrollRect.enabled = interactive;
 			fixture.table.enabled = interactive;
 			var rect = fixture.root.GetComponent<RectTransform>();
@@ -215,14 +195,15 @@ namespace UIKit.Samples
 			var available = _preview.rect.size - new Vector2(28, 28);
 			if (available.x <= 0 || available.y <= 0) return;
 			var corners = new Vector3[4];
-			fixture.table.scrollRect.viewport.GetWorldCorners(corners);
-			var bounds = new Bounds(fixture.root.transform.InverseTransformPoint(corners[0]), Vector3.zero);
-			foreach (var corner in corners) bounds.Encapsulate(fixture.root.transform.InverseTransformPoint(corner));
-			if (!interactive) foreach (var cell in fixture.table.GetAllLoadedCells()) {
+			var geometry = interactive ? _interaction.source : fixture;
+			geometry.table.scrollRect.viewport.GetWorldCorners(corners);
+			var bounds = new Bounds(geometry.root.transform.InverseTransformPoint(corners[0]), Vector3.zero);
+			foreach (var corner in corners) bounds.Encapsulate(geometry.root.transform.InverseTransformPoint(corner));
+			foreach (var cell in geometry.table.GetAllLoadedCells()) {
 				cell.rectTransform.GetWorldCorners(corners);
-				foreach (var corner in corners) bounds.Encapsulate(fixture.root.transform.InverseTransformPoint(corner));
+				foreach (var corner in corners) bounds.Encapsulate(geometry.root.transform.InverseTransformPoint(corner));
 			}
-			var scale = Mathf.Min(available.x / bounds.size.x, available.y / bounds.size.y) * (interactive ? 1 : _previewZoom);
+			var scale = Mathf.Min(available.x / bounds.size.x, available.y / bounds.size.y);
 			fixture.root.transform.localScale = Vector3.one * scale;
 			fixture.root.GetComponent<RectTransform>().anchoredPosition = -(Vector2)bounds.center * scale;
 			fixture.table.scrollRect.viewport.GetWorldCorners(corners);
