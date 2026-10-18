@@ -83,7 +83,7 @@ Finding 5 is narrower than the initial review suggested: visible cells are regis
 
 At commit `2acdf02`, the post-fix run passed **11 tests with no failures**: the nine regression tests (36 direction/case combinations), the scene's Run All button (nine checks), and initialization/cell loading in all eight existing samples. These checks cover runtime behavior and initialization; they are not a target-player build or a visual layout audit of every sample.
 
-The obsolete Asset Store Tools package was subsequently removed at `b5d1fbd`. Later Unity `6000.6.0f1` dashboard validation runs do not require vendor compatibility patches. The historical counts above describe the original regression slice, not the current expanded suite.
+The Asset Store Tools removal is now a separate [PR #46](https://github.com/zhaozilong1988/UITableViewForUnity/pull/46). This branch retains the embedded package and lock entry exactly as on `master`, so the UITableView PR does not include that removal. The Unity 6 results below were recorded with the package removed and without vendor compatibility patches. Restoring its original 11.4.4 sources reproduces five vendor compiler errors on Unity `6000.6.0f1`; apply PR #46 before Unity 6 compilation/testing. The historical counts above describe the original regression slice, not the current expanded suite.
 
 ## Validation of the expanded dashboard
 
