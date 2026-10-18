@@ -43,6 +43,14 @@ UITableViewForUnity will help you to develop various list views effectively with
 ## .unitypackage
 Download the unitypackage from the [Releases](https://github.com/zhaozilong1988/UITableViewForUnity/releases), then import it to your project.
 
+# Working on this repository
+
+The project version declaration remains Unity `2019.4.40f1`; the package-compatibility repair is validated with Unity `6000.6.0f1`. Unity 2019.4 execution is not verified for this change. The library's scripts, scenes, prefabs and package minimum-version declaration are unchanged.
+
+The project no longer depends on the unused Unity Version Control (`com.unity.collab-proxy`) integration or the obsolete `com.unity.modules.vr` package. The repository uses Git; install a Version Control package compatible with your Editor separately if you need Unity Version Control. Rider integration is pinned to `3.0.36`, which still declares Unity 2019.4 support in the Unity registry. Package changes are resolved through `UnityEditor.PackageManager.Client.AddAndRemove`; the checked-in lock includes the built-in packages resolved by Unity 6.6, and another Editor version may regenerate those built-in entries.
+
+If Package Manager repeatedly throws `FormatException` after resolving a Git conflict in `Packages/packages-lock.json`, first check that both package JSON files are valid and contain no conflict markers. The observed exception came from Unity's Package Manager error-formatting path after a JSON parse failure. Once the file is repaired, close and reopen Package Manager or restart that project's Editor to discard the failed in-memory operation. This is separate from the dependency/compiler errors fixed here; no Unity internals are patched or exceptions suppressed.
+
 # Quick Start Guide
 
 ## Step 1: Create a Cell Class
